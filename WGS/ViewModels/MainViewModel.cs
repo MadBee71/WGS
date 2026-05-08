@@ -30,6 +30,7 @@ public partial class MainViewModel : BaseViewModel
     [ObservableProperty] private IGamePlugin? _newServerGame;
     [ObservableProperty] private bool _showSettingsPage;
     [ObservableProperty] private bool _showDashboard;
+    [ObservableProperty] private bool _showSupport;
     [ObservableProperty] private string _sortMode = "name-asc";
 
     public string[] SortModes { get; } = ["name-asc", "name-desc", "game-asc", "status"];
@@ -103,7 +104,14 @@ public partial class MainViewModel : BaseViewModel
         ShowAddDialog    = true;
     }
 
-    partial void OnSelectedServerChanged(ServerViewModel? value) { if (value != null) ShowDashboard = false; }
+    partial void OnSelectedServerChanged(ServerViewModel? value)
+    {
+        if (value != null)
+        {
+            ShowDashboard = false;
+            ShowSupport   = false;
+        }
+    }
     partial void OnSortModeChanged(string value) => OnPropertyChanged(nameof(SortedServers));
     partial void OnNewServerGameChanged(IGamePlugin? value) => UpdateInstallPath();
     partial void OnNewServerNameChanged(string value)      => UpdateInstallPath();
@@ -178,6 +186,15 @@ public partial class MainViewModel : BaseViewModel
     private void OpenDashboard()
     {
         ShowDashboard    = true;
+        ShowSettingsPage = false;
+        ShowSupport      = false;
+    }
+
+    [RelayCommand]
+    private void OpenSupport()
+    {
+        ShowSupport      = true;
+        ShowDashboard    = false;
         ShowSettingsPage = false;
     }
 

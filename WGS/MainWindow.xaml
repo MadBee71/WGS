@@ -98,6 +98,9 @@
                             <Button Content="+ Add game" Style="{StaticResource GhostButton}"
                                     FontSize="11" HorizontalAlignment="Stretch" Margin="0,6,0,0"
                                     Command="{Binding OpenPluginCreatorCommand}"/>
+                            <Button Content="ℹ  Info / Support" Style="{StaticResource GhostButton}"
+                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,6,0,0"
+                                    Command="{Binding OpenSupportCommand}"/>
                         </StackPanel>
                     </Border>
 
@@ -172,13 +175,19 @@
                 <views:DashboardView DataContext="{Binding Dashboard}"
                                      Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Server views (shown when not in settings and not in dashboard) -->
+                <!-- Support / Info page -->
+                <views:SupportView Visibility="{Binding ShowSupport, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Server views (shown when not in dashboard and not in support) -->
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ShowDashboard}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowSupport}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
