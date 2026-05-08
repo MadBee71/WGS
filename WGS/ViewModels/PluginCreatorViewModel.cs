@@ -1,0 +1,71 @@
+using System.IO;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using WGS.Games;
+using WGS.Models;
+
+namespace WGS.ViewModels;
+
+public partial class PluginCreatorViewModel : BaseViewModel
+{
+    private static readonly string PluginsPath = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory, "custom_plugins.json");
+
+    public static IReadOnlyList<string> Categories { get; } =
+        ["Survival", "Racing", "Simulation", "FPS", "Strategy", "Other"];
+
+    [ObservableProperty] private string _gameName        = string.Empty;
+    [ObservableProperty] private string _gameId          = string.Empty;
+    [ObservableProperty] private string _description     = string.Empty;
+    [ObservableProperty] private string _category        = "Other";
+    [ObservableProperty] private string _executable      = string.Empty;
+    [ObservableProperty] private int    _steamAppId;
+    [ObservableProperty] private int    _defaultPort       = 27015;
+    [ObservableProperty] private int    _defaultQueryPort  = 27016;
+    [ObservableProperty] private int    _defaultMaxPlayers = 16;
+    [ObservableProperty] private bool   _requiresSteamLogin;
+    [ObservableProperty] private bool   _hasRcon;
+
+    [ObservableProperty] private string _errorMessage = string.Empty;
+
+    public event Action? PluginCreated;
+    public event Action? Cancelled;
+
+    partial void OnGameNameChanged(string value)
+    {
+        GameId = value.ToLowerInvariant().Replace(' ', '_');
+    }
+
+    [RelayCommand]
+    private void Create()
+    {
+        ErrorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(GameName))   { ErrorMessage = "Pelin nimi on pakollinen."; return; }
+        if (string.IsNullOrWhiteSpace(GameId))     { ErrorMessage = "Pelin ID on pakollinen."; return; }
+        if (string.IsNullOrWhiteSpace(Executable)) { ErrorMessage = "Suoritettava tiedosto on pakollinen."; return; }
+
+        var def = new CustomGameDefinition
+        {
+            GameId            = GameId.Trim(),
+            GameName          = GameName.Trim(),
+            Description       = Description.Trim(),
+            Category          = Category,
+            Executable        = Executable.Trim(),
+            SteamAppId        = SteamAppId,
+            DefaultPort       = DefaultPort,
+            DefaultQueryPort  = DefaultQueryPort,
+            DefaultMaxPlayers = DefaultMaxPlayers,
+            RequiresSteamLogin = RequiresSteamLogin,
+            HasRcon           = HasRcon,
+        };
+
+        GameRegistry.SaveCustomPlugin(def, PluginsPath);
+        GameRegistry.LoadCustomPlugins(PluginsPath);
+
+        PluginCreated?.Invoke();
+    }
+
+    [RelayCommand]
+    private void Cancel() => Cancelled?.Invoke();
+}

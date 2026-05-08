@@ -1,0 +1,13 @@
+<Window x:Class="WGS.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
+        Background="Black" Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Width="600" Height="340"
+        ShowInTaskbar="False">
+    <Grid>
+        <Image Source="pack://application:,,,/WindowsGameServer;component/splash.png"
+               Stretch="Uniform"/>
+    </Grid>
+</Window>

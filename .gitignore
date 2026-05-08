@@ -1,0 +1,55 @@
+# Build outputs
+bin/
+obj/
+publish/
+publish_out/
+
+# .NET
+*.user
+*.suo
+.vs/
+*.rsuser
+*.userosscache
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# Runtime / user data
+*.log
+appcache/
+depotcache/
+
+# Game server install directories (everything that isn't source code)
+WGS/*/
+!WGS/Games/
+!WGS/Models/
+!WGS/Services/
+!WGS/ViewModels/
+!WGS/Views/
+!WGS/Converters/
+!WGS/Themes/
+!WGS/Assets/
+
+# PDF manuals and release artifacts
+github/
+*.pdf
+
+# Python skriptit (ei julkaistavia)
+*.py
+__pycache__/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Sensitive
+*.pfx
+*.p12
