@@ -65,9 +65,7 @@ public class SteamCmdService
             ? $"+login {login} {password}"
             : "+login anonymous";
 
-        // Request free license first (needed for dedicated server apps on some accounts)
-        var licenseArg = (login != null) ? $"+app_license_request {appId} " : "";
-        var args = $"+force_install_dir \"{installPath}\" {loginArg} {licenseArg}+app_update {appId} +quit";
+        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} +quit";
         await RunAsync(args, throwOnSteamError: true);
     }
 
