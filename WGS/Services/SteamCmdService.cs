@@ -65,7 +65,7 @@ public class SteamCmdService
             ? $"+login {login} {password}"
             : "+login anonymous";
 
-        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} validate +quit";
+        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} +quit";
         await RunAsync(args, throwOnSteamError: true);
     }
 
