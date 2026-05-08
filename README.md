@@ -12,7 +12,7 @@
 
 ---
 
-## Screenshots
+### 📷 Screenshots
 
 <p align="center">
   <img src="1.png" width="400" alt="Screenshot 1">
