@@ -209,6 +209,10 @@ MIT License — see the [LICENSE](LICENSE) file.
 
 ---
 
+## Support
+If you find WGS useful, you can support my work here:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/madbee71)
+
 <div align="center">
   <sub>Built with .NET 8 · WPF · CommunityToolkit.Mvvm</sub>
 </div>
