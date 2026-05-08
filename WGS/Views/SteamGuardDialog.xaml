@@ -28,7 +28,7 @@
                 <TextBlock TextWrapping="Wrap" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,0,0,16">
-                    Steam sent a verification code to your email (or authenticator app). Enter it below:
+                    If Steam Guard is enabled, enter the code from your email or authenticator app. Leave empty if not needed (session already cached).
                 </TextBlock>
 
                 <TextBox x:Name="CodeBox"

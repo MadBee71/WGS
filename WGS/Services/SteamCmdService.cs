@@ -17,12 +17,6 @@ public class SteamCmdService
     public event Action<int>? ProgressChanged;
     public event Action? Completed;
 
-    /// <summary>
-    /// Raised when SteamCMD is waiting for a Steam Guard code.
-    /// The subscriber must invoke the provided callback with the entered code.
-    /// </summary>
-    public event Action<Action<string>>? SteamGuardRequired;
-
     public SteamCmdService(ConfigService config)
     {
         _steamCmdDir = Path.Combine(config.AppDataPath, "steamcmd");
@@ -54,7 +48,7 @@ public class SteamCmdService
         }
     }
 
-    public async Task InstallOrUpdateAsync(int appId, string installPath, string? login = null, string? password = null)
+    public async Task InstallOrUpdateAsync(int appId, string installPath, string? login = null, string? password = null, string? steamGuardCode = null)
     {
         if (!IsInstalled) await DownloadSteamCmdAsync();
 
@@ -67,9 +61,17 @@ public class SteamCmdService
             throw new InvalidOperationException("Cannot create install directory: " + ex.Message, ex);
         }
 
-        var loginArg = (login != null && password != null)
-            ? $"+login {login} {password}"
-            : "+login anonymous";
+        string loginArg;
+        if (login != null && password != null)
+        {
+            loginArg = $"+login {login} {password}";
+            if (!string.IsNullOrWhiteSpace(steamGuardCode))
+                loginArg += $" {steamGuardCode.Trim()}";
+        }
+        else
+        {
+            loginArg = "+login anonymous";
+        }
 
         var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} validate +quit";
         await RunAsync(args, throwOnSteamError: true);
@@ -95,7 +97,6 @@ public class SteamCmdService
             UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
-            RedirectStandardInput  = true,
             CreateNoWindow         = true,
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding  = System.Text.Encoding.UTF8,
@@ -111,10 +112,6 @@ public class SteamCmdService
 
             if (throwOnSteamError && e.Data.StartsWith("ERROR!", StringComparison.OrdinalIgnoreCase))
                 steamError = e.Data;
-
-            // Detect Steam Guard prompt and ask user for code
-            if (IsSteamGuardPrompt(e.Data))
-                HandleSteamGuard();
         };
         _currentProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) OutputReceived?.Invoke("[ERR] " + e.Data); };
 
@@ -140,38 +137,6 @@ public class SteamCmdService
 
         if (exitCode != 0 && steamError == null)
             OutputReceived?.Invoke($"[WGS] SteamCMD exited with code {exitCode}");
-    }
-
-    private static bool IsSteamGuardPrompt(string line)
-    {
-        var l = line.ToLowerInvariant();
-        return l.Contains("steam guard") ||
-               l.Contains("steamguard") ||
-               l.Contains("two-factor") ||
-               l.Contains("two factor") ||
-               l.Contains("enter the current code") ||
-               l.Contains("enter your 2fa") ||
-               (l.Contains("enter") && l.Contains("code") && (l.Contains("email") || l.Contains("authenticator")));
-    }
-
-    private void HandleSteamGuard()
-    {
-        if (SteamGuardRequired == null || _currentProcess == null) return;
-
-        OutputReceived?.Invoke("[WGS] 🔒 Steam Guard code required. Check your email or authenticator app.");
-
-        // Ask the UI for the code; block until callback is called
-        var tcs = new TaskCompletionSource<string>();
-        SteamGuardRequired.Invoke(code => tcs.TrySetResult(code));
-
-        // Wait synchronously (we're on a thread-pool thread from async output handler)
-        var code = tcs.Task.GetAwaiter().GetResult();
-
-        if (!string.IsNullOrWhiteSpace(code))
-        {
-            try { _currentProcess.StandardInput.WriteLine(code); }
-            catch { /* process may have closed */ }
-        }
     }
 
     private void ParseAndForward(string line)

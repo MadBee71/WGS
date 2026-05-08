@@ -16,12 +16,12 @@ public partial class SteamGuardDialog : Window
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {
         Code = CodeBox.Text.Trim();
-        DialogResult = true;
+        DialogResult = true;   // empty code = no guard needed, proceed anyway
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
+        DialogResult = false;  // null = user cancelled, abort install
     }
 
     private void CodeBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

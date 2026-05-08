@@ -204,24 +204,32 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         RefreshStatus();
         AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
 
-        // Wire up Steam Guard dialog for this install session
-        void OnSteamGuard(Action<string> callback)
+        // Ask for Steam Guard code upfront (only when using authenticated login)
+        string? steamGuardCode = null;
+        if (login != null)
         {
-            WpfApplication.Current.Dispatcher.Invoke(() =>
+            steamGuardCode = await WpfApplication.Current.Dispatcher.InvokeAsync(() =>
             {
                 var dlg = new WGS.Views.SteamGuardDialog
                 {
                     Owner = WpfApplication.Current.MainWindow
                 };
-                var ok = dlg.ShowDialog();
-                callback(ok == true ? dlg.Code : string.Empty);
-            });
+                return dlg.ShowDialog() == true ? dlg.Code : null;
+            }).Task;
+
+            if (steamGuardCode == null)
+            {
+                AppendLog("[WGS] Install cancelled.", ConsoleMessageType.System);
+                IsInstalling = false;
+                Server.Status = ServerStatus.NotInstalled;
+                RefreshStatus();
+                return;
+            }
         }
-        _steamCmd.SteamGuardRequired += OnSteamGuard;
 
         try
         {
-            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password);
+            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password, steamGuardCode);
             Server.Status = ServerStatus.Stopped;
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
             await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
@@ -242,12 +250,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             AppendLog("[ERR] Unexpected error: " + ex.Message, ConsoleMessageType.Error);
             Server.Status = ServerStatus.Error;
         }
-        finally
-        {
-            _steamCmd.SteamGuardRequired -= OnSteamGuard;
-            IsInstalling = false;
-            RefreshStatus();
-        }
+        finally { IsInstalling = false; RefreshStatus(); }
     }
 
     [RelayCommand]
