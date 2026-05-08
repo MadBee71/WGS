@@ -3,6 +3,13 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
+
+  ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+  ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
+  ![License](https://img.shields.io/badge/license-MIT-green)
+  ![Games](https://img.shields.io/badge/supported_games-17+-orange)
+  ![Build](https://img.shields.io/badge/build-passing-brightgreen)
+
 ## Screenshots
 <p align="center">
   <img src="1.png" width="400" alt="Screenshot 1">
@@ -16,11 +23,6 @@
   <img src="5.png" width="400" alt="Screenshot 5">
 </p>
 
-  ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
-  ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
-  ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-17+-orange)
-  ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 </div>
 
 ---
