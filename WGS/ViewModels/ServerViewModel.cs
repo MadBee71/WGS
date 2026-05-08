@@ -204,32 +204,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         RefreshStatus();
         AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
 
-        // Ask for Steam Guard code upfront (only when using authenticated login)
-        string? steamGuardCode = null;
-        if (login != null)
-        {
-            steamGuardCode = await WpfApplication.Current.Dispatcher.InvokeAsync(() =>
-            {
-                var dlg = new WGS.Views.SteamGuardDialog
-                {
-                    Owner = WpfApplication.Current.MainWindow
-                };
-                return dlg.ShowDialog() == true ? dlg.Code : null;
-            }).Task;
-
-            if (steamGuardCode == null)
-            {
-                AppendLog("[WGS] Install cancelled.", ConsoleMessageType.System);
-                IsInstalling = false;
-                Server.Status = ServerStatus.NotInstalled;
-                RefreshStatus();
-                return;
-            }
-        }
-
         try
         {
-            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password, steamGuardCode);
+            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password);
             Server.Status = ServerStatus.Stopped;
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
             await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
