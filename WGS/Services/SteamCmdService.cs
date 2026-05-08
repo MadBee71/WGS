@@ -119,7 +119,25 @@ public class SteamCmdService
 
         _currentProcess.BeginOutputReadLine();
         _currentProcess.BeginErrorReadLine();
+
+        // Heartbeat — print a dot every 15 s so the user knows SteamCMD is still alive
+        using var cts = new CancellationTokenSource();
+        var heartbeat = Task.Run(async () =>
+        {
+            try
+            {
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    await Task.Delay(15_000, cts.Token);
+                    OutputReceived?.Invoke("[WGS] ... still working ...");
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, cts.Token);
+
         await _currentProcess.WaitForExitAsync();
+        cts.Cancel();
+        await heartbeat.ConfigureAwait(false);
 
         var exitCode = _currentProcess.ExitCode;
         Completed?.Invoke();
