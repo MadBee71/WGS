@@ -1,7 +1,6 @@
 <UserControl x:Class="WGS.Views.SupportView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:WGS.Views"
              Background="{StaticResource BgDeepBrush}">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32">
@@ -60,19 +59,10 @@
                     <TextBlock Text="https://ko-fi.com/madbee71"
                                FontSize="11"
                                Foreground="{StaticResource TextMutedBrush}"
-                               Margin="0,10,0,0">
-                        <TextBlock.InputBindings>
-                            <MouseBinding MouseAction="LeftClick"
-                                          Command="{x:Static local:SupportView.OpenUrlCommand}"
-                                          CommandParameter="https://ko-fi.com/madbee71"/>
-                        </TextBlock.InputBindings>
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="TextDecorations" Value="Underline"/>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                               Margin="0,10,0,0"
+                               Cursor="Hand"
+                               TextDecorations="Underline"
+                               MouseLeftButtonUp="KoFiLink_Click"/>
                 </StackPanel>
             </Border>
 

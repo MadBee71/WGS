@@ -6,12 +6,9 @@ namespace WGS.Views;
 
 public partial class SupportView : System.Windows.Controls.UserControl
 {
-    public static readonly RoutedUICommand OpenUrlCommand = new("OpenUrl", "OpenUrl", typeof(SupportView));
-
     public SupportView()
     {
         InitializeComponent();
-        CommandBindings.Add(new CommandBinding(OpenUrlCommand, OnOpenUrl));
     }
 
     private void KoFiButton_Click(object sender, RoutedEventArgs e)
@@ -19,10 +16,9 @@ public partial class SupportView : System.Windows.Controls.UserControl
         OpenUrl("https://ko-fi.com/madbee71");
     }
 
-    private static void OnOpenUrl(object sender, ExecutedRoutedEventArgs e)
+    private void KoFiLink_Click(object sender, MouseButtonEventArgs e)
     {
-        if (e.Parameter is string url)
-            OpenUrl(url);
+        OpenUrl("https://ko-fi.com/madbee71");
     }
 
     private static void OpenUrl(string url)
