@@ -67,17 +67,6 @@ public class SteamCmdService
 
         var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} validate +quit";
         await RunAsync(args, throwOnSteamError: true);
-        CleanupCache();
-    }
-
-    private void CleanupCache()
-    {
-        foreach (var dir in new[] { "appcache", "depotcache" })
-        {
-            var path = Path.Combine(_steamCmdDir, dir);
-            if (Directory.Exists(path))
-                try { Directory.Delete(path, recursive: true); } catch { }
-        }
     }
 
     public async Task RunAsync(string arguments, bool throwOnSteamError = false)
