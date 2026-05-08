@@ -14,7 +14,6 @@ public class RustPlugin : GamePluginBase
     public override int    DefaultPort   => 28015;
     public override int    DefaultQueryPort => 28016;
     public override int    DefaultMaxPlayers => 100;
-    public override bool   RequiresSteamLogin => true;
     public override bool   HasRcon       => true;
 
     public override string BuildStartArguments(GameServer s)
