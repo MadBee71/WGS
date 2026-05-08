@@ -10,7 +10,10 @@
   ![Games](https://img.shields.io/badge/supported_games-17+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
+---
+
 ## Screenshots
+
 <p align="center">
   <img src="1.png" width="400" alt="Screenshot 1">
   <img src="2.png" width="400" alt="Screenshot 2">
