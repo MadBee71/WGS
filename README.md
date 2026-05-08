@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="wgs.png" alt="Windows Game Server" width="120"/>
+  <img src="wgs.png" alt="Windows Game Server" width="220"/>
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
