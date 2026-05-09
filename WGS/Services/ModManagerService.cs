@@ -155,6 +155,110 @@ public class ModManagerService
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // SPIGOT — built from source with BuildTools (Spigot's legal requirement)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private const string BuildToolsUrl =
+        "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar";
+
+    /// <summary>
+    /// Downloads BuildTools.jar and compiles Spigot for the latest version.
+    /// Requires Java and Git on PATH. Compilation takes 5–10 minutes.
+    /// </summary>
+    public async Task InstallSpigotAsync(string installPath,
+                                         IProgress<(int pct, string msg)>? progress = null)
+    {
+        // Pre-flight: check Java
+        var javaPath = FindOnPath("java.exe") ?? FindOnPath("java");
+        if (javaPath == null)
+            throw new InvalidOperationException(
+                "Java not found on PATH. Install Java (JDK 17+) and make sure it's in your system PATH.");
+
+        // Pre-flight: check Git (BuildTools needs it)
+        var gitPath = FindOnPath("git.exe") ?? FindOnPath("git");
+        if (gitPath == null)
+            throw new InvalidOperationException(
+                "Git not found on PATH. Install Git for Windows (git-scm.com) and make sure it's in your system PATH.");
+
+        Directory.CreateDirectory(installPath);
+
+        // Download BuildTools.jar into install folder
+        Report(progress, 5, "Downloading BuildTools.jar from SpigotMC...");
+        var buildToolsJar = Path.Combine(installPath, "BuildTools.jar");
+        var bytes = await _http.GetByteArrayAsync(BuildToolsUrl);
+        await File.WriteAllBytesAsync(buildToolsJar, bytes);
+
+        // Run BuildTools — this compiles Spigot, takes several minutes
+        Report(progress, 10, "Running BuildTools (compiling Spigot — this takes 5–10 minutes)...");
+
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName               = javaPath,
+            Arguments              = "-jar BuildTools.jar --rev latest --nogui",
+            WorkingDirectory       = installPath,
+            UseShellExecute        = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            CreateNoWindow         = true,
+        };
+
+        using var proc = new System.Diagnostics.Process { StartInfo = psi, EnableRaisingEvents = true };
+        var outputLines = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        proc.OutputDataReceived += (_, e) => { if (e.Data != null) outputLines.Add(e.Data); };
+        proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) outputLines.Add(e.Data); };
+
+        proc.Start();
+        proc.BeginOutputReadLine();
+        proc.BeginErrorReadLine();
+
+        // Report progress while waiting (BuildTools doesn't give clean progress %)
+        int fake = 10;
+        while (!proc.WaitForExit(3000))
+        {
+            fake = Math.Min(fake + 2, 88);
+            var lastLine = outputLines.LastOrDefault() ?? "...compiling...";
+            if (lastLine.Length > 80) lastLine = lastLine[^80..];
+            Report(progress, fake, lastLine);
+        }
+
+        if (proc.ExitCode != 0)
+        {
+            var tail = string.Join("\n", outputLines.TakeLast(5));
+            throw new InvalidOperationException($"BuildTools failed (exit {proc.ExitCode}):\n{tail}");
+        }
+
+        // BuildTools outputs spigot-X.XX.X.jar — find it and copy to server.jar
+        Report(progress, 90, "Locating compiled Spigot JAR...");
+        var spigotJar = Directory.GetFiles(installPath, "spigot-*.jar")
+                                  .OrderByDescending(f => new FileInfo(f).LastWriteTime)
+                                  .FirstOrDefault()
+                        ?? throw new InvalidOperationException(
+                            "BuildTools finished but spigot-*.jar not found in install folder.");
+
+        File.Copy(spigotJar, Path.Combine(installPath, "server.jar"), overwrite: true);
+        EnsureEula(installPath);
+
+        var jarName = Path.GetFileNameWithoutExtension(spigotJar);
+        Report(progress, 100, $"✅ {jarName} compiled and installed as server.jar");
+    }
+
+    private static string? FindOnPath(string exe)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in path.Split(Path.PathSeparator))
+        {
+            try
+            {
+                var full = Path.Combine(dir.Trim(), exe);
+                if (File.Exists(full)) return full;
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // PURPUR (Paper fork with extra features)
     // ──────────────────────────────────────────────────────────────────────────
 

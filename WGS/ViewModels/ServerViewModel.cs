@@ -493,6 +493,25 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
+    private async Task InstallSpigotAsync()
+    {
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+            await _mods.InstallSpigotAsync(Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Spigot compiled and installed.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
     private async Task InstallPurpurAsync()
     {
         ModBusy = true;

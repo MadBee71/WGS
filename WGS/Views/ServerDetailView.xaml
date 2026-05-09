@@ -637,6 +637,26 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- Spigot -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Spigot" FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="Classic plugin server. Compiled locally with BuildTools (requires Java + Git). Takes 5–10 min."
+                                                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="⬇ Build &amp; Install" Style="{StaticResource PrimaryButton}"
+                                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding InstallSpigotCommand}"
+                                                IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    </Grid>
+                                </Border>
+
                                 <!-- Purpur -->
                                 <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
                                     <Grid>
