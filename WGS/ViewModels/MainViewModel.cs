@@ -241,6 +241,42 @@ public partial class MainViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void ExportCsPlugin()
+    {
+        // Pick which plugin to export
+        var all = AvailableGames.ToList();
+        if (all.Count == 0) return;
+
+        var win = new WGS.Views.ExportPluginDialog(all);
+        win.Owner = WpfApplication.Current.MainWindow;
+        if (win.ShowDialog() != true || win.SelectedPlugin == null) return;
+
+        var plugin = win.SelectedPlugin;
+        using var save = new System.Windows.Forms.SaveFileDialog
+        {
+            Title            = "Export plugin as .cs",
+            Filter           = "C# source files (*.cs)|*.cs",
+            FileName         = $"{plugin.GameId}_plugin.cs",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+        };
+        if (save.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        try
+        {
+            WGS.Services.PluginExporterService.ExportToFile(plugin, save.FileName);
+            System.Windows.MessageBox.Show(
+                $"✅ Plugin '{plugin.GameName}' exported to:\n{save.FileName}",
+                "Export", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Export failed: {ex.Message}", "Export",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
     private void OpenSettings()
     {
         var win = new WGS.Views.SettingsWindow(Settings);
