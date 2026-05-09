@@ -221,22 +221,51 @@ public class ServerManagerService
         {
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
+
+            // Output is captured in WGS — hide any window the process creates.
+            // CreateNoWindow only suppresses the console host; some servers (e.g. Rust)
+            // still create a Win32 window via AllocConsole/CreateWindow internally.
+            // Poll until the window appears, then hide it completely.
+            _ = Task.Run(async () =>
+            {
+                for (int i = 0; i < 30 && !proc.HasExited; i++) // up to 15 seconds
+                {
+                    await Task.Delay(500);
+                    try
+                    {
+                        proc.Refresh();
+                        var hwnd = proc.MainWindowHandle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            ShowWindow(hwnd, SW_HIDE);
+                            break;
+                        }
+                    }
+                    catch { break; }
+                }
+            });
         }
         else
         {
-            // Native-console server: minimize without stealing focus so WGS stays in front.
-            // We wait briefly for the process to create its main window, then push it to background.
+            // Native-console server: has its own useful console window.
+            // Minimize to taskbar without stealing focus — user can open it with Console button.
             _ = Task.Run(async () =>
             {
-                await Task.Delay(1500); // give process time to create its window
-                try
+                for (int i = 0; i < 20 && !proc.HasExited; i++) // up to 10 seconds
                 {
-                    proc.Refresh();
-                    var hwnd = proc.MainWindowHandle;
-                    if (hwnd != IntPtr.Zero)
-                        ShowWindow(hwnd, SW_SHOWMINNOACTIVE); // minimize, don't activate
+                    await Task.Delay(500);
+                    try
+                    {
+                        proc.Refresh();
+                        var hwnd = proc.MainWindowHandle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+                            break;
+                        }
+                    }
+                    catch { break; }
                 }
-                catch { }
             });
         }
 
@@ -336,6 +365,7 @@ public class ServerManagerService
 
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    private const int SW_HIDE            = 0; // hide window completely
     private const int SW_SHOWMINNOACTIVE = 7; // minimize without stealing focus
     private const int SW_RESTORE         = 9;
 
