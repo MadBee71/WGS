@@ -40,8 +40,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     private System.Timers.Timer? _perfTimer;
 
-    public bool HasModSupport => Plugin?.SupportsOxide == true
-                              || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
+    public bool HasModSupport       => Plugin?.SupportsOxide == true
+                                    || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
+    public bool HasMinecraftSupport => !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
 
     public List<CpuCoreItem> CpuCores { get; }
     public string[] PriorityOptions { get; } = ["Normal", "AboveNormal", "High", "BelowNormal", "RealTime"];
@@ -137,8 +138,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (Server.AutoUpdate && Plugin?.SteamAppId > 0)
                 await InstallAsync();
             await _manager.StartAsync(Server);
-            StartPerfMonitoring();
-            StartUpdateTimer();
+            // StartPerfMonitoring() and StartUpdateTimer() are called from OnStatusChanged(Running)
         }
         catch (FileNotFoundException ex)
         {
@@ -162,7 +162,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             StopUpdateTimer();
             await _manager.StopAsync(Server);
-            StopPerfMonitoring();
+            // StopPerfMonitoring() called from OnStatusChanged(Stopped)
         }
         catch (Exception ex) { AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error); }
     }
@@ -429,7 +429,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             // during the stop → update → start cycle
             Server.AutoRestart = false;
             await _manager.StopAsync(Server);
-            WpfApplication.Current?.Dispatcher?.Invoke(StopPerfMonitoring);
+            // StopPerfMonitoring called by OnStatusChanged
 
             await InstallAsync(); // runs SteamCMD update
 
@@ -437,7 +437,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             Server.AutoRestart = wasAutoRestart;
 
             await _manager.StartAsync(Server);
-            WpfApplication.Current?.Dispatcher?.Invoke(StartPerfMonitoring);
+            // StartPerfMonitoring + StartUpdateTimer called by OnStatusChanged(Running)
             AppendLog("[AutoUpdate] ✅ Updated and restarted.", ConsoleMessageType.System);
             await _notifications.NotifyAsync($"🔄 {Server.DisplayName} updated & restarted", Plugin?.GameName ?? "", "#58A6FF");
         }
@@ -637,6 +637,27 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (serverId != Server.Id) return;
         WpfApplication.Current?.Dispatcher?.Invoke(RefreshStatus);
         _ = _notifications.NotifyServerStatusAsync(Server, status);
+
+        // Restart the auto-update timer when the server comes back up (e.g. after crash-restart)
+        // StartAsync relay command is NOT called on crash-restarts — ServerManagerService handles that.
+        if (status == ServerStatus.Running)
+        {
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                StartPerfMonitoring();
+                if (_updateTimer == null) StartUpdateTimer();
+            });
+        }
+        else if (status == ServerStatus.Stopped || status == ServerStatus.Error)
+        {
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                StopPerfMonitoring();
+                // Only stop timer if not auto-restarting (AutoRestart handles re-start itself)
+                if (!Server.AutoRestart)
+                    StopUpdateTimer();
+            });
+        }
     }
 
     private void OnCrashLimitReached(string serverId)

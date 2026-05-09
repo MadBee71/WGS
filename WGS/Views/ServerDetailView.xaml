@@ -606,10 +606,8 @@
                         </Border>
 
                         <!-- Minecraft server JARs — visible for any Minecraft plugin -->
-                        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                            <Border.Visibility>
-                                <Binding Path="Plugin.MinecraftFlavor" Converter="{StaticResource NullToInvVis}"/>
-                            </Border.Visibility>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                                Visibility="{Binding HasMinecraftSupport, Converter={StaticResource BoolToVis}}">
                             <StackPanel>
                                 <TextBlock Text="Minecraft Server JAR" FontSize="14" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
