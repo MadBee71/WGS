@@ -14,12 +14,13 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly SteamCmdService _steamCmd;
 
     [ObservableProperty] private bool   _discordEnabled;
-    [ObservableProperty] private string _discordWebhookUrl = string.Empty;
-    [ObservableProperty] private bool   _notifyOnStart     = true;
-    [ObservableProperty] private bool   _notifyOnStop      = true;
-    [ObservableProperty] private bool   _notifyOnCrash     = true;
-    [ObservableProperty] private bool   _notifyOnUpdate    = true;
+    [ObservableProperty] private string _discordWebhookUrl  = string.Empty;
+    [ObservableProperty] private bool   _notifyOnStart      = true;
+    [ObservableProperty] private bool   _notifyOnStop       = true;
+    [ObservableProperty] private bool   _notifyOnCrash      = true;
+    [ObservableProperty] private bool   _notifyOnUpdate     = true;
     [ObservableProperty] private string _defaultInstallRoot = string.Empty;
+    [ObservableProperty] private string _backupPath         = string.Empty;
     [ObservableProperty] private string _steamCmdPath       = string.Empty;
     [ObservableProperty] private string _steamLogin         = string.Empty;
     [ObservableProperty] private string _steamPassword      = string.Empty;
@@ -35,16 +36,17 @@ public partial class SettingsViewModel : BaseViewModel
     private void Load()
     {
         var s = _notifications.Settings;
-        DiscordEnabled    = s.DiscordEnabled;
-        DiscordWebhookUrl = s.DiscordWebhookUrl;
-        NotifyOnStart     = s.NotifyOnStart;
-        NotifyOnStop      = s.NotifyOnStop;
-        NotifyOnCrash     = s.NotifyOnCrash;
-        NotifyOnUpdate    = s.NotifyOnUpdate;
+        DiscordEnabled     = s.DiscordEnabled;
+        DiscordWebhookUrl  = s.DiscordWebhookUrl;
+        NotifyOnStart      = s.NotifyOnStart;
+        NotifyOnStop       = s.NotifyOnStop;
+        NotifyOnCrash      = s.NotifyOnCrash;
+        NotifyOnUpdate     = s.NotifyOnUpdate;
         DefaultInstallRoot = _config.DefaultInstallRoot;
-        SteamCmdPath  = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");
-        SteamLogin    = _config.SteamLogin;
-        SteamPassword = _config.SteamPassword;
+        BackupPath         = _config.BackupPath;
+        SteamCmdPath       = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");
+        SteamLogin         = _config.SteamLogin;
+        SteamPassword      = _config.SteamPassword;
     }
 
     [RelayCommand]
@@ -59,10 +61,25 @@ public partial class SettingsViewModel : BaseViewModel
         s.NotifyOnUpdate    = NotifyOnUpdate;
         _notifications.Save();
         _config.DefaultInstallRoot = DefaultInstallRoot;
-        _config.SteamLogin    = SteamLogin;
-        _config.SteamPassword = SteamPassword;
+        _config.BackupPath         = BackupPath;
+        _config.SteamLogin         = SteamLogin;
+        _config.SteamPassword      = SteamPassword;
         _config.Save();
+        System.IO.Directory.CreateDirectory(BackupPath);
         WpfMsgBox.Show("Settings saved.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
+    }
+
+    [RelayCommand]
+    private void BrowseBackupPath()
+    {
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description  = "Select backup folder",
+            SelectedPath = BackupPath,
+            UseDescriptionForTitle = true,
+        };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            BackupPath = dlg.SelectedPath;
     }
 
     [RelayCommand]

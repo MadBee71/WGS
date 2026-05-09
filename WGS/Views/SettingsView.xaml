@@ -43,10 +43,23 @@
                     <TextBlock Text="Default install directory" Style="{StaticResource FieldLabel}"/>
                     <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
                              Text="{Binding DefaultInstallRoot, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Backup folder" Style="{StaticResource FieldLabel}"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
+                                 Text="{Binding BackupPath, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Grid.Column="1" Content="Browse" Style="{StaticResource GhostButton}"
+                                Margin="8,0,0,0" Command="{Binding BrowseBackupPathCommand}"/>
+                    </Grid>
                     <TextBlock Text="SteamCMD directory" Style="{StaticResource FieldLabel}"/>
                     <TextBox Style="{StaticResource DarkTextBox}"
                              Text="{Binding SteamCmdPath}" IsReadOnly="True"
                              Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>
             </Border>
 

@@ -98,8 +98,11 @@
                             <Button Content="+ Add game" Style="{StaticResource GhostButton}"
                                     FontSize="11" HorizontalAlignment="Stretch" Margin="0,6,0,0"
                                     Command="{Binding OpenPluginCreatorCommand}"/>
+                            <Button Content="⬆ Import .cs plugin" Style="{StaticResource GhostButton}"
+                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                                    Command="{Binding ImportCsPluginCommand}"/>
                             <Button Content="ℹ  Info / Support" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,6,0,0"
+                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,4,0,0"
                                     Command="{Binding OpenSupportCommand}"/>
                         </StackPanel>
                     </Border>

@@ -18,15 +18,14 @@ public class BackupEntry
 public class BackupService
 {
     private readonly ConfigService _config;
-    public string BackupRoot { get; }
+    public string BackupRoot => _config.BackupPath;
 
     public event Action<string>? ProgressMessage;
 
     public BackupService(ConfigService config)
     {
         _config    = config;
-        BackupRoot = Path.Combine(config.AppDataPath, "backups");
-        Directory.CreateDirectory(BackupRoot);
+        Directory.CreateDirectory(config.BackupPath);
     }
 
     public async Task<BackupEntry> CreateBackupAsync(GameServer server)

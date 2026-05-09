@@ -208,6 +208,39 @@ public partial class MainViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void ImportCsPlugin()
+    {
+        using var dlg = new System.Windows.Forms.OpenFileDialog
+        {
+            Title  = "Import plugin (.cs)",
+            Filter = "C# source files (*.cs)|*.cs",
+        };
+        if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        var (plugin, error) = WGS.Services.PluginCompilerService.CompileAndLoad(dlg.FileName);
+        if (plugin == null)
+        {
+            System.Windows.MessageBox.Show(error, "Import failed",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return;
+        }
+
+        if (GameRegistry.All.Any(p => p.GameId == plugin.GameId))
+        {
+            System.Windows.MessageBox.Show(
+                $"Plugin '{plugin.GameId}' is already registered.",
+                "Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        GameRegistry.Register(plugin);
+        OnPropertyChanged(nameof(AvailableGames));
+        System.Windows.MessageBox.Show(
+            $"✅ Plugin '{plugin.GameName}' imported successfully!",
+            "Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+    }
+
+    [RelayCommand]
     private void OpenSettings()
     {
         var win = new WGS.Views.SettingsWindow(Settings);

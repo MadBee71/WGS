@@ -29,7 +29,7 @@ public static class GameRegistry
         Register(new AssettoCorsaPlugin());
     }
 
-    private static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
+    public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
 
     public static IGamePlugin? Get(string gameId)
         => _plugins.TryGetValue(gameId, out var p) ? p : null;
