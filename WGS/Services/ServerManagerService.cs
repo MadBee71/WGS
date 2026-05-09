@@ -102,7 +102,9 @@ public class ServerManagerService
             RedirectStandardOutput = !native,
             RedirectStandardError  = !native,
             RedirectStandardInput  = !native,
-            CreateNoWindow         = false,
+            // Non-native: output captured in WGS → no window needed at all
+            // Native:     server has its own console window → let it create one
+            CreateNoWindow         = !native,
             StandardOutputEncoding = native ? null : System.Text.Encoding.UTF8,
             StandardErrorEncoding  = native ? null : System.Text.Encoding.UTF8,
         };
@@ -220,6 +222,23 @@ public class ServerManagerService
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
         }
+        else
+        {
+            // Native-console server: minimize without stealing focus so WGS stays in front.
+            // We wait briefly for the process to create its main window, then push it to background.
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1500); // give process time to create its window
+                try
+                {
+                    proc.Refresh();
+                    var hwnd = proc.MainWindowHandle;
+                    if (hwnd != IntPtr.Zero)
+                        ShowWindow(hwnd, SW_SHOWMINNOACTIVE); // minimize, don't activate
+                }
+                catch { }
+            });
+        }
 
         // Apply CPU affinity
         if (server.CpuAffinityMask != 0)
@@ -317,7 +336,8 @@ public class ServerManagerService
 
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
-    private const int SW_RESTORE = 9;
+    private const int SW_SHOWMINNOACTIVE = 7; // minimize without stealing focus
+    private const int SW_RESTORE         = 9;
 
     public void ShowWindow(GameServer server)
     {
