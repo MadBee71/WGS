@@ -12,54 +12,48 @@
 
         <!-- ══ HEADER ══ -->
         <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,16">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                 Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
-                        <TextBlock Text="{Binding Server.DisplayName}" FontSize="20" FontWeight="Bold" Margin="10,0,0,0"/>
-                        <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="12,0,0,0">
-                            <TextBlock Text="{Binding Plugin.GameName}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                        </Border>
-                        <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="6,0,0,0">
-                            <TextBlock Text="{Binding Plugin.Category}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
-                        </Border>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,14,24,10">
+            <StackPanel>
+                <!-- Server name row -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                             Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
+                    <TextBlock Text="{Binding Server.DisplayName}" FontSize="20" FontWeight="Bold" Margin="10,0,0,0"/>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Plugin.GameName}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Plugin.Category}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="Uptime: " FontSize="13" Foreground="{StaticResource TextMutedBrush}"/>
-                        <TextBlock Text="{Binding UptimeText}" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                        <TextBlock Text="Uptime: " FontSize="12" Foreground="{StaticResource TextMutedBrush}"/>
+                        <TextBlock Text="{Binding UptimeText}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                    FontFamily="Consolas"/>
                     </StackPanel>
                 </StackPanel>
-
-                <!-- Action buttons -->
-                <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="{Binding Loc.BtnStart}" Style="{StaticResource SuccessButton}" Margin="4,2"
+                <!-- Action buttons row -->
+                <WrapPanel Orientation="Horizontal">
+                    <Button Content="{Binding Loc.BtnStart}" Style="{StaticResource SuccessButton}" Margin="0,0,4,0"
                             Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"/>
-                    <Button Content="{Binding Loc.BtnStop}" Style="{StaticResource DangerButton}" Margin="4,2"
+                    <Button Content="{Binding Loc.BtnStop}" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
                             Command="{Binding StopCommand}" IsEnabled="{Binding CanStop}"/>
-                    <Button Content="💀 Kill" Style="{StaticResource DangerButton}" Margin="4,2"
+                    <Button Content="💀 Kill" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
                             Command="{Binding KillCommand}" IsEnabled="{Binding CanStop}" ToolTip="Kill process immediately"/>
-                    <Button Content="🖥 Console" Style="{StaticResource GhostButton}" Margin="4,2"
+                    <Button Content="🖥 Console" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                             Command="{Binding ShowWindowCommand}" IsEnabled="{Binding IsRunning}" ToolTip="Bring server console to front"/>
-                    <Button Content="↺" Style="{StaticResource GhostButton}" Margin="4,2" Width="36" Padding="0"
+                    <Button Content="↺" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding RestartCommand}" IsEnabled="{Binding CanStop}" ToolTip="Restart"/>
-                    <Button Content="{Binding Loc.BtnInstall}" Style="{StaticResource GhostButton}" Margin="4,2"
+                    <Button Content="{Binding Loc.BtnInstall}" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                             Command="{Binding InstallCommand}" IsEnabled="{Binding IsInstalling, Converter={StaticResource InvBool}}"/>
-                    <Button Content="📁" Style="{StaticResource GhostButton}" Margin="4,2" Width="36" Padding="0"
+                    <Button Content="📁" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding OpenInstallFolderCommand}" ToolTip="Open folder"/>
-                    <Button Content="🗑 Remove" Style="{StaticResource DangerButton}" Margin="4,2"
+                    <Button Content="🗑 Remove" Style="{StaticResource DangerButton}"
                             Command="{Binding DataContext.RemoveServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"
                             ToolTip="Remove server from list"/>
                 </WrapPanel>
-            </Grid>
+            </StackPanel>
         </Border>
 
         <!-- ══ PERF BAR ══ -->
