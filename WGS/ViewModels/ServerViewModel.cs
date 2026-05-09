@@ -493,6 +493,63 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
+    private async Task InstallPurpurAsync()
+    {
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+            await _mods.InstallPurpurAsync(Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Purpur installed successfully.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task InstallFabricAsync()
+    {
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+            await _mods.InstallFabricAsync(Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Fabric installed successfully.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task InstallVanillaAsync()
+    {
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+            await _mods.InstallVanillaAsync(Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Vanilla server installed successfully.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
     private void OpenPluginFolder()
     {
         if (Plugin == null) return;

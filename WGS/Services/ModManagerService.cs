@@ -155,6 +155,126 @@ public class ModManagerService
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // PURPUR (Paper fork with extra features)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public async Task InstallPurpurAsync(string installPath,
+                                         IProgress<(int pct, string msg)>? progress = null)
+    {
+        Report(progress, 0, "Fetching latest Purpur version...");
+        // Get latest MC version
+        var versionsJson = await _http.GetStringAsync("https://api.purpurmc.org/v2/purpur");
+        using var versionsDoc = JsonDocument.Parse(versionsJson);
+        var latestVer = versionsDoc.RootElement
+                            .GetProperty("versions").EnumerateArray()
+                            .Select(v => v.GetString()!).Last();
+
+        Report(progress, 10, $"Fetching latest Purpur build for {latestVer}...");
+        var buildJson = await _http.GetStringAsync($"https://api.purpurmc.org/v2/purpur/{latestVer}/latest");
+        using var buildDoc = JsonDocument.Parse(buildJson);
+        var build = buildDoc.RootElement.GetProperty("build").GetString()!;
+
+        var url = $"https://api.purpurmc.org/v2/purpur/{latestVer}/{build}/download";
+        Report(progress, 20, $"Downloading Purpur {latestVer} build {build}...");
+        var bytes = await _http.GetByteArrayAsync(url);
+
+        Directory.CreateDirectory(installPath);
+        await File.WriteAllBytesAsync(Path.Combine(installPath, "server.jar"), bytes);
+        EnsureEula(installPath);
+        Report(progress, 100, $"✅ Purpur {latestVer} build {build} installed");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // FABRIC
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public async Task InstallFabricAsync(string installPath,
+                                         IProgress<(int pct, string msg)>? progress = null)
+    {
+        Report(progress, 0, "Fetching latest Fabric loader version...");
+
+        // 1. Get latest stable MC version
+        var mcJson = await _http.GetStringAsync("https://meta.fabricmc.net/v2/versions/game");
+        using var mcDoc = JsonDocument.Parse(mcJson);
+        var latestMc = mcDoc.RootElement.EnumerateArray()
+                            .Where(v => v.GetProperty("stable").GetBoolean())
+                            .Select(v => v.GetProperty("version").GetString()!)
+                            .First();
+
+        // 2. Get latest stable loader
+        var loaderJson = await _http.GetStringAsync("https://meta.fabricmc.net/v2/versions/loader");
+        using var loaderDoc = JsonDocument.Parse(loaderJson);
+        var latestLoader = loaderDoc.RootElement.EnumerateArray()
+                                    .Where(v => v.GetProperty("stable").GetBoolean())
+                                    .Select(v => v.GetProperty("version").GetString()!)
+                                    .First();
+
+        // 3. Get latest installer
+        var installerJson = await _http.GetStringAsync("https://meta.fabricmc.net/v2/versions/installer");
+        using var installerDoc = JsonDocument.Parse(installerJson);
+        var latestInstaller = installerDoc.RootElement.EnumerateArray()
+                                          .Where(v => v.GetProperty("stable").GetBoolean())
+                                          .Select(v => v.GetProperty("version").GetString()!)
+                                          .First();
+
+        // 4. Download the server launch JAR directly (no installer needed — Fabric provides a launcher jar)
+        var url = $"https://meta.fabricmc.net/v2/versions/loader/{latestMc}/{latestLoader}/{latestInstaller}/server/jar";
+        Report(progress, 20, $"Downloading Fabric {latestMc} (loader {latestLoader})...");
+        var bytes = await _http.GetByteArrayAsync(url);
+
+        Directory.CreateDirectory(installPath);
+        await File.WriteAllBytesAsync(Path.Combine(installPath, "server.jar"), bytes);
+        EnsureEula(installPath);
+        Report(progress, 100, $"✅ Fabric {latestMc} loader {latestLoader} installed");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // VANILLA (official Mojang server)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public async Task InstallVanillaAsync(string installPath,
+                                          IProgress<(int pct, string msg)>? progress = null)
+    {
+        Report(progress, 0, "Fetching Minecraft version manifest...");
+        var manifestJson = await _http.GetStringAsync(
+            "https://launchermeta.mojang.com/mc/game/version_manifest.json");
+        using var manifest = JsonDocument.Parse(manifestJson);
+
+        var latestRelease = manifest.RootElement
+                                    .GetProperty("latest")
+                                    .GetProperty("release")
+                                    .GetString()!;
+
+        var versionUrl = manifest.RootElement
+                                 .GetProperty("versions").EnumerateArray()
+                                 .First(v => v.GetProperty("id").GetString() == latestRelease)
+                                 .GetProperty("url").GetString()!;
+
+        Report(progress, 10, $"Fetching version info for {latestRelease}...");
+        var verJson = await _http.GetStringAsync(versionUrl);
+        using var verDoc = JsonDocument.Parse(verJson);
+        var serverUrl = verDoc.RootElement
+                              .GetProperty("downloads")
+                              .GetProperty("server")
+                              .GetProperty("url").GetString()!;
+
+        Report(progress, 20, $"Downloading Vanilla {latestRelease} server...");
+        var bytes = await _http.GetByteArrayAsync(serverUrl);
+
+        Directory.CreateDirectory(installPath);
+        await File.WriteAllBytesAsync(Path.Combine(installPath, "server.jar"), bytes);
+        EnsureEula(installPath);
+        Report(progress, 100, $"✅ Vanilla Minecraft {latestRelease} server installed");
+    }
+
+    private static void EnsureEula(string installPath)
+    {
+        var eulaPath = Path.Combine(installPath, "eula.txt");
+        if (!File.Exists(eulaPath))
+            File.WriteAllText(eulaPath, "#Generated by WGS — you accept the Minecraft EULA\neula=true\n");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Installed plugins/mods listing
     // ──────────────────────────────────────────────────────────────────────────
 

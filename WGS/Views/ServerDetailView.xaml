@@ -605,33 +605,101 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Paper section -->
+                        <!-- Minecraft server JARs — visible for any Minecraft plugin -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                             <Border.Visibility>
                                 <Binding Path="Plugin.MinecraftFlavor" Converter="{StaticResource NullToInvVis}"/>
                             </Border.Visibility>
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="Paper (Minecraft)" FontSize="14" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="3"
-                                            Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="High-performance server JAR" FontSize="11"
-                                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                                    </Border>
-                                </StackPanel>
+                                <TextBlock Text="Minecraft Server JAR" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                                    Downloads the latest Paper server JAR from papermc.io and replaces server.jar.
-                                    Paper supports Bukkit/Spigot plugins. Place plugin JARs in the plugins/ folder.
+                                    Downloads and installs a server.jar. All options support Bukkit/Spigot plugins (except Vanilla and Fabric which use their own mod systems).
                                 </TextBlock>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="⬇ Install / Update Paper" Style="{StaticResource PrimaryButton}"
-                                            Margin="0,0,8,0"
-                                            Command="{Binding InstallPaperCommand}"
-                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
-                                    <Button Content="📂 Open plugins folder" Style="{StaticResource GhostButton}"
-                                            Command="{Binding OpenPluginFolderCommand}"/>
-                                </StackPanel>
+
+                                <!-- Paper -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Paper" FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="Best for plugin servers. Fastest, most stable Paper fork. Supports Bukkit/Spigot plugins."
+                                                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource PrimaryButton}"
+                                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding InstallPaperCommand}"
+                                                IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Purpur -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Purpur" FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="Paper fork with extra gameplay tweaks and config options. Supports all Paper/Bukkit plugins."
+                                                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource PrimaryButton}"
+                                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding InstallPurpurCommand}"
+                                                IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Fabric -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Fabric" FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="Best for mod packs. Lightweight, fast to update. Uses Fabric mods (not Bukkit plugins)."
+                                                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource PrimaryButton}"
+                                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding InstallFabricCommand}"
+                                                IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Vanilla -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,10" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Vanilla" FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="Official Mojang server. No plugins or mods. Always up-to-date with the latest release."
+                                                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource GhostButton}"
+                                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding InstallVanillaCommand}"
+                                                IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <Button Content="📂 Open plugins folder" Style="{StaticResource GhostButton}"
+                                        HorizontalAlignment="Left"
+                                        Command="{Binding OpenPluginFolderCommand}"/>
                             </StackPanel>
                         </Border>
 
