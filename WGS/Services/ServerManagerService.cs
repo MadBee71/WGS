@@ -102,9 +102,11 @@ public class ServerManagerService
             RedirectStandardOutput = !native,
             RedirectStandardError  = !native,
             RedirectStandardInput  = !native,
-            // Non-native: output captured in WGS → no window needed at all
-            // Native:     server has its own console window → let it create one
             CreateNoWindow         = !native,
+            // WindowStyle.Hidden sets STARTF_USESHOWWINDOW|SW_HIDE in STARTUPINFO.
+            // This propagates to AllocConsole() AND to Windows Terminal so the tab
+            // is created hidden rather than stealing focus.
+            WindowStyle            = native ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
             StandardOutputEncoding = native ? null : System.Text.Encoding.UTF8,
             StandardErrorEncoding  = native ? null : System.Text.Encoding.UTF8,
         };
