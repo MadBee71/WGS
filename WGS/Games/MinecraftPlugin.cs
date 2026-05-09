@@ -13,7 +13,8 @@ public class MinecraftPlugin : GamePluginBase
     public override int    DefaultPort   => 25565;
     public override int    DefaultQueryPort => 25565;
     public override int    DefaultMaxPlayers => 20;
-    public override bool   HasRcon       => true;
+    public override bool   HasRcon         => true;
+    public override string MinecraftFlavor => "paper";
 
     public override string BuildStartArguments(GameServer s)
     {

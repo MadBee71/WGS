@@ -10,15 +10,17 @@ namespace WGS.ViewModels;
 
 public partial class ServerViewModel : BaseViewModel, IDisposable
 {
-    private readonly ServerManagerService _manager;
-    private readonly SteamCmdService _steamCmd;
-    private readonly BackupService _backup;
-    private readonly NotificationService _notifications;
+    private readonly ServerManagerService  _manager;
+    private readonly SteamCmdService       _steamCmd;
+    private readonly BackupService         _backup;
+    private readonly NotificationService   _notifications;
     private readonly PerformanceMonitorService _perfMonitor;
-    private readonly ConfigService _config;
+    private readonly ConfigService         _config;
+    private readonly ModManagerService     _mods;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
+    private System.Timers.Timer?   _updateTimer;
 
     public GameServer Server { get; }
     public IGamePlugin? Plugin { get; }
@@ -32,9 +34,14 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private double _cpuPercent;
     [ObservableProperty] private long _memoryMb;
     [ObservableProperty] private bool _rconConnected;
-    [ObservableProperty] private string _consoleFilter = string.Empty;
+    [ObservableProperty] private string _consoleFilter   = string.Empty;
+    [ObservableProperty] private string _modStatusText   = string.Empty;
+    [ObservableProperty] private bool   _modBusy;
 
     private System.Timers.Timer? _perfTimer;
+
+    public bool HasModSupport => Plugin?.SupportsOxide == true
+                              || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
 
     public List<CpuCoreItem> CpuCores { get; }
     public string[] PriorityOptions { get; } = ["Normal", "AboveNormal", "High", "BelowNormal", "RealTime"];
@@ -77,7 +84,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public ServerViewModel(GameServer server, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
-        ConfigService config)
+        ConfigService config, ModManagerService mods)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -87,9 +94,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _notifications = notifications;
         _perfMonitor   = perfMonitor;
         _config        = config;
+        _mods          = mods;
 
         _manager.LogReceived      += OnLogReceived;
         _manager.StatusChanged    += OnStatusChanged;
+        _manager.CrashLimitReached += OnCrashLimitReached;
         _steamCmd.OutputReceived  += OnSteamOutput;
         _steamCmd.ProgressChanged += OnSteamProgress;
 
@@ -129,6 +138,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 await InstallAsync();
             await _manager.StartAsync(Server);
             StartPerfMonitoring();
+            StartUpdateTimer();
         }
         catch (FileNotFoundException ex)
         {
@@ -150,6 +160,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         try
         {
+            StopUpdateTimer();
             await _manager.StopAsync(Server);
             StopPerfMonitoring();
         }
@@ -384,6 +395,110 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             System.Diagnostics.Process.Start("explorer.exe", Server.InstallPath);
     }
 
+    // ── Auto Update timer ────────────────────────────────────────────────────
+
+    private void StartUpdateTimer()
+    {
+        StopUpdateTimer();
+        if (!Server.AutoUpdate || Plugin?.SteamAppId == 0) return;
+
+        int intervalMin = Server.AutoUpdateIntervalMin > 0 ? Server.AutoUpdateIntervalMin : 30;
+        _updateTimer = new System.Timers.Timer(intervalMin * 60_000);
+        _updateTimer.Elapsed += async (_, _) => await RunPeriodicUpdateAsync();
+        _updateTimer.AutoReset = true;
+        _updateTimer.Start();
+        AppendLog($"[AutoUpdate] Scheduled — checking every {intervalMin} min", ConsoleMessageType.System);
+    }
+
+    private void StopUpdateTimer()
+    {
+        _updateTimer?.Stop();
+        _updateTimer?.Dispose();
+        _updateTimer = null;
+    }
+
+    private async Task RunPeriodicUpdateAsync()
+    {
+        if (!IsRunning) return; // server was stopped manually
+        AppendLog("[AutoUpdate] Checking for updates...", ConsoleMessageType.System);
+
+        bool wasAutoRestart = Server.AutoRestart;
+        try
+        {
+            // Temporarily disable AutoRestart so we don't get an auto-restart
+            // during the stop → update → start cycle
+            Server.AutoRestart = false;
+            await _manager.StopAsync(Server);
+            WpfApplication.Current?.Dispatcher?.Invoke(StopPerfMonitoring);
+
+            await InstallAsync(); // runs SteamCMD update
+
+            if (!Server.AutoUpdate) return; // user disabled while updating
+            Server.AutoRestart = wasAutoRestart;
+
+            await _manager.StartAsync(Server);
+            WpfApplication.Current?.Dispatcher?.Invoke(StartPerfMonitoring);
+            AppendLog("[AutoUpdate] ✅ Updated and restarted.", ConsoleMessageType.System);
+            await _notifications.NotifyAsync($"🔄 {Server.DisplayName} updated & restarted", Plugin?.GameName ?? "", "#58A6FF");
+        }
+        catch (Exception ex)
+        {
+            Server.AutoRestart = wasAutoRestart;
+            AppendLog($"[AutoUpdate] ❌ {ex.Message}", ConsoleMessageType.Error);
+        }
+    }
+
+    // ── Mod manager ──────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task InstallOxideAsync()
+    {
+        if (Plugin == null || !Plugin.SupportsOxide) return;
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+
+            await _mods.InstallOxideAsync(Plugin, Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Oxide installed successfully.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task InstallPaperAsync()
+    {
+        if (Plugin?.MinecraftFlavor != "paper") return;
+        ModBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
+
+            await _mods.InstallPaperAsync(Server.InstallPath, progress);
+            AppendLog("[Mods] ✅ Paper installed successfully.", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
+        }
+        finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
+    private void OpenPluginFolder()
+    {
+        if (Plugin == null) return;
+        ModManagerService.OpenPluginFolder(Plugin, Server.InstallPath);
+    }
+
     // ── Performance monitoring ───────────────────────────────────────────────
 
     private void StartPerfMonitoring()
@@ -448,6 +563,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _ = _notifications.NotifyServerStatusAsync(Server, status);
     }
 
+    private void OnCrashLimitReached(string serverId)
+    {
+        if (serverId != Server.Id) return;
+        WpfApplication.Current?.Dispatcher?.Invoke(StopPerfMonitoring);
+        StopUpdateTimer();
+        _ = _notifications.NotifyAsync(
+            $"⛔ {Server.DisplayName} — Auto-restart disabled",
+            $"Server crashed too many times. Manual restart required.",
+            "#F85149");
+    }
+
     private void OnSteamOutput(string line)
         => WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog(line, ConsoleMessageType.System));
 
@@ -480,11 +606,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public void Dispose()
     {
-        _manager.LogReceived      -= OnLogReceived;
-        _manager.StatusChanged    -= OnStatusChanged;
-        _steamCmd.OutputReceived  -= OnSteamOutput;
-        _steamCmd.ProgressChanged -= OnSteamProgress;
+        _manager.LogReceived       -= OnLogReceived;
+        _manager.StatusChanged     -= OnStatusChanged;
+        _manager.CrashLimitReached -= OnCrashLimitReached;
+        _steamCmd.OutputReceived   -= OnSteamOutput;
+        _steamCmd.ProgressChanged  -= OnSteamProgress;
 
+        StopUpdateTimer();
         StopPerfMonitoring();
 
         _rconLock.Wait();

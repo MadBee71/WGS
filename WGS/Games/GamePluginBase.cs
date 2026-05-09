@@ -14,9 +14,11 @@ public abstract class GamePluginBase : IGamePlugin
     public abstract int DefaultQueryPort { get; }
     public virtual  int DefaultSteamPort { get; } = 0;
     public abstract int DefaultMaxPlayers { get; }
-    public virtual bool RequiresSteamLogin => false;
-    public virtual bool HasRcon => false;
-    public virtual bool UseNativeConsole => false;
+    public virtual bool   RequiresSteamLogin => false;
+    public virtual bool   HasRcon            => false;
+    public virtual bool   UseNativeConsole   => false;
+    public virtual bool   SupportsOxide      => false;
+    public virtual string MinecraftFlavor    => string.Empty;
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 

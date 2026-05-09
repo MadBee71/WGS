@@ -95,6 +95,8 @@ public partial class App : System.Windows.Application
         s.AddSingleton<ScheduledTaskService>();
         s.AddSingleton<TrayService>();
         s.AddSingleton<SystemMetricsService>();
+        s.AddSingleton<ModManagerService>();
+        s.AddSingleton<DiscordBotService>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<DashboardViewModel>(sp =>

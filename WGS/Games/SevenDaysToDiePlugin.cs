@@ -14,7 +14,8 @@ public class SevenDaysToDiePlugin : GamePluginBase
     public override int    DefaultPort   => 26900;
     public override int    DefaultQueryPort => 26901;
     public override int    DefaultMaxPlayers => 8;
-    public override bool   HasRcon       => true;
+    public override bool   HasRcon        => true;
+    public override bool   SupportsOxide  => true;
 
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -dedicated -configfile=\"{s.InstallPath}\\serverconfig.xml\"";

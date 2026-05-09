@@ -20,6 +20,10 @@ public interface IGamePlugin
     bool HasRcon { get; }
     bool UseNativeConsole { get; }
 
+    // Mod manager support
+    bool   SupportsOxide   { get; }   // uMod/Oxide compatible
+    string MinecraftFlavor { get; }   // "paper" | "forge" | "fabric" | "" = none
+
     string BuildStartArguments(GameServer server);
     Dictionary<string, string> GetDefaultSettings();
     List<ConfigField> GetConfigFields();

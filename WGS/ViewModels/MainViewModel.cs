@@ -10,14 +10,16 @@ namespace WGS.ViewModels;
 
 public partial class MainViewModel : BaseViewModel
 {
-    private readonly ConfigService _config;
-    private readonly ServerManagerService _manager;
-    private readonly SteamCmdService _steamCmd;
-    private readonly BackupService _backup;
-    private readonly NotificationService _notifications;
+    private readonly ConfigService             _config;
+    private readonly ServerManagerService      _manager;
+    private readonly SteamCmdService           _steamCmd;
+    private readonly BackupService             _backup;
+    private readonly NotificationService       _notifications;
     private readonly PerformanceMonitorService _perfMonitor;
-    private readonly TrayService _tray;
-    private readonly SystemMetricsService _metrics;
+    private readonly TrayService               _tray;
+    private readonly SystemMetricsService      _metrics;
+    private readonly ModManagerService         _mods;
+    private readonly DiscordBotService         _bot;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -51,7 +53,8 @@ public partial class MainViewModel : BaseViewModel
 
     public MainViewModel(ConfigService config, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
-        TrayService tray, SettingsViewModel settings, SystemMetricsService metrics)
+        TrayService tray, SettingsViewModel settings, SystemMetricsService metrics,
+        ModManagerService mods, DiscordBotService bot)
     {
         _config        = config;
         _manager       = manager;
@@ -61,6 +64,8 @@ public partial class MainViewModel : BaseViewModel
         _perfMonitor   = perfMonitor;
         _tray          = tray;
         _metrics       = metrics;
+        _mods          = mods;
+        _bot           = bot;
         Settings       = settings;
         Dashboard      = new DashboardViewModel(metrics, Servers);
 
@@ -74,6 +79,18 @@ public partial class MainViewModel : BaseViewModel
 
         Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedServers));
         LoadServers();
+
+        // Wire up Discord bot callbacks
+        _bot.GetServers    = () => Servers.Select(v => v.Server);
+        _bot.StartServer   = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
+        _bot.StopServer    = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
+        _bot.RestartServer = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
+        _bot.UpdateServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+        _bot.BackupServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        _bot.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
+
+        // Start bot if already configured
+        _bot.ApplySettings(notifications.Settings);
     }
 
     private void LoadServers()
@@ -93,7 +110,7 @@ public partial class MainViewModel : BaseViewModel
     }
 
     private ServerViewModel MakeVm(GameServer srv)
-        => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config);
+        => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods);
 
     [RelayCommand]
     private void OpenAddDialog()

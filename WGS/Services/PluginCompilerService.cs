@@ -44,7 +44,16 @@ public static class PluginCompilerService
             return (null, "Compile errors:\n" + string.Join("\n", errors));
         }
 
-        var assembly = Assembly.Load(ms.ToArray());
+        // Write to a temp file so Defender sees a named DLL instead of a memory-only load
+        var tmpDll = Path.Combine(Path.GetTempPath(),
+            $"wgs_plugin_{Path.GetFileNameWithoutExtension(csFilePath)}_{Guid.NewGuid():N}.dll");
+        try { File.WriteAllBytes(tmpDll, ms.ToArray()); }
+        catch (Exception ex) { return (null, $"Cannot write temp assembly: {ex.Message}"); }
+
+        System.Reflection.Assembly assembly;
+        try   { assembly = System.Reflection.Assembly.LoadFrom(tmpDll); }
+        catch (Exception ex) { return (null, $"Cannot load assembly: {ex.Message}"); }
+        // Note: temp file stays on disk until WGS exits (file is locked by the loaded assembly)
 
         var pluginType = assembly.GetTypes()
             .FirstOrDefault(t => typeof(IGamePlugin).IsAssignableFrom(t)

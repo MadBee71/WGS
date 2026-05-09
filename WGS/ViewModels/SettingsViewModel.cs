@@ -1,35 +1,50 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WGS.Services;
-using WpfMsgBox = System.Windows.MessageBox;
+using WpfMsgBox       = System.Windows.MessageBox;
 using WpfMsgBoxButton = System.Windows.MessageBoxButton;
-using WpfMsgBoxImage = System.Windows.MessageBoxImage;
+using WpfMsgBoxImage  = System.Windows.MessageBoxImage;
 
 namespace WGS.ViewModels;
 
 public partial class SettingsViewModel : BaseViewModel
 {
     private readonly NotificationService _notifications;
-    private readonly ConfigService _config;
-    private readonly SteamCmdService _steamCmd;
+    private readonly ConfigService       _config;
+    private readonly SteamCmdService     _steamCmd;
+    private readonly DiscordBotService   _bot;
 
+    // ── Webhook notifications ─────────────────────────────────────────────────
     [ObservableProperty] private bool   _discordEnabled;
-    [ObservableProperty] private string _discordWebhookUrl  = string.Empty;
-    [ObservableProperty] private bool   _notifyOnStart      = true;
-    [ObservableProperty] private bool   _notifyOnStop       = true;
-    [ObservableProperty] private bool   _notifyOnCrash      = true;
-    [ObservableProperty] private bool   _notifyOnUpdate     = true;
+    [ObservableProperty] private string _discordWebhookUrl = string.Empty;
+    [ObservableProperty] private bool   _notifyOnStart     = true;
+    [ObservableProperty] private bool   _notifyOnStop      = true;
+    [ObservableProperty] private bool   _notifyOnCrash     = true;
+    [ObservableProperty] private bool   _notifyOnUpdate    = true;
+
+    // ── Discord remote-control bot ────────────────────────────────────────────
+    [ObservableProperty] private bool   _botEnabled;
+    [ObservableProperty] private string _botToken        = string.Empty;
+    [ObservableProperty] private string _botChannelId    = string.Empty;
+    [ObservableProperty] private string _botPrefix       = "!";
+    [ObservableProperty] private string _botAllowedUsers = string.Empty;
+    [ObservableProperty] private string _botStatus       = string.Empty;
+
+    // ── General / paths ───────────────────────────────────────────────────────
     [ObservableProperty] private string _defaultInstallRoot = string.Empty;
     [ObservableProperty] private string _backupPath         = string.Empty;
     [ObservableProperty] private string _steamCmdPath       = string.Empty;
     [ObservableProperty] private string _steamLogin         = string.Empty;
     [ObservableProperty] private string _steamPassword      = string.Empty;
 
-    public SettingsViewModel(NotificationService notifications, ConfigService config, SteamCmdService steamCmd)
+    public SettingsViewModel(NotificationService notifications, ConfigService config,
+                             SteamCmdService steamCmd, DiscordBotService bot)
     {
         _notifications = notifications;
         _config        = config;
         _steamCmd      = steamCmd;
+        _bot           = bot;
+        _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => BotStatus = msg);
         Load();
     }
 
@@ -42,11 +57,17 @@ public partial class SettingsViewModel : BaseViewModel
         NotifyOnStop       = s.NotifyOnStop;
         NotifyOnCrash      = s.NotifyOnCrash;
         NotifyOnUpdate     = s.NotifyOnUpdate;
+        BotEnabled         = s.BotEnabled;
+        BotToken           = s.BotToken;
+        BotChannelId       = s.BotChannelId;
+        BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
+        BotAllowedUsers    = s.BotAllowedUsers;
         DefaultInstallRoot = _config.DefaultInstallRoot;
         BackupPath         = _config.BackupPath;
         SteamCmdPath       = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");
         SteamLogin         = _config.SteamLogin;
         SteamPassword      = _config.SteamPassword;
+        BotStatus          = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
     }
 
     [RelayCommand]
@@ -59,13 +80,24 @@ public partial class SettingsViewModel : BaseViewModel
         s.NotifyOnStop      = NotifyOnStop;
         s.NotifyOnCrash     = NotifyOnCrash;
         s.NotifyOnUpdate    = NotifyOnUpdate;
+        s.BotEnabled        = BotEnabled;
+        s.BotToken          = BotToken;
+        s.BotChannelId      = BotChannelId;
+        s.BotPrefix         = BotPrefix;
+        s.BotAllowedUsers   = BotAllowedUsers;
         _notifications.Save();
+
         _config.DefaultInstallRoot = DefaultInstallRoot;
         _config.BackupPath         = BackupPath;
         _config.SteamLogin         = SteamLogin;
         _config.SteamPassword      = SteamPassword;
         _config.Save();
         System.IO.Directory.CreateDirectory(BackupPath);
+
+        // Apply bot settings immediately
+        _bot.ApplySettings(s);
+        BotStatus = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
+
         WpfMsgBox.Show("Settings saved.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
     }
 
@@ -74,8 +106,8 @@ public partial class SettingsViewModel : BaseViewModel
     {
         using var dlg = new System.Windows.Forms.FolderBrowserDialog
         {
-            Description  = "Select backup folder",
-            SelectedPath = BackupPath,
+            Description            = "Select backup folder",
+            SelectedPath           = BackupPath,
             UseDescriptionForTitle = true,
         };
         if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -86,8 +118,24 @@ public partial class SettingsViewModel : BaseViewModel
     private async Task TestDiscordAsync()
     {
         var ok = await _notifications.TestDiscordAsync();
-        WpfMsgBox.Show(ok ? "Discord test succeeded!" : "Test failed. Check the webhook URL.",
+        WpfMsgBox.Show(ok ? "Discord webhook test succeeded!" : "Test failed. Check the webhook URL.",
             "WGS Discord", WpfMsgBoxButton.OK,
+            ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
+    }
+
+    [RelayCommand]
+    private async Task TestBotAsync()
+    {
+        if (string.IsNullOrWhiteSpace(BotToken) || string.IsNullOrWhiteSpace(BotChannelId))
+        {
+            WpfMsgBox.Show("Enter Bot Token and Channel ID first.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Warning);
+            return;
+        }
+        _bot.BotToken   = BotToken;
+        _bot.ChannelId  = BotChannelId;
+        var ok = await _bot.TestConnectionAsync();
+        WpfMsgBox.Show(ok ? "Bot test message sent! Check your Discord channel." : "Test failed. Check Token and Channel ID.",
+            "Discord Bot", WpfMsgBoxButton.OK,
             ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
     }
 }

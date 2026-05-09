@@ -16,6 +16,9 @@ public class ServerInstance
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public int RestartCount { get; set; }
 
+    /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
+    public List<DateTime> CrashTimes { get; } = [];
+
     public ServerInstance(GameServer server) => Server = server;
 
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
@@ -27,7 +30,9 @@ public class ServerManagerService
     private readonly Dictionary<string, ServerInstance> _running = new();
 
     public event Action<string, ConsoleMessage>? LogReceived;
-    public event Action<string, ServerStatus>? StatusChanged;
+    public event Action<string, ServerStatus>?  StatusChanged;
+    /// <summary>Fired when a server has crashed too many times and auto-restart gives up.</summary>
+    public event Action<string>? CrashLimitReached;
 
     public ServerManagerService(ConfigService config)
     {
@@ -135,19 +140,57 @@ public class ServerManagerService
             try
             {
                 SetStatus(server, ServerStatus.Stopped);
-                if (server.AutoRestart && _running.ContainsKey(server.Id))
-                {
-                    await Task.Delay(5000);
-                    if (server.AutoRestart)
-                    {
-                        inst.RestartCount++;
-                        await StartAsync(server);
-                    }
-                }
-                else
+
+                if (!server.AutoRestart || !_running.ContainsKey(server.Id))
                 {
                     _running.Remove(server.Id);
+                    return;
                 }
+
+                // ── Crash-loop detection ───────────────────────────────────────
+                var now = DateTime.Now;
+                inst.CrashTimes.Add(now);
+                // Forget crashes older than 10 minutes
+                inst.CrashTimes.RemoveAll(t => (now - t).TotalMinutes > 10);
+
+                int maxRetries = server.AutoRestartMaxRetries > 0 ? server.AutoRestartMaxRetries : 5;
+
+                if (inst.CrashTimes.Count > maxRetries)
+                {
+                    var giveUp = new ConsoleMessage
+                    {
+                        Text = $"[WGS] ⛔ Server crashed {inst.CrashTimes.Count}× in 10 min (limit {maxRetries}). Auto-restart disabled.",
+                        Type = ConsoleMessageType.Error
+                    };
+                    inst.Log.Add(giveUp);
+                    LogReceived?.Invoke(server.Id, giveUp);
+                    server.AutoRestart = false;
+                    SetStatus(server, ServerStatus.Error);
+                    _running.Remove(server.Id);
+                    CrashLimitReached?.Invoke(server.Id);
+                    return;
+                }
+
+                int delaySec = server.AutoRestartDelaySec > 0 ? server.AutoRestartDelaySec : 10;
+                inst.RestartCount++;
+                var delayMsg = new ConsoleMessage
+                {
+                    Text = $"[WGS] ⚠ Server stopped unexpectedly (crash #{inst.CrashTimes.Count}/{maxRetries}). Restarting in {delaySec}s...",
+                    Type = ConsoleMessageType.Warning
+                };
+                inst.Log.Add(delayMsg);
+                LogReceived?.Invoke(server.Id, delayMsg);
+
+                await Task.Delay(delaySec * 1000);
+
+                // Re-check: user might have disabled auto-restart during the delay
+                if (!server.AutoRestart || !_running.ContainsKey(server.Id))
+                {
+                    _running.Remove(server.Id);
+                    return;
+                }
+
+                await StartAsync(server);
             }
             catch (Exception ex)
             {

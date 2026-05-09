@@ -363,10 +363,42 @@
                             <StackPanel>
                                 <TextBlock Text="Automation" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                                <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-restart after crash" Margin="0,0,0,8"/>
+                                <Grid Margin="20,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Max retries (per 10 min)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Server.AutoRestartMaxRetries, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DarkTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Delay before restart (sec)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Server.AutoRestartDelaySec, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DarkTextBox}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Auto Update -->
                                 <CheckBox IsChecked="{Binding Server.AutoUpdate}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Auto-update on startup"/>
+                                          Content="Auto-update periodically" Margin="0,0,0,8"/>
+                                <Grid Margin="20,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Check interval (minutes)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Server.AutoUpdateIntervalMin, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DarkTextBox}"/>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -530,6 +562,83 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <!-- ── MODS ── -->
+            <TabItem Header="🧩 Mods"
+                     Visibility="{Binding HasModSupport, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer Background="{StaticResource BgDeepBrush}" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24">
+                        <TextBlock Text="Mod Manager" Style="{StaticResource SectionHeader}"/>
+
+                        <!-- Status bar -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                                Visibility="{Binding ModBusy, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding ModStatusText}" FontSize="13"
+                                       Foreground="{StaticResource AccentBlueBrush}" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <!-- Oxide section -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                                Visibility="{Binding Plugin.SupportsOxide, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Oxide / uMod" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="3"
+                                            Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Rust · 7DTD · more" FontSize="11"
+                                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                                    Downloads and installs the latest Oxide (uMod) framework directly into the server folder.
+                                    After installation, place plugin .cs or .dll files in oxide/plugins/.
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="⬇ Install / Update Oxide" Style="{StaticResource PrimaryButton}"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding InstallOxideCommand}"
+                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    <Button Content="📂 Open plugins folder" Style="{StaticResource GhostButton}"
+                                            Command="{Binding OpenPluginFolderCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Paper section -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                            <Border.Visibility>
+                                <Binding Path="Plugin.MinecraftFlavor" Converter="{StaticResource NullToInvVis}"/>
+                            </Border.Visibility>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Paper (Minecraft)" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="3"
+                                            Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="High-performance server JAR" FontSize="11"
+                                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                                    Downloads the latest Paper server JAR from papermc.io and replaces server.jar.
+                                    Paper supports Bukkit/Spigot plugins. Place plugin JARs in the plugins/ folder.
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="⬇ Install / Update Paper" Style="{StaticResource PrimaryButton}"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding InstallPaperCommand}"
+                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    <Button Content="📂 Open plugins folder" Style="{StaticResource GhostButton}"
+                                            Command="{Binding OpenPluginFolderCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
         </TabControl>
     </Grid>
 </UserControl>

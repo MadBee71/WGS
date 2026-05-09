@@ -7,22 +7,35 @@ namespace WGS.Services;
 
 public class NotificationSettings
 {
-    public bool DiscordEnabled { get; set; }
+    // Webhook notifications
+    public bool   DiscordEnabled    { get; set; }
     public string DiscordWebhookUrl { get; set; } = string.Empty;
-    public bool NotifyOnStart  { get; set; } = true;
-    public bool NotifyOnStop   { get; set; } = true;
-    public bool NotifyOnCrash  { get; set; } = true;
-    public bool NotifyOnUpdate { get; set; } = true;
+    public bool   NotifyOnStart     { get; set; } = true;
+    public bool   NotifyOnStop      { get; set; } = true;
+    public bool   NotifyOnCrash     { get; set; } = true;
+    public bool   NotifyOnUpdate    { get; set; } = true;
+
+    // Remote control bot
+    public bool   BotEnabled      { get; set; }
+    public string BotToken        { get; set; } = string.Empty;
+    public string BotChannelId    { get; set; } = string.Empty;
+    public string BotPrefix       { get; set; } = "!";
+    public string BotAllowedUsers { get; set; } = string.Empty; // comma-separated Discord user IDs
 }
 
-// On-disk representation — webhook is stored encrypted
+// On-disk representation — secrets stored encrypted
 file record NotificationSettingsData(
-    bool DiscordEnabled,
+    bool   DiscordEnabled,
     string DiscordWebhookUrlEncrypted,
-    bool NotifyOnStart,
-    bool NotifyOnStop,
-    bool NotifyOnCrash,
-    bool NotifyOnUpdate);
+    bool   NotifyOnStart,
+    bool   NotifyOnStop,
+    bool   NotifyOnCrash,
+    bool   NotifyOnUpdate,
+    bool   BotEnabled           = false,
+    string BotTokenEncrypted    = "",
+    string BotChannelId         = "",
+    string BotPrefix            = "!",
+    string BotAllowedUsers      = "");
 
 public class NotificationService
 {
@@ -46,13 +59,22 @@ public class NotificationService
             ? string.Empty
             : EncryptionService.Encrypt(_settings.DiscordWebhookUrl);
 
+        var encryptedToken = string.IsNullOrEmpty(_settings.BotToken)
+            ? string.Empty
+            : EncryptionService.Encrypt(_settings.BotToken);
+
         var data = new NotificationSettingsData(
             _settings.DiscordEnabled,
             encryptedUrl,
             _settings.NotifyOnStart,
             _settings.NotifyOnStop,
             _settings.NotifyOnCrash,
-            _settings.NotifyOnUpdate);
+            _settings.NotifyOnUpdate,
+            _settings.BotEnabled,
+            encryptedToken,
+            _settings.BotChannelId,
+            _settings.BotPrefix,
+            _settings.BotAllowedUsers);
 
         System.IO.File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(data, Formatting.Indented));
     }
@@ -78,6 +100,13 @@ public class NotificationService
                     NotifyOnStop   = data.NotifyOnStop,
                     NotifyOnCrash  = data.NotifyOnCrash,
                     NotifyOnUpdate = data.NotifyOnUpdate,
+                    BotEnabled      = data.BotEnabled,
+                    BotToken        = string.IsNullOrEmpty(data.BotTokenEncrypted)
+                        ? string.Empty
+                        : EncryptionService.Decrypt(data.BotTokenEncrypted),
+                    BotChannelId    = data.BotChannelId,
+                    BotPrefix       = string.IsNullOrEmpty(data.BotPrefix) ? "!" : data.BotPrefix,
+                    BotAllowedUsers = data.BotAllowedUsers,
                 };
                 return;
             }

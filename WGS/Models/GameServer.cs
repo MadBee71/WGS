@@ -17,9 +17,12 @@ public class GameServer
     public string ServerPassword { get; set; } = string.Empty;
     public string ServerName { get; set; } = string.Empty;
     public int MaxPlayers { get; set; }
-    public bool AutoRestart { get; set; } = false;
-    public bool AutoUpdate  { get; set; } = false;
-    public bool AutoStart   { get; set; } = false;
+    public bool AutoRestart            { get; set; } = false;
+    public int  AutoRestartMaxRetries  { get; set; } = 5;    // per 10-min window
+    public int  AutoRestartDelaySec    { get; set; } = 10;   // seconds before restart
+    public bool AutoUpdate             { get; set; } = false;
+    public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
+    public bool AutoStart              { get; set; } = false;
     public string CustomArgs { get; set; } = string.Empty;
     public string Gslt       { get; set; } = string.Empty;
     public long   CpuAffinityMask  { get; set; } = 0; // 0 = all cores
