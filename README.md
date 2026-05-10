@@ -1,14 +1,54 @@
 <div align="center">
-  <img src="wgs.png" alt="Windows Game Server" width="120"/>
+  <img src="wgs.png" alt="Windows Game Server" width=320"/>
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
+
 
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
   ![Games](https://img.shields.io/badge/supported_games-17+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
+
 </div>
+
+---
+
+## What is Windows Game Server?
+
+**Windows Game Server (WGS)** is a free, open-source desktop application that lets you host and manage dedicated game servers on any Windows PC — without touching the command line.
+
+Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and manual firewall rules, WGS brings everything into one clean window:
+
+- **Install** any supported game server in one click — SteamCMD is downloaded automatically and run in the background
+- **Start, stop and restart** servers with a single button — or let WGS do it automatically after a crash
+- **Monitor** CPU and RAM usage per server in real time, with history graphs
+- **Schedule** automatic restarts, backups and updates at any time of day or week
+- **Back up** your world saves and configs automatically before every update, with configurable retention
+- **Send console commands** directly from the UI — no need to switch windows or open a terminal
+- **Add any game** that isn't built-in using the graphical Plugin Creator — no coding required
+- **Control servers remotely** via Discord bot commands or the built-in REST API
+- **Manage firewall rules** automatically — WGS opens and closes the right ports when servers start and stop
+
+WGS is designed for home lab hosts, small community server admins and anyone who wants a clean, reliable way to keep game servers running on Windows without spending time on maintenance.
+
+---
+
+## 📷 Screenshots
+
+<p align="center">
+  <img src="1.png" width="400">
+  <img src="2.png" width="400">
+</p>
+<p align="center">
+  <img src="3.png" width="400">
+  <img src="5.png" width="400">
+</p>
+<p align="center">
+  <img src="4.png" width="400">
+</p>
+
+
 
 ---
 
@@ -93,17 +133,21 @@
 
 ### Build from source
 
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/WindowsGameServer.git
 cd WindowsGameServer/WGS
 dotnet publish -c Release -o publish
 ```
 
+
+
 > Requires [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 ---
 
 ## 📦 Project structure
+
 
 ```
 WGS/
@@ -120,6 +164,8 @@ WGS/
 └── publish/            # Published executable output
 ```
 
+
+
 ---
 
 ## 🔌 Adding a custom plugin
@@ -134,6 +180,7 @@ WGS includes a built-in Plugin Creator tool:
 ### Writing a plugin in code
 
 Create a new file `Games/MyGamePlugin.cs`:
+
 
 ```csharp
 using WGS.Games;
@@ -156,14 +203,20 @@ public class MyGamePlugin : GamePluginBase
 }
 ```
 
+
+
 Register it in `Games/GameRegistry.cs`:
+
 ```csharp
 Register(new MyGamePlugin());
 ```
 
+
+
 ---
 
 ## 🏗️ Architecture
+
 
 ```
 ┌─────────────────────────────────────┐
@@ -189,6 +242,7 @@ Register(new MyGamePlugin());
 └─────────────────────────────────────┘
 ```
 
+
 ---
 
 ## 🤝 Contributing
@@ -208,6 +262,10 @@ Pull requests are welcome! For large changes, please open an issue first to disc
 MIT License — see the [LICENSE](LICENSE) file.
 
 ---
+
+## Support
+If you find WGS useful, you can support my work here:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/madbee71)
 
 <div align="center">
   <sub>Built with .NET 8 · WPF · CommunityToolkit.Mvvm</sub>
