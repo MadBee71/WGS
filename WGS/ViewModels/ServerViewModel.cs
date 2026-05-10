@@ -53,6 +53,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // Performance history
     [ObservableProperty] private OxyPlot.PlotModel _perfPlot = CreateEmptyPlot();
+    private OxyPlot.PlotModel?          _perfModel;
+    private OxyPlot.Series.LineSeries?  _cpuSeries;
+    private OxyPlot.Series.LineSeries?  _memSeries;
 
     // Workshop
     [ObservableProperty] private List<Services.WorkshopItem> _workshopItems = [];
@@ -249,8 +252,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         RefreshStatus();
         AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
 
-        // Auto-backup before update if server was running before
-        if (Server.BackupEnabled)
+        // Auto-backup before update (only when there is something to back up)
+        if (Server.BackupEnabled && Server.Status != ServerStatus.NotInstalled)
         {
             try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); }
             catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
@@ -474,7 +477,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
             await InstallAsync(); // runs SteamCMD update
 
-            if (!Server.AutoUpdate) return; // user disabled while updating
+            if (!Server.AutoUpdate)
+            {
+                Server.AutoRestart = wasAutoRestart;
+                return;
+            }
             Server.AutoRestart = wasAutoRestart;
 
             await _manager.StartAsync(Server);
@@ -622,7 +629,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void LoadConfigFiles()
     {
         ConfigFiles = _configEditor.FindConfigs(Server, Plugin);
-        if (ConfigFiles.Count > 0) { SelectedConfigFile = ConfigFiles[0]; ConfigContent = ConfigFiles[0].Content; }
+        if (ConfigFiles.Count > 0) SelectedConfigFile = ConfigFiles[0];
     }
 
     [RelayCommand]
@@ -636,7 +643,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     partial void OnSelectedConfigFileChanged(Services.ConfigFileEntry? value)
     {
-        if (value != null) ConfigContent = value.Content;
+        if (value == null) return;
+        _configEditor.LoadContent(value);
+        ConfigContent = value.Content;
     }
 
     // ── Players ──────────────────────────────────────────────────────────────
@@ -662,76 +671,64 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Performance history ──────────────────────────────────────────────────
 
+    private void EnsurePerfModel()
+    {
+        if (_perfModel != null) return;
+        _cpuSeries = new OxyPlot.Series.LineSeries
+        {
+            Title = "CPU %", Color = OxyPlot.OxyColor.Parse("#58A6FF"),
+            StrokeThickness = 2, MarkerType = OxyPlot.MarkerType.None,
+        };
+        _memSeries = new OxyPlot.Series.LineSeries
+        {
+            Title = "RAM MB", Color = OxyPlot.OxyColor.Parse("#3FB950"),
+            StrokeThickness = 2, MarkerType = OxyPlot.MarkerType.None, YAxisKey = "mem",
+        };
+        _perfModel = new OxyPlot.PlotModel
+        {
+            Background          = OxyPlot.OxyColor.FromArgb(0, 0, 0, 0),
+            PlotAreaBorderColor = OxyPlot.OxyColor.Parse("#30363d"),
+            TextColor           = OxyPlot.OxyColor.Parse("#8b949e"),
+        };
+        _perfModel.Axes.Add(new OxyPlot.Axes.DateTimeAxis
+        {
+            Position = OxyPlot.Axes.AxisPosition.Bottom, StringFormat = "HH:mm:ss",
+            AxislineColor = OxyPlot.OxyColor.Parse("#30363d"), TicklineColor = OxyPlot.OxyColor.Parse("#30363d"),
+            MajorGridlineColor = OxyPlot.OxyColor.Parse("#21262d"), MajorGridlineStyle = OxyPlot.LineStyle.Solid,
+        });
+        _perfModel.Axes.Add(new OxyPlot.Axes.LinearAxis
+        {
+            Position = OxyPlot.Axes.AxisPosition.Left, Title = "CPU %", Minimum = 0, Maximum = 100,
+            MajorGridlineColor = OxyPlot.OxyColor.Parse("#21262d"), MajorGridlineStyle = OxyPlot.LineStyle.Solid,
+        });
+        _perfModel.Axes.Add(new OxyPlot.Axes.LinearAxis
+        {
+            Key = "mem", Position = OxyPlot.Axes.AxisPosition.Right, Title = "RAM MB", Minimum = 0,
+        });
+        _perfModel.Series.Add(_cpuSeries);
+        _perfModel.Series.Add(_memSeries);
+        WpfApplication.Current?.Dispatcher?.Invoke(() => PerfPlot = _perfModel);
+    }
+
     private void UpdatePerfChart()
     {
         var samples = _perfHistory.Get(Server.Id);
         if (samples.Count == 0) return;
-
-        var model = new OxyPlot.PlotModel
-        {
-            Background    = OxyPlot.OxyColor.FromArgb(0, 0, 0, 0),
-            PlotAreaBorderColor = OxyPlot.OxyColor.Parse("#30363d"),
-            TextColor     = OxyPlot.OxyColor.Parse("#8b949e"),
-        };
-
-        var cpuSeries = new OxyPlot.Series.LineSeries
-        {
-            Title       = "CPU %",
-            Color       = OxyPlot.OxyColor.Parse("#58A6FF"),
-            StrokeThickness = 2,
-            MarkerType  = OxyPlot.MarkerType.None,
-        };
-        var memSeries = new OxyPlot.Series.LineSeries
-        {
-            Title       = "RAM MB",
-            Color       = OxyPlot.OxyColor.Parse("#3FB950"),
-            StrokeThickness = 2,
-            MarkerType  = OxyPlot.MarkerType.None,
-            YAxisKey    = "mem",
-        };
-
+        EnsurePerfModel();
+        _cpuSeries!.Points.Clear();
+        _memSeries!.Points.Clear();
         foreach (var s in samples)
         {
             var x = OxyPlot.Axes.DateTimeAxis.ToDouble(s.Time);
-            cpuSeries.Points.Add(new OxyPlot.DataPoint(x, s.Cpu));
-            memSeries.Points.Add(new OxyPlot.DataPoint(x, s.MemMb));
+            _cpuSeries.Points.Add(new OxyPlot.DataPoint(x, s.Cpu));
+            _memSeries.Points.Add(new OxyPlot.DataPoint(x, s.MemMb));
         }
-
-        model.Axes.Add(new OxyPlot.Axes.DateTimeAxis
-        {
-            Position          = OxyPlot.Axes.AxisPosition.Bottom,
-            StringFormat      = "HH:mm:ss",
-            AxislineColor     = OxyPlot.OxyColor.Parse("#30363d"),
-            TicklineColor     = OxyPlot.OxyColor.Parse("#30363d"),
-            MajorGridlineColor= OxyPlot.OxyColor.Parse("#21262d"),
-            MajorGridlineStyle= OxyPlot.LineStyle.Solid,
-        });
-        model.Axes.Add(new OxyPlot.Axes.LinearAxis
-        {
-            Position          = OxyPlot.Axes.AxisPosition.Left,
-            Title             = "CPU %",
-            Minimum           = 0,
-            Maximum           = 100,
-            MajorGridlineColor= OxyPlot.OxyColor.Parse("#21262d"),
-            MajorGridlineStyle= OxyPlot.LineStyle.Solid,
-        });
-        model.Axes.Add(new OxyPlot.Axes.LinearAxis
-        {
-            Key               = "mem",
-            Position          = OxyPlot.Axes.AxisPosition.Right,
-            Title             = "RAM MB",
-            Minimum           = 0,
-        });
-
-        model.Series.Add(cpuSeries);
-        model.Series.Add(memSeries);
-
-        WpfApplication.Current?.Dispatcher?.Invoke(() => PerfPlot = model);
+        WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(false));
     }
 
     private static OxyPlot.PlotModel CreateEmptyPlot()
     {
-        var m = new OxyPlot.PlotModel { Background = OxyPlot.OxyColor.FromArgb(0,0,0,0) };
+        var m = new OxyPlot.PlotModel { Background = OxyPlot.OxyColor.FromArgb(0, 0, 0, 0) };
         m.Axes.Add(new OxyPlot.Axes.LinearAxis { Position = OxyPlot.Axes.AxisPosition.Left });
         m.Axes.Add(new OxyPlot.Axes.LinearAxis { Position = OxyPlot.Axes.AxisPosition.Bottom });
         return m;
@@ -841,7 +838,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             _perfTimer = null;
         }
         _perfMonitor.Untrack(Server.Id);
-        WpfApplication.Current?.Dispatcher?.Invoke(() => { CpuPercent = 0; MemoryMb = 0; });
+        _perfHistory.Clear(Server.Id);
+        _perfModel  = null;
+        _cpuSeries  = null;
+        _memSeries  = null;
+        WpfApplication.Current?.Dispatcher?.Invoke(() => { CpuPercent = 0; MemoryMb = 0; PerfPlot = CreateEmptyPlot(); });
     }
 
     // ── Events ───────────────────────────────────────────────────────────────

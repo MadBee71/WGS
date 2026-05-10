@@ -43,10 +43,17 @@ public class ScheduledTaskService : IDisposable
     private readonly ServerManagerService _manager;
     private readonly BackupService _backup;
     private readonly System.Timers.Timer _timer;
+    private readonly object _lock = new();
     private List<ScheduledTask> _tasks = [];
     private readonly string _file;
 
     public event Action<ScheduledTask, string>? TaskExecuted;
+
+    /// <summary>Wired by MainViewModel to return live in-memory server objects.</summary>
+    public Func<IEnumerable<Models.GameServer>>? GetServers { get; set; }
+
+    /// <summary>Wired by MainViewModel to trigger a server update via its ViewModel command.</summary>
+    public Func<string, Task>? UpdateServer { get; set; }
 
     public ScheduledTaskService(ConfigService config, ServerManagerService manager, BackupService backup)
     {
@@ -61,31 +68,43 @@ public class ScheduledTaskService : IDisposable
         _timer.Start();
     }
 
-    public IReadOnlyList<ScheduledTask> Tasks => _tasks;
+    public IReadOnlyList<ScheduledTask> Tasks
+    {
+        get { lock (_lock) { return _tasks.ToList(); } }
+    }
 
     public void AddTask(ScheduledTask task)
     {
         task.NextRun = ComputeNextRun(task);
-        _tasks.Add(task);
-        Save();
+        lock (_lock) { _tasks.Add(task); Save(); }
     }
 
     public void RemoveTask(string id)
     {
-        _tasks.RemoveAll(t => t.Id == id);
-        Save();
+        lock (_lock) { _tasks.RemoveAll(t => t.Id == id); Save(); }
     }
 
     public void UpdateTask(ScheduledTask task)
     {
-        var idx = _tasks.FindIndex(t => t.Id == task.Id);
-        if (idx >= 0) { _tasks[idx] = task; Save(); }
+        lock (_lock)
+        {
+            var idx = _tasks.FindIndex(t => t.Id == task.Id);
+            if (idx >= 0) { _tasks[idx] = task; Save(); }
+        }
     }
 
     private async Task CheckTasksAsync()
     {
         var now = DateTime.Now;
-        foreach (var task in _tasks.Where(t => t.IsEnabled && t.NextRun <= now))
+        List<ScheduledTask> due;
+        lock (_lock)
+        {
+            due = _tasks.Where(t => t.IsEnabled && t.NextRun <= now).ToList();
+        }
+
+        if (due.Count == 0) return;
+
+        foreach (var task in due)
         {
             await ExecuteTaskAsync(task);
             task.LastRun = now;
@@ -94,7 +113,8 @@ public class ScheduledTaskService : IDisposable
                 : ComputeNextRun(task);
             if (task.NextRun == null) task.IsEnabled = false;
         }
-        Save();
+
+        lock (_lock) { Save(); }
     }
 
     private async Task ExecuteTaskAsync(ScheduledTask task)
@@ -120,6 +140,9 @@ public class ScheduledTaskService : IDisposable
                 case ScheduledActionType.Backup:
                     await _backup.CreateBackupAsync(server);
                     break;
+                case ScheduledActionType.Update:
+                    if (UpdateServer != null) await UpdateServer(task.ServerId);
+                    break;
             }
             TaskExecuted?.Invoke(task, "OK");
         }
@@ -130,11 +153,12 @@ public class ScheduledTaskService : IDisposable
     }
 
     private Models.GameServer? GetServer(string id)
-        => _config.LoadServers().FirstOrDefault(s => s.Id == id);
+        => GetServers?.Invoke().FirstOrDefault(s => s.Id == id)
+           ?? _config.LoadServers().FirstOrDefault(s => s.Id == id);
 
     private static DateTime ComputeNextRun(ScheduledTask task)
     {
-        var now  = DateTime.Now;
+        var now   = DateTime.Now;
         var today = now.Date + task.TimeOfDay;
 
         return task.Frequency switch
@@ -150,6 +174,7 @@ public class ScheduledTaskService : IDisposable
 
     private void Save()
     {
+        // Caller must hold _lock
         System.IO.File.WriteAllText(_file, JsonConvert.SerializeObject(_tasks, Formatting.Indented));
     }
 

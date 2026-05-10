@@ -28,11 +28,11 @@ public class SteamWorkshopService
     public bool SupportsWorkshop(IGamePlugin? plugin)
         => plugin != null && plugin.SteamAppId > 0 && plugin.WorkshopAppId > 0;
 
-    public async Task<List<WorkshopItem>> GetInstalledItemsAsync(GameServer server, IGamePlugin plugin)
+    public Task<List<WorkshopItem>> GetInstalledItemsAsync(GameServer _, IGamePlugin plugin)
     {
         var result = new List<WorkshopItem>();
-        var workshopDir = GetWorkshopPath(server, plugin);
-        if (!Directory.Exists(workshopDir)) return result;
+        var workshopDir = GetWorkshopPath(plugin);
+        if (!Directory.Exists(workshopDir)) return Task.FromResult(result);
 
         foreach (var dir in Directory.GetDirectories(workshopDir))
         {
@@ -59,7 +59,7 @@ public class SteamWorkshopService
             }
             result.Add(item);
         }
-        return await Task.FromResult(result);
+        return Task.FromResult(result);
     }
 
     public async Task InstallItemAsync(GameServer server, IGamePlugin plugin, ulong workshopItemId,
@@ -78,24 +78,24 @@ public class SteamWorkshopService
         var title = await TryGetItemTitleAsync(workshopItemId);
         if (title != null)
         {
-            var workshopDir = Path.Combine(GetWorkshopPath(server, plugin), workshopItemId.ToString());
-            Directory.CreateDirectory(workshopDir);
-            File.WriteAllText(Path.Combine(workshopDir, "wgs_workshop_meta.json"),
-                JsonSerializer.Serialize(new { title }));
+            var itemDir = Path.Combine(GetWorkshopPath(plugin), workshopItemId.ToString());
+            if (Directory.Exists(itemDir))
+                File.WriteAllText(Path.Combine(itemDir, "wgs_workshop_meta.json"),
+                    JsonSerializer.Serialize(new { title }));
         }
 
         progress?.Report((100, "Done."));
     }
 
-    public void UninstallItem(GameServer server, IGamePlugin plugin, ulong workshopItemId)
+    public void UninstallItem(GameServer _, IGamePlugin plugin, ulong workshopItemId)
     {
-        var workshopDir = Path.Combine(GetWorkshopPath(server, plugin), workshopItemId.ToString());
-        if (Directory.Exists(workshopDir))
-            Directory.Delete(workshopDir, recursive: true);
+        var itemDir = Path.Combine(GetWorkshopPath(plugin), workshopItemId.ToString());
+        if (Directory.Exists(itemDir))
+            Directory.Delete(itemDir, recursive: true);
     }
 
-    private static string GetWorkshopPath(GameServer server, IGamePlugin plugin)
-        => Path.Combine(server.InstallPath, "steamapps", "workshop", "content", plugin.WorkshopAppId.ToString());
+    private string GetWorkshopPath(IGamePlugin plugin)
+        => Path.Combine(_steamCmd.WorkshopContentPath, plugin.WorkshopAppId.ToString());
 
     private static async Task<string?> TryGetItemTitleAsync(ulong id)
     {

@@ -1,9 +1,6 @@
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 
 namespace WGS.Services;
-
-public record PerformanceSnapshot(DateTime Time, double CpuPercent, long MemoryMb);
 
 public class ProcessMonitor
 {
@@ -12,16 +9,14 @@ public class ProcessMonitor
     private TimeSpan _lastCpu;
     private DateTime _lastCpuTime;
 
-    public ObservableCollection<PerformanceSnapshot> History { get; } = [];
-
     public double CurrentCpu { get; private set; }
     public long   CurrentMemMb { get; private set; }
 
     public ProcessMonitor(int pid)
     {
-        _pid     = pid;
-        _proc    = Process.GetProcessById(pid);
-        _lastCpu = _proc.TotalProcessorTime;
+        _pid         = pid;
+        _proc        = Process.GetProcessById(pid);
+        _lastCpu     = _proc.TotalProcessorTime;
         _lastCpuTime = DateTime.UtcNow;
     }
 
@@ -46,10 +41,6 @@ public class ProcessMonitor
             _lastCpuTime = now;
 
             CurrentMemMb = _proc.WorkingSet64 / (1024 * 1024);
-
-            var snap = new PerformanceSnapshot(DateTime.Now, CurrentCpu, CurrentMemMb);
-            History.Add(snap);
-            if (History.Count > 120) History.RemoveAt(0); // 2 min at 1s interval
         }
         catch { }
     }
@@ -80,7 +71,7 @@ public class PerformanceMonitorService : IDisposable
 
     private void SampleAll()
     {
-        foreach (var m in _monitors.Values) m.Sample();
+        foreach (var m in _monitors.Values.ToList()) m.Sample();
     }
 
     public void Dispose()

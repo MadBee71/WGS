@@ -25,6 +25,9 @@ public class SteamCmdService
 
     public bool IsInstalled => File.Exists(_steamCmdExe);
 
+    /// <summary>SteamCMD downloads workshop items here: steamcmd/steamapps/workshop/content/{appId}/{itemId}</summary>
+    public string WorkshopContentPath => Path.Combine(_steamCmdDir, "steamapps", "workshop", "content");
+
     public async Task DownloadSteamCmdAsync()
     {
         try
@@ -163,20 +166,17 @@ public class SteamCmdService
         if (!IsInstalled) await DownloadSteamCmdAsync();
 
         progress?.Report((5, "Starting SteamCMD..."));
-        var workshopDir = Path.Combine(installPath, "steamapps", "workshop");
-        Directory.CreateDirectory(workshopDir);
 
         var args = $"+login anonymous +workshop_download_item {workshopAppId} {itemId} +quit";
         int fakeProgress = 10;
-        var progressTimer = new System.Timers.Timer(3000);
+        using var progressTimer = new System.Timers.Timer(3000);
         progressTimer.Elapsed += (_, _) =>
         {
             if (fakeProgress < 88) { fakeProgress += 8; progress?.Report((fakeProgress, "Downloading...")); }
         };
         progressTimer.Start();
-        await RunAsync(args);
-        progressTimer.Stop();
-        progressTimer.Dispose();
+        try   { await RunAsync(args); }
+        finally { progressTimer.Stop(); }
         progress?.Report((100, "Done."));
     }
 

@@ -49,8 +49,12 @@ public class ServerGroupService
     private void Load()
     {
         if (!System.IO.File.Exists(_file)) return;
-        try { _groups = JsonConvert.DeserializeObject<List<ServerGroup>>(_file.Length > 0
-            ? System.IO.File.ReadAllText(_file) : "[]") ?? []; }
+        try
+        {
+            var text = System.IO.File.ReadAllText(_file);
+            _groups = JsonConvert.DeserializeObject<List<ServerGroup>>(
+                text.Length > 0 ? text : "[]") ?? [];
+        }
         catch { }
     }
 }

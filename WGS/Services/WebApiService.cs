@@ -92,8 +92,9 @@ public class WebApiService : IDisposable
         // Auth check for API
         if (path.StartsWith("/api"))
         {
-            var auth = req.Headers["Authorization"] ?? req.QueryString["token"] ?? string.Empty;
-            if (!auth.Replace("Bearer ", "").Equals(Token, StringComparison.OrdinalIgnoreCase))
+            var raw   = req.Headers["Authorization"] ?? req.QueryString["token"] ?? string.Empty;
+            var token = raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? raw[7..] : raw;
+            if (!token.Equals(Token, StringComparison.OrdinalIgnoreCase))
             {
                 resp.StatusCode = 401;
                 await SendJson(resp, new { error = "Unauthorized" });
@@ -161,6 +162,10 @@ public class WebApiService : IDisposable
         {
             resp.StatusCode = 500;
             try { await SendJson(resp, new { error = ex.Message }); } catch { }
+        }
+        finally
+        {
+            try { resp.Close(); } catch { }
         }
     }
 

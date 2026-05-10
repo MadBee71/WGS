@@ -75,38 +75,51 @@
                     Background="{StaticResource BgSurfaceBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
                 <DockPanel>
-                    <!-- Bottom buttons -->
-                    <Border DockPanel.Dock="Bottom" Padding="12,12">
+                    <!-- Bottom buttons — compact icon row -->
+                    <Border DockPanel.Dock="Bottom" Padding="10,10,10,12"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
                         <StackPanel>
                             <Button Content="{Binding Loc.AddServer}" Style="{StaticResource PrimaryButton}"
-                                    HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,8"
                                     Command="{Binding OpenAddDialogCommand}"/>
-                            <Button Content="📊 Dashboard" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,0,0,6"
-                                    Command="{Binding OpenDashboardCommand}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Content="{Binding Loc.BackupAll}" Style="{StaticResource GhostButton}"
-                                        FontSize="11" Command="{Binding BackupAllCommand}"/>
-                                <Button Grid.Column="2" Content="{Binding Loc.SettingsBtn}" Style="{StaticResource GhostButton}"
-                                        FontSize="11" Command="{Binding OpenSettingsCommand}"/>
-                            </Grid>
-                            <Button Content="+ Add game" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,6,0,0"
-                                    Command="{Binding OpenPluginCreatorCommand}"/>
-                            <Button Content="⬆ Import .cs plugin" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                                    Command="{Binding ImportCsPluginCommand}"/>
-                            <Button Content="⬇ Export .cs plugin" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,2,0,0"
-                                    Command="{Binding ExportCsPluginCommand}"/>
-                            <Button Content="ℹ  Info / Support" Style="{StaticResource GhostButton}"
-                                    FontSize="11" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                                    Command="{Binding OpenSupportCommand}"/>
+                            <!-- Icon row: 7 secondary actions -->
+                            <UniformGrid Rows="1" Columns="7">
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenDashboardCommand}">
+                                    <Button.ToolTip><ToolTip Content="Dashboard"/></Button.ToolTip>
+                                    <TextBlock Text="📊" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding BackupAllCommand}">
+                                    <Button.ToolTip><ToolTip Content="{Binding Loc.BackupAll}"/></Button.ToolTip>
+                                    <TextBlock Text="💾" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenSettingsCommand}">
+                                    <Button.ToolTip><ToolTip Content="{Binding Loc.SettingsBtn}"/></Button.ToolTip>
+                                    <TextBlock Text="⚙️" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenPluginCreatorCommand}">
+                                    <Button.ToolTip><ToolTip Content="Add game"/></Button.ToolTip>
+                                    <TextBlock Text="🎮" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding ImportCsPluginCommand}">
+                                    <Button.ToolTip><ToolTip Content="Import .cs plugin"/></Button.ToolTip>
+                                    <TextBlock Text="⬆" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding ExportCsPluginCommand}">
+                                    <Button.ToolTip><ToolTip Content="Export .cs plugin"/></Button.ToolTip>
+                                    <TextBlock Text="⬇" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenSupportCommand}">
+                                    <Button.ToolTip><ToolTip Content="Info / Support"/></Button.ToolTip>
+                                    <TextBlock Text="ℹ" FontSize="15"/>
+                                </Button>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
 

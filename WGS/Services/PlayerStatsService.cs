@@ -13,30 +13,30 @@ public class PlayerSession
     public string   DurationText => $"{(int)Duration.TotalHours:D2}:{Duration.Minutes:D2}:{Duration.Seconds:D2}";
 }
 
-public class PlayerStatsService : IDisposable
+public class PlayerStatsService
 {
-    private readonly SqliteConnection _db;
-
+    private readonly string _connectionString;
     private bool _available = true;
 
     public PlayerStatsService(ConfigService config)
     {
         var path = System.IO.Path.Combine(config.AppDataPath, "player_stats.db");
-        _db = new SqliteConnection($"Data Source={path}");
-        try
-        {
-            _db.Open();
-            EnsureSchema();
-        }
-        catch
-        {
-            _available = false;
-        }
+        _connectionString = $"Data Source={path}";
+        try { EnsureSchema(); }
+        catch { _available = false; }
+    }
+
+    private SqliteConnection OpenDb()
+    {
+        var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        return conn;
     }
 
     private void EnsureSchema()
     {
-        using var cmd = _db.CreateCommand();
+        using var db  = OpenDb();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = """
             CREATE TABLE IF NOT EXISTS sessions (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,68 +53,89 @@ public class PlayerStatsService : IDisposable
     public void RecordJoin(string serverId, string playerName)
     {
         if (!_available) return;
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = "INSERT INTO sessions (server_id, player_name, join_time) VALUES ($s, $p, $t)";
-        cmd.Parameters.AddWithValue("$s", serverId);
-        cmd.Parameters.AddWithValue("$p", playerName);
-        cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
-        cmd.ExecuteNonQuery();
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "INSERT INTO sessions (server_id, player_name, join_time) VALUES ($s, $p, $t)";
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$p", playerName);
+            cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     public void RecordLeave(string serverId, string playerName)
     {
         if (!_available) return;
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = """
-            UPDATE sessions SET leave_time = $t
-            WHERE server_id = $s AND player_name = $p AND leave_time IS NULL
-            ORDER BY id DESC LIMIT 1
-            """;
-        cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
-        cmd.Parameters.AddWithValue("$s", serverId);
-        cmd.Parameters.AddWithValue("$p", playerName);
-        cmd.ExecuteNonQuery();
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = """
+                UPDATE sessions SET leave_time = $t
+                WHERE id = (
+                    SELECT id FROM sessions
+                    WHERE server_id = $s AND player_name = $p AND leave_time IS NULL
+                    ORDER BY id DESC LIMIT 1
+                )
+                """;
+            cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$p", playerName);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
     }
 
     public List<PlayerSession> GetSessions(string serverId, int limit = 100)
     {
         if (!_available) return [];
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = "SELECT id, player_name, join_time, leave_time FROM sessions WHERE server_id=$s ORDER BY id DESC LIMIT $l";
-        cmd.Parameters.AddWithValue("$s", serverId);
-        cmd.Parameters.AddWithValue("$l", limit);
-        var result = new List<PlayerSession>();
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
+        try
         {
-            result.Add(new PlayerSession
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "SELECT id, player_name, join_time, leave_time FROM sessions WHERE server_id=$s ORDER BY id DESC LIMIT $l";
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$l", limit);
+            var result = new List<PlayerSession>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
             {
-                Id         = r.GetInt64(0),
-                ServerId   = serverId,
-                PlayerName = r.GetString(1),
-                JoinTime   = DateTime.Parse(r.GetString(2)),
-                LeaveTime  = r.IsDBNull(3) ? null : DateTime.Parse(r.GetString(3)),
-            });
+                result.Add(new PlayerSession
+                {
+                    Id         = r.GetInt64(0),
+                    ServerId   = serverId,
+                    PlayerName = r.GetString(1),
+                    JoinTime   = DateTime.Parse(r.GetString(2)),
+                    LeaveTime  = r.IsDBNull(3) ? null : DateTime.Parse(r.GetString(3)),
+                });
+            }
+            return result;
         }
-        return result;
+        catch { return []; }
     }
 
     public Dictionary<string, TimeSpan> GetTotalPlaytime(string serverId)
     {
         if (!_available) return [];
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = """
-            SELECT player_name,
-                   SUM(CAST((julianday(COALESCE(leave_time, datetime('now'))) - julianday(join_time)) * 86400 AS INTEGER))
-            FROM sessions WHERE server_id=$s GROUP BY player_name
-            """;
-        cmd.Parameters.AddWithValue("$s", serverId);
-        var result = new Dictionary<string, TimeSpan>();
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
-            result[r.GetString(0)] = TimeSpan.FromSeconds(r.GetDouble(1));
-        return result;
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = """
+                SELECT player_name,
+                       SUM(CAST((julianday(COALESCE(leave_time, datetime('now'))) - julianday(join_time)) * 86400 AS INTEGER))
+                FROM sessions WHERE server_id=$s GROUP BY player_name
+                """;
+            cmd.Parameters.AddWithValue("$s", serverId);
+            var result = new Dictionary<string, TimeSpan>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                result[r.GetString(0)] = TimeSpan.FromSeconds(r.GetDouble(1));
+            return result;
+        }
+        catch { return []; }
     }
-
-    public void Dispose() => _db.Dispose();
 }

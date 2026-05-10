@@ -30,9 +30,8 @@ public class ConfigEditorService
                 if (File.Exists(full))
                     result.Add(new ConfigFileEntry
                     {
-                        Name    = System.IO.Path.GetFileName(full),
-                        Path    = full,
-                        Content = SafeRead(full),
+                        Name = System.IO.Path.GetFileName(full),
+                        Path = full,
                     });
             }
         }
@@ -49,16 +48,21 @@ public class ConfigEditorService
                     if (ConfigNames.Any(n => name.Contains(n)))
                         result.Add(new ConfigFileEntry
                         {
-                            Name    = System.IO.Path.GetRelativePath(server.InstallPath, file),
-                            Path    = file,
-                            Content = SafeRead(file),
+                            Name = System.IO.Path.GetRelativePath(server.InstallPath, file),
+                            Path = file,
                         });
                 }
             }
-            catch { }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
 
         return result;
+    }
+
+    public void LoadContent(ConfigFileEntry entry)
+    {
+        if (string.IsNullOrEmpty(entry.Content))
+            entry.Content = SafeRead(entry.Path);
     }
 
     public void Save(ConfigFileEntry entry)

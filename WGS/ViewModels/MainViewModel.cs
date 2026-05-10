@@ -99,23 +99,27 @@ public partial class MainViewModel : BaseViewModel
 
         // Wire up Discord bot callbacks
         _bot.GetServers    = () => Servers.Select(v => v.Server);
-        _bot.StartServer   = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
-        _bot.StopServer    = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
-        _bot.RestartServer = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
-        _bot.UpdateServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
-        _bot.BackupServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        _bot.StartServer   = async id => { var vm = FindServer(id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
+        _bot.StopServer    = async id => { var vm = FindServer(id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
+        _bot.RestartServer = async id => { var vm = FindServer(id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
+        _bot.UpdateServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+        _bot.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
         _bot.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
 
         // Start bot if already configured
         _bot.ApplySettings(notifications.Settings);
 
+        // Wire Scheduled Task callbacks
+        _scheduler.GetServers   = () => Servers.Select(v => v.Server);
+        _scheduler.UpdateServer = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+
         // Wire Web API callbacks
         _webApi.GetServers    = () => Servers.Select(v => v.Server);
-        _webApi.StartServer   = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
-        _webApi.StopServer    = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
-        _webApi.RestartServer = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
-        _webApi.UpdateServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
-        _webApi.BackupServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        _webApi.StartServer   = async id => { var vm = FindServer(id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
+        _webApi.StopServer    = async id => { var vm = FindServer(id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
+        _webApi.RestartServer = async id => { var vm = FindServer(id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
+        _webApi.UpdateServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+        _webApi.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
         _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
         _webApi.GetMetrics    = () => metrics.Current;
     }
@@ -135,6 +139,8 @@ public partial class MainViewModel : BaseViewModel
         RefreshCounts();
         _tray.SetStatus(RunningCount, TotalServers);
     }
+
+    private ServerViewModel? FindServer(string id) => Servers.FirstOrDefault(v => v.Server.Id == id);
 
     private ServerViewModel MakeVm(GameServer srv)
         => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,

@@ -28,11 +28,6 @@ namespace WGS.Services;
 /// </summary>
 public class DiscordBotService : IDisposable
 {
-    // ── Dependencies ─────────────────────────────────────────────────────────
-    private readonly ServerManagerService _manager;
-    private readonly SteamCmdService      _steam;
-    private readonly BackupService        _backup;
-
     // ── Settings ─────────────────────────────────────────────────────────────
     public string  BotToken       { get; set; } = string.Empty;
     public string  ChannelId      { get; set; } = string.Empty;
@@ -59,12 +54,7 @@ public class DiscordBotService : IDisposable
     public Func<string, Task>?            BackupServer  { get; set; }
     public Func<string, string, Task>?    SendCmd       { get; set; }
 
-    public DiscordBotService(ServerManagerService manager, SteamCmdService steam, BackupService backup)
-    {
-        _manager = manager;
-        _steam   = steam;
-        _backup  = backup;
-    }
+    public DiscordBotService() { }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -271,8 +261,6 @@ public class DiscordBotService : IDisposable
 
         if (SendCmd != null)
             await SendCmd(srv.Id, cmd);
-        else
-            _manager.SendCommand(srv.Id, cmd);
 
         return $"📨 Sent to **{srv.DisplayName}**: `{cmd}`";
     }
