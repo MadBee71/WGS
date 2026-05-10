@@ -1,8 +1,7 @@
 <div align="center">
-  <img src="wgs.png" alt="Windows Game Server" width=320"/>
+  <img src="wgs.png" alt="Windows Game Server" width="320"/>
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
-
 
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
@@ -11,6 +10,28 @@
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
+
+---
+
+## What is Windows Game Server?
+
+**Windows Game Server (WGS)** is a free, open-source desktop application that lets you host and manage dedicated game servers on any Windows PC — without touching the command line.
+
+Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and manual firewall rules, WGS brings everything into one clean window:
+
+- **Install** any supported game server in one click — SteamCMD is downloaded and run automatically in the background
+- **Start, stop and restart** servers with a single button — or let WGS do it automatically after a crash, with smart crash-loop detection
+- **Monitor** CPU and RAM usage per server in real time, with history graphs and a global system dashboard
+- **Schedule** automatic restarts, updates and backups at any time of day or week
+- **Back up** world saves and configs automatically before every update, with configurable retention
+- **Send console commands** directly from the UI — no need to switch windows or open a terminal
+- **Edit config files** for any server directly inside WGS, without opening a file manager
+- **Install Workshop mods** and manage Oxide/Minecraft plugins from the same interface
+- **Add any game** that isn't built-in using the graphical Plugin Creator — no coding required
+- **Control servers remotely** via Discord bot commands or the built-in REST API
+- **Manage firewall rules** automatically — WGS opens and closes the right ports when servers start and stop
+
+WGS is designed for home lab hosts, small community server admins and anyone who wants a clean, reliable way to keep game servers running on Windows without spending time on maintenance.
 
 ---
 
@@ -28,8 +49,6 @@
   <img src="4.png" width="400">
 </p>
 
-
-
 ---
 
 > [!IMPORTANT]
@@ -42,19 +61,51 @@
 
 ## ✨ Features
 
+### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **17+ games** | Ready-made plugins for the most popular game servers |
-| ⬇️ **SteamCMD integration** | Install and update with one click |
-| 🔄 **Auto Restart** | Automatic restart after crash |
-| 💾 **Automatic backups** | Scheduled backups with configurable retention |
-| 🛡️ **Firewall management** | Windows Firewall rules managed automatically |
-| 📟 **RCON console** | Remote commands directly from the UI |
-| 📊 **System metrics** | CPU, RAM and drives in real time on the dashboard |
-| ⚙️ **CPU Affinity** | Per-server core selection and process priority |
-| 🔧 **Custom Plugin Creator** | Add any game server without writing code |
-| 🔔 **System tray** | Runs in background, notifications from tray icon |
-| 🔒 **Encrypted credentials** | Steam password and Discord webhook encrypted via DPAPI |
+| 🎮 **17+ supported games** | Ready-made plugins for the most popular game servers |
+| ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
+| 🔄 **Auto restart** | Automatic restart after crash, with configurable delay |
+| 🛡️ **Crash loop detection** | Counts crashes in a 10-minute window — stops retrying after a configurable limit |
+| 🔁 **Auto-update** | Periodic SteamCMD updates on a configurable interval while the server runs |
+
+### Monitoring
+| Feature | Description |
+|---|---|
+| 📊 **System dashboard** | Global CPU, RAM and disk usage across all running servers |
+| 📈 **Per-server performance charts** | CPU and RAM history graphs (last 6 minutes) per server |
+| 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
+
+### Automation
+| Feature | Description |
+|---|---|
+| 🗓️ **Task scheduler** | Schedule start, stop, restart, update or backup — once, daily or weekly |
+| 💾 **Automatic backups** | Zip backups of world saves before updates, configurable retention policy |
+
+### Remote access
+| Feature | Description |
+|---|---|
+| 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
+| 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
+| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics endpoints |
+
+### Configuration & mods
+| Feature | Description |
+|---|---|
+| 📝 **Config editor** | Browse and edit any server config file directly inside WGS |
+| 🔩 **Mod manager** | Install and update Oxide/uMod for Rust; manage plugins for Minecraft |
+| 🗂️ **Steam Workshop** | Install Workshop items for supported games via SteamCMD |
+
+### System & extensibility
+| Feature | Description |
+|---|---|
+| 🛡️ **Firewall management** | Windows Firewall rules opened/closed automatically on start and stop |
+| ⚙️ **CPU affinity & priority** | Per-server core pinning and Windows process priority |
+| 🔧 **Custom Plugin Creator** | Graphical tool to add any game server — no code required |
+| 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |
+| 🔔 **System tray** | Runs minimised in the background with tray notifications |
+| 🔒 **Encrypted credentials** | Steam login and Discord bot token encrypted with Windows DPAPI |
 
 ---
 
@@ -134,7 +185,7 @@ WGS/
 │   ├── RustPlugin.cs
 │   └── ...             # One .cs per game
 ├── Models/             # Data models (GameServer, ConsoleMessage...)
-├── Services/           # Services (ServerManager, SteamCmd, Backup...)
+├── Services/           # Business logic and background services
 ├── ViewModels/         # MVVM ViewModels
 ├── Views/              # WPF XAML views
 └── publish/            # Published executable output
@@ -151,6 +202,8 @@ WGS includes a built-in Plugin Creator tool:
 2. Fill in the game details (name, Steam AppID, executable, ports...)
 3. Click **Save** — the plugin appears in the game list immediately
 
+You can also export any plugin to a `.cs` file and share it, or import one from another machine via **Tools → Import Plugin**.
+
 ### Writing a plugin in code
 
 Create a new file `Games/MyGamePlugin.cs`:
@@ -161,14 +214,14 @@ using WGS.Models;
 
 public class MyGamePlugin : GamePluginBase
 {
-    public override string GameId           => "mygame";
-    public override string GameName         => "My Game";
-    public override string Description      => "Short description";
-    public override string Category         => "Survival";
-    public override int    SteamAppId       => 123456;
-    public override string Executable       => "server.exe";
-    public override int    DefaultPort      => 7777;
-    public override int    DefaultQueryPort => 27015;
+    public override string GameId            => "mygame";
+    public override string GameName          => "My Game";
+    public override string Description       => "Short description";
+    public override string Category          => "Survival";
+    public override int    SteamAppId        => 123456;
+    public override string Executable        => "server.exe";
+    public override int    DefaultPort       => 7777;
+    public override int    DefaultQueryPort  => 27015;
     public override int    DefaultMaxPlayers => 32;
 
     public override string BuildStartArguments(GameServer s)
@@ -177,6 +230,7 @@ public class MyGamePlugin : GamePluginBase
 ```
 
 Register it in `Games/GameRegistry.cs`:
+
 ```csharp
 Register(new MyGamePlugin());
 ```
@@ -191,14 +245,23 @@ Register(new MyGamePlugin());
 ├──────────────┬──────────────────────┤
 │  MainViewModel │  ServerViewModel   │  ← CommunityToolkit.Mvvm
 ├──────────────┴──────────────────────┤
-│  ServerManagerService               │  ← Process management
-│  SteamCmdService                    │  ← Install / update
-│  BackupService                      │  ← Zip backups
-│  FirewallService                    │  ← netsh / COM
+│  ServerManagerService               │  ← Process lifecycle
+│  SteamCmdService                    │  ← Install / update / Workshop
+│  BackupService                      │  ← Zip backups + retention
+│  FirewallService                    │  ← netsh / Windows Firewall COM
 │  RconService                        │  ← Source RCON protocol
-│  SystemMetricsService               │  ← CPU / RAM / disk
-│  ScheduledTaskService               │  ← Task scheduler
+│  SystemMetricsService               │  ← Global CPU / RAM / disk
+│  PerformanceMonitorService          │  ← Per-process CPU / RAM
+│  PerfHistoryService                 │  ← Time-series chart data
+│  PlayerStatsService                 │  ← Session tracking (SQLite)
+│  ModManagerService                  │  ← Oxide / Minecraft plugins
+│  SteamWorkshopService               │  ← Workshop item management
+│  ConfigEditorService                │  ← In-app config file editing
+│  ScheduledTaskService               │  ← Recurring automation tasks
 │  NotificationService                │  ← Discord webhooks
+│  DiscordBotService                  │  ← Discord bot (long-poll)
+│  WebApiService                      │  ← REST API (HttpListener)
+│  ServerGroupService                 │  ← Server grouping
 └─────────────────────────────────────┘
          │
          ▼
@@ -231,6 +294,7 @@ MIT License — see the [LICENSE](LICENSE) file.
 
 ## Support
 If you find WGS useful, you can support my work here:
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/madbee71)
 
 <div align="center">
