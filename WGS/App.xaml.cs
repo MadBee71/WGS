@@ -43,6 +43,12 @@ public partial class App : System.Windows.Application
         var config = Services.GetRequiredService<ConfigService>();
         LocalizationService.Instance.Load(config);
 
+        // Start Web API if configured
+        var webApi = Services.GetRequiredService<WebApiService>();
+        var cfgSvc = Services.GetRequiredService<ConfigService>();
+        if (cfgSvc.WebApiEnabled && cfgSvc.WebApiPort > 0)
+            webApi.Start(cfgSvc.WebApiPort, cfgSvc.WebApiToken);
+
         _tray = Services.GetRequiredService<TrayService>();
         _tray.ShowWindowRequested += () =>
         {
@@ -97,6 +103,12 @@ public partial class App : System.Windows.Application
         s.AddSingleton<SystemMetricsService>();
         s.AddSingleton<ModManagerService>();
         s.AddSingleton<DiscordBotService>();
+        s.AddSingleton<ConfigEditorService>();
+        s.AddSingleton<PlayerStatsService>();
+        s.AddSingleton<PerfHistoryService>();
+        s.AddSingleton<SteamWorkshopService>();
+        s.AddSingleton<ServerGroupService>();
+        s.AddSingleton<WebApiService>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<DashboardViewModel>(sp =>

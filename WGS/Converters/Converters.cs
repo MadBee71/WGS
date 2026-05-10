@@ -77,6 +77,13 @@ public class StatusToEmojiConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+public class ZeroToVisibilityConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is int i && i == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 public class TimeSpanToStringConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)

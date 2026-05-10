@@ -24,6 +24,10 @@ public interface IGamePlugin
     bool   SupportsOxide   { get; }   // uMod/Oxide compatible
     string MinecraftFlavor { get; }   // "paper" | "forge" | "fabric" | "" = none
 
+    // Workshop & config
+    int          WorkshopAppId { get; }  // Steam Workshop app ID (0 = no workshop)
+    List<string> ConfigFiles   { get; }  // Relative paths to game config files
+
     string BuildStartArguments(GameServer server);
     Dictionary<string, string> GetDefaultSettings();
     List<ConfigField> GetConfigFields();

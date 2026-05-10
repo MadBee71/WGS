@@ -20,6 +20,13 @@ public partial class MainViewModel : BaseViewModel
     private readonly SystemMetricsService      _metrics;
     private readonly ModManagerService         _mods;
     private readonly DiscordBotService         _bot;
+    private readonly ConfigEditorService       _configEditor;
+    private readonly PlayerStatsService        _playerStats;
+    private readonly PerfHistoryService        _perfHistory;
+    private readonly SteamWorkshopService      _workshop;
+    private readonly ServerGroupService        _groups;
+    private readonly WebApiService             _webApi;
+    private readonly ScheduledTaskService      _scheduler;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -54,7 +61,10 @@ public partial class MainViewModel : BaseViewModel
     public MainViewModel(ConfigService config, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         TrayService tray, SettingsViewModel settings, SystemMetricsService metrics,
-        ModManagerService mods, DiscordBotService bot)
+        ModManagerService mods, DiscordBotService bot,
+        ConfigEditorService configEditor, PlayerStatsService playerStats, PerfHistoryService perfHistory,
+        SteamWorkshopService workshop, ServerGroupService groups, WebApiService webApi,
+        ScheduledTaskService scheduler)
     {
         _config        = config;
         _manager       = manager;
@@ -66,6 +76,13 @@ public partial class MainViewModel : BaseViewModel
         _metrics       = metrics;
         _mods          = mods;
         _bot           = bot;
+        _configEditor  = configEditor;
+        _playerStats   = playerStats;
+        _perfHistory   = perfHistory;
+        _workshop      = workshop;
+        _groups        = groups;
+        _webApi        = webApi;
+        _scheduler     = scheduler;
         Settings       = settings;
         Dashboard      = new DashboardViewModel(metrics, Servers);
 
@@ -91,6 +108,16 @@ public partial class MainViewModel : BaseViewModel
 
         // Start bot if already configured
         _bot.ApplySettings(notifications.Settings);
+
+        // Wire Web API callbacks
+        _webApi.GetServers    = () => Servers.Select(v => v.Server);
+        _webApi.StartServer   = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
+        _webApi.StopServer    = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
+        _webApi.RestartServer = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
+        _webApi.UpdateServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+        _webApi.BackupServer  = async id => { var vm = Servers.FirstOrDefault(v => v.Server.Id == id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
+        _webApi.GetMetrics    = () => metrics.Current;
     }
 
     private void LoadServers()
@@ -110,7 +137,8 @@ public partial class MainViewModel : BaseViewModel
     }
 
     private ServerViewModel MakeVm(GameServer srv)
-        => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods);
+        => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
+               _configEditor, _playerStats, _perfHistory, _workshop, _scheduler);
 
     [RelayCommand]
     private void OpenAddDialog()

@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 
 namespace WGS.Services;
 
+public record SystemMetrics(double CpuPercent, double MemUsedGb, double MemTotalGb);
+
 public record DriveStats(string Name, double UsedGb, double TotalGb)
 {
     public double UsedPercent => TotalGb > 0 ? UsedGb / TotalGb * 100.0 : 0;
@@ -37,6 +39,8 @@ public class SystemMetricsService
     public IReadOnlyList<DriveStats> Drives { get; private set; } = [];
 
     public event Action? MetricsUpdated;
+
+    public SystemMetrics Current => new(CpuPercent, RamUsedMb / 1024.0, RamTotalMb / 1024.0);
 
     public SystemMetricsService()
     {

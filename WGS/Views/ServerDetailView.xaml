@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:WGS.ViewModels"
+             xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
              Background="{StaticResource BgDeepBrush}">
     <Grid>
         <Grid.RowDefinitions>
@@ -723,6 +724,214 @@
 
                     </StackPanel>
                 </ScrollViewer>
+            </TabItem>
+
+            <!-- ── SCHEDULE ── -->
+            <TabItem Header="⏰ Schedule">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
+                                    Command="{Binding RefreshScheduledTasksCommand}" Margin="0,0,8,0"/>
+                            <Button Content="+ Add task" Style="{StaticResource PrimaryButton}"
+                                    Click="AddScheduleTask_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="No scheduled tasks." FontSize="13" Foreground="{StaticResource TextMutedBrush}" Margin="0,12,0,0"
+                                       Visibility="{Binding ScheduledTasks.Count, Converter={StaticResource ZeroToVis}}"/>
+                            <ItemsControl ItemsSource="{Binding ScheduledTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock FontWeight="SemiBold" FontSize="13">
+                                                        <Run Text="{Binding ActionText}"/>
+                                                        <Run Text=" — "/>
+                                                        <Run Text="{Binding FrequencyText}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Foreground="{StaticResource TextMutedBrush}" FontSize="12">
+                                                        <Run Text="Last: "/>
+                                                        <Run Text="{Binding LastRun, StringFormat='dd.MM HH:mm', TargetNullValue='Never'}"/>
+                                                        <Run Text="  Next: "/>
+                                                        <Run Text="{Binding NextRun, StringFormat='dd.MM HH:mm', TargetNullValue='—'}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="✕" Style="{StaticResource DangerButton}"
+                                                        Width="32" Padding="0" VerticalAlignment="Center"
+                                                        Command="{Binding DataContext.RemoveScheduledTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ── CONFIG ── -->
+            <TabItem Header="📝 Config">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="↻ Scan files" Style="{StaticResource GhostButton}"
+                                    Command="{Binding LoadConfigFilesCommand}" Margin="0,0,12,0"/>
+                            <ComboBox ItemsSource="{Binding ConfigFiles}" SelectedItem="{Binding SelectedConfigFile}"
+                                      DisplayMemberPath="Name" Style="{StaticResource DarkComboBox}"
+                                      Width="280"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBox Grid.Row="1"
+                             Text="{Binding ConfigContent, UpdateSourceTrigger=PropertyChanged}"
+                             Background="{StaticResource BgDeepBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             CaretBrush="{StaticResource TextPrimaryBrush}"
+                             BorderThickness="0"
+                             FontFamily="Cascadia Code, Consolas, Courier New"
+                             FontSize="13"
+                             AcceptsReturn="True" AcceptsTab="True"
+                             TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             Padding="16"/>
+                    <Border Grid.Row="2" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,10">
+                        <Button Content="💾 Save file" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Right" Command="{Binding SaveConfigFileCommand}"/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ── PLAYERS ── -->
+            <TabItem Header="👥 Players">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
+                        <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
+                                Command="{Binding RefreshPlayersCommand}"/>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Recent sessions" Style="{StaticResource SectionHeader}"/>
+                            <ItemsControl ItemsSource="{Binding PlayerHistory}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding PlayerName}"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource TextMutedBrush}"
+                                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0">
+                                                    <Run Text="{Binding JoinTime, StringFormat='dd.MM HH:mm'}"/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="12"
+                                                           Text="{Binding DurationText}" VerticalAlignment="Center"
+                                                           HorizontalAlignment="Right"
+                                                           Foreground="{StaticResource AccentGreenBrush}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ── CHARTS ── -->
+            <TabItem Header="📊 Charts"
+                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                <Grid Background="{StaticResource BgDeepBrush}" Margin="16">
+                    <oxy:PlotView Model="{Binding PerfPlot}"
+                                  Background="Transparent"
+                                  xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"/>
+                </Grid>
+            </TabItem>
+
+            <!-- ── WORKSHOP ── -->
+            <TabItem Header="🎮 Workshop"
+                     Visibility="{Binding HasWorkshop, Converter={StaticResource BoolToVis}}">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+                        <StackPanel>
+                            <TextBlock Text="Install Workshop item by ID" Style="{StaticResource FieldLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="200"
+                                         Text="{Binding WorkshopItemId, UpdateSourceTrigger=PropertyChanged}"
+                                         FontFamily="Consolas" Margin="0,0,8,0"/>
+                                <Button Content="⬇ Install" Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding InstallWorkshopItemCommand}"
+                                        IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
+                                        Command="{Binding RefreshWorkshopCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Installed items" Style="{StaticResource SectionHeader}"/>
+                            <TextBlock Text="No items installed." FontSize="13" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
+                                       Visibility="{Binding WorkshopItems.Count, Converter={StaticResource ZeroToVis}}"/>
+                            <ItemsControl ItemsSource="{Binding WorkshopItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding Title}"/>
+                                                    <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                                                               Text="{Binding PublishedFileId, StringFormat='ID: {0}'}"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="🗑 Remove" Style="{StaticResource DangerButton}"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding DataContext.UninstallWorkshopItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </TabItem>
 
         </TabControl>

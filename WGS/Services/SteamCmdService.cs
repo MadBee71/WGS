@@ -157,5 +157,28 @@ public class SteamCmdService
         return double.TryParse(line[start..idx], out var d) ? (int)d : -1;
     }
 
+    public async Task RunWorkshopDownloadAsync(int serverAppId, int workshopAppId, ulong itemId,
+        string installPath, IProgress<(int pct, string msg)>? progress = null)
+    {
+        if (!IsInstalled) await DownloadSteamCmdAsync();
+
+        progress?.Report((5, "Starting SteamCMD..."));
+        var workshopDir = Path.Combine(installPath, "steamapps", "workshop");
+        Directory.CreateDirectory(workshopDir);
+
+        var args = $"+login anonymous +workshop_download_item {workshopAppId} {itemId} +quit";
+        int fakeProgress = 10;
+        var progressTimer = new System.Timers.Timer(3000);
+        progressTimer.Elapsed += (_, _) =>
+        {
+            if (fakeProgress < 88) { fakeProgress += 8; progress?.Report((fakeProgress, "Downloading...")); }
+        };
+        progressTimer.Start();
+        await RunAsync(args);
+        progressTimer.Stop();
+        progressTimer.Dispose();
+        progress?.Report((100, "Done."));
+    }
+
     public void Cancel() => _currentProcess?.Kill(entireProcessTree: true);
 }

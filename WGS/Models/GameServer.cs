@@ -33,6 +33,12 @@ public class GameServer
     public Dictionary<string, string> GameSpecificSettings { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastStarted { get; set; }
+    public string GroupId { get; set; } = string.Empty;
+
+    // Web API
+    public bool   WebApiEnabled { get; set; } = false;
+    public int    WebApiPort    { get; set; } = 8765;
+    public string WebApiToken   { get; set; } = string.Empty;
 
     [JsonIgnore]
     public ServerStatus Status { get; set; } = ServerStatus.NotInstalled;

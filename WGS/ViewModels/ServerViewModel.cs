@@ -17,6 +17,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly PerformanceMonitorService _perfMonitor;
     private readonly ConfigService         _config;
     private readonly ModManagerService     _mods;
+    private readonly ConfigEditorService   _configEditor;
+    private readonly PlayerStatsService    _playerStats;
+    private readonly PerfHistoryService    _perfHistory;
+    private readonly SteamWorkshopService  _workshop;
+    private readonly ScheduledTaskService  _scheduler;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -37,6 +42,27 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _consoleFilter   = string.Empty;
     [ObservableProperty] private string _modStatusText   = string.Empty;
     [ObservableProperty] private bool   _modBusy;
+
+    // Config editor
+    [ObservableProperty] private List<Services.ConfigFileEntry> _configFiles = [];
+    [ObservableProperty] private Services.ConfigFileEntry? _selectedConfigFile;
+    [ObservableProperty] private string _configContent = string.Empty;
+
+    // Players
+    [ObservableProperty] private List<Services.PlayerSession> _playerHistory = [];
+
+    // Performance history
+    [ObservableProperty] private OxyPlot.PlotModel _perfPlot = CreateEmptyPlot();
+
+    // Workshop
+    [ObservableProperty] private List<Services.WorkshopItem> _workshopItems = [];
+    [ObservableProperty] private string _workshopItemId = string.Empty;
+    [ObservableProperty] private bool   _workshopBusy;
+
+    // Scheduled tasks
+    [ObservableProperty] private List<Services.ScheduledTask> _scheduledTasks = [];
+
+    public bool HasWorkshop => _workshop.SupportsWorkshop(Plugin);
 
     private System.Timers.Timer? _perfTimer;
 
@@ -85,7 +111,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public ServerViewModel(GameServer server, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
-        ConfigService config, ModManagerService mods)
+        ConfigService config, ModManagerService mods,
+        ConfigEditorService configEditor, PlayerStatsService playerStats,
+        PerfHistoryService perfHistory, SteamWorkshopService workshop,
+        ScheduledTaskService scheduler)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -96,6 +125,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _perfMonitor   = perfMonitor;
         _config        = config;
         _mods          = mods;
+        _configEditor  = configEditor;
+        _playerStats   = playerStats;
+        _perfHistory   = perfHistory;
+        _workshop      = workshop;
+        _scheduler     = scheduler;
 
         _manager.LogReceived      += OnLogReceived;
         _manager.StatusChanged    += OnStatusChanged;
@@ -214,6 +248,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         Server.Status     = ServerStatus.Installing;
         RefreshStatus();
         AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
+
+        // Auto-backup before update if server was running before
+        if (Server.BackupEnabled)
+        {
+            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); }
+            catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
+        }
 
         try
         {
@@ -575,6 +616,188 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ModManagerService.OpenPluginFolder(Plugin, Server.InstallPath);
     }
 
+    // ── Config editor ───────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void LoadConfigFiles()
+    {
+        ConfigFiles = _configEditor.FindConfigs(Server, Plugin);
+        if (ConfigFiles.Count > 0) { SelectedConfigFile = ConfigFiles[0]; ConfigContent = ConfigFiles[0].Content; }
+    }
+
+    [RelayCommand]
+    private void SaveConfigFile()
+    {
+        if (SelectedConfigFile == null) return;
+        SelectedConfigFile.Content = ConfigContent;
+        try { _configEditor.Save(SelectedConfigFile); AppendLog("[Config] File saved.", ConsoleMessageType.System); }
+        catch (Exception ex) { AppendLog($"[Config] Save failed: {ex.Message}", ConsoleMessageType.Error); }
+    }
+
+    partial void OnSelectedConfigFileChanged(Services.ConfigFileEntry? value)
+    {
+        if (value != null) ConfigContent = value.Content;
+    }
+
+    // ── Players ──────────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task RefreshPlayersAsync()
+    {
+        // Fetch live player list via RCON
+        if (RconConnected && _rcon != null)
+        {
+            await _rconLock.WaitAsync();
+            try
+            {
+                var resp = await _rcon.SendCommandAsync("status");
+                AppendLog("[Players] " + resp, ConsoleMessageType.System);
+            }
+            finally { _rconLock.Release(); }
+        }
+        // Load history from SQLite
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            PlayerHistory = _playerStats.GetSessions(Server.Id, 50));
+    }
+
+    // ── Performance history ──────────────────────────────────────────────────
+
+    private void UpdatePerfChart()
+    {
+        var samples = _perfHistory.Get(Server.Id);
+        if (samples.Count == 0) return;
+
+        var model = new OxyPlot.PlotModel
+        {
+            Background    = OxyPlot.OxyColor.FromArgb(0, 0, 0, 0),
+            PlotAreaBorderColor = OxyPlot.OxyColor.Parse("#30363d"),
+            TextColor     = OxyPlot.OxyColor.Parse("#8b949e"),
+        };
+
+        var cpuSeries = new OxyPlot.Series.LineSeries
+        {
+            Title       = "CPU %",
+            Color       = OxyPlot.OxyColor.Parse("#58A6FF"),
+            StrokeThickness = 2,
+            MarkerType  = OxyPlot.MarkerType.None,
+        };
+        var memSeries = new OxyPlot.Series.LineSeries
+        {
+            Title       = "RAM MB",
+            Color       = OxyPlot.OxyColor.Parse("#3FB950"),
+            StrokeThickness = 2,
+            MarkerType  = OxyPlot.MarkerType.None,
+            YAxisKey    = "mem",
+        };
+
+        foreach (var s in samples)
+        {
+            var x = OxyPlot.Axes.DateTimeAxis.ToDouble(s.Time);
+            cpuSeries.Points.Add(new OxyPlot.DataPoint(x, s.Cpu));
+            memSeries.Points.Add(new OxyPlot.DataPoint(x, s.MemMb));
+        }
+
+        model.Axes.Add(new OxyPlot.Axes.DateTimeAxis
+        {
+            Position          = OxyPlot.Axes.AxisPosition.Bottom,
+            StringFormat      = "HH:mm:ss",
+            AxislineColor     = OxyPlot.OxyColor.Parse("#30363d"),
+            TicklineColor     = OxyPlot.OxyColor.Parse("#30363d"),
+            MajorGridlineColor= OxyPlot.OxyColor.Parse("#21262d"),
+            MajorGridlineStyle= OxyPlot.LineStyle.Solid,
+        });
+        model.Axes.Add(new OxyPlot.Axes.LinearAxis
+        {
+            Position          = OxyPlot.Axes.AxisPosition.Left,
+            Title             = "CPU %",
+            Minimum           = 0,
+            Maximum           = 100,
+            MajorGridlineColor= OxyPlot.OxyColor.Parse("#21262d"),
+            MajorGridlineStyle= OxyPlot.LineStyle.Solid,
+        });
+        model.Axes.Add(new OxyPlot.Axes.LinearAxis
+        {
+            Key               = "mem",
+            Position          = OxyPlot.Axes.AxisPosition.Right,
+            Title             = "RAM MB",
+            Minimum           = 0,
+        });
+
+        model.Series.Add(cpuSeries);
+        model.Series.Add(memSeries);
+
+        WpfApplication.Current?.Dispatcher?.Invoke(() => PerfPlot = model);
+    }
+
+    private static OxyPlot.PlotModel CreateEmptyPlot()
+    {
+        var m = new OxyPlot.PlotModel { Background = OxyPlot.OxyColor.FromArgb(0,0,0,0) };
+        m.Axes.Add(new OxyPlot.Axes.LinearAxis { Position = OxyPlot.Axes.AxisPosition.Left });
+        m.Axes.Add(new OxyPlot.Axes.LinearAxis { Position = OxyPlot.Axes.AxisPosition.Bottom });
+        return m;
+    }
+
+    // ── Workshop ─────────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task RefreshWorkshopAsync()
+    {
+        if (Plugin == null || !HasWorkshop) return;
+        WorkshopItems = await _workshop.GetInstalledItemsAsync(Server, Plugin);
+    }
+
+    [RelayCommand]
+    private async Task InstallWorkshopItemAsync()
+    {
+        if (!ulong.TryParse(WorkshopItemId, out var id)) { AppendLog("[Workshop] Invalid item ID.", ConsoleMessageType.Warning); return; }
+        if (Plugin == null || !HasWorkshop) return;
+        WorkshopBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
+            await _workshop.InstallItemAsync(Server, Plugin, id, progress);
+            AppendLog($"[Workshop] ✅ Item {id} installed.", ConsoleMessageType.System);
+            WorkshopItemId = string.Empty;
+            await RefreshWorkshopAsync();
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task UninstallWorkshopItemAsync(WorkshopItem? item)
+    {
+        if (item == null || Plugin == null) return;
+        _workshop.UninstallItem(Server, Plugin, item.PublishedFileId);
+        AppendLog($"[Workshop] Removed item {item.PublishedFileId}.", ConsoleMessageType.System);
+        await RefreshWorkshopAsync();
+    }
+
+    // ── Scheduled tasks ──────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void RefreshScheduledTasks()
+        => ScheduledTasks = _scheduler.Tasks.Where(t => t.ServerId == Server.Id).ToList();
+
+    [RelayCommand]
+    private void AddScheduledTask(Services.ScheduledTask? task)
+    {
+        if (task == null) return;
+        task.ServerId   = Server.Id;
+        task.ServerName = Server.DisplayName;
+        _scheduler.AddTask(task);
+        RefreshScheduledTasks();
+    }
+
+    [RelayCommand]
+    private void RemoveScheduledTask(Services.ScheduledTask? task)
+    {
+        if (task == null) return;
+        _scheduler.RemoveTask(task.Id);
+        RefreshScheduledTasks();
+    }
+
     // ── Performance monitoring ───────────────────────────────────────────────
 
     private void StartPerfMonitoring()
@@ -596,6 +819,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 }
                 var m = _perfMonitor.Get(Server.Id);
                 if (m == null) return;
+                _perfHistory.Record(Server.Id, m.CurrentCpu, m.CurrentMemMb);
+                UpdatePerfChart();
                 WpfApplication.Current?.Dispatcher?.Invoke(() =>
                 {
                     CpuPercent = Math.Round(m.CurrentCpu, 1);
