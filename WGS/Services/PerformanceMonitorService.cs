@@ -49,7 +49,7 @@ public class ProcessMonitor
 public class PerformanceMonitorService : IDisposable
 {
     private readonly System.Timers.Timer _timer;
-    private readonly Dictionary<string, ProcessMonitor> _monitors = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ProcessMonitor> _monitors = new();
 
     public PerformanceMonitorService()
     {
@@ -64,14 +64,14 @@ public class PerformanceMonitorService : IDisposable
         catch { }
     }
 
-    public void Untrack(string serverId) => _monitors.Remove(serverId);
+    public void Untrack(string serverId) => _monitors.TryRemove(serverId, out _);
 
     public ProcessMonitor? Get(string serverId)
         => _monitors.TryGetValue(serverId, out var m) ? m : null;
 
     private void SampleAll()
     {
-        foreach (var m in _monitors.Values.ToList()) m.Sample();
+        foreach (var m in _monitors.Values) m.Sample();
     }
 
     public void Dispose()

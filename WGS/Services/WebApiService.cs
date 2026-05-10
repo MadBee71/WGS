@@ -66,7 +66,9 @@ public class WebApiService : IDisposable
             HttpListenerContext ctx;
             try { ctx = await _listener!.GetContextAsync(); }
             catch { break; }
-            _ = Task.Run(() => HandleRequest(ctx), ct);
+            _ = Task.Run(() => HandleRequest(ctx), ct)
+                    .ContinueWith(t => Console.WriteLine($"[WGS] API request error: {t.Exception?.InnerException?.Message}"),
+                        TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 

@@ -133,7 +133,8 @@ public partial class MainViewModel : BaseViewModel
             Servers.Add(vm);
             if (srv.AutoStart)
                 _ = Task.Run(() => vm.StartCommand.ExecuteAsync(null))
-                        .ContinueWith(t => { /* swallow */ }, TaskContinuationOptions.OnlyOnFaulted);
+                        .ContinueWith(t => Console.WriteLine($"[WGS] AutoStart failed for {srv.DisplayName}: {t.Exception?.InnerException?.Message}"),
+                            TaskContinuationOptions.OnlyOnFaulted);
         }
         SelectedServer = Servers.FirstOrDefault();
         RefreshCounts();
