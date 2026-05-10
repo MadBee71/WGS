@@ -11,6 +11,7 @@
     <conv:StringToColorBrushConverter      x:Key="StrToColor"/>
     <conv:StatusToEmojiConverter           x:Key="StatusEmoji"/>
     <conv:TimeSpanToStringConverter        x:Key="TimeSpanStr"/>
+    <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
 
     <!-- Scrollbar -->
     <Style x:Key="DarkScrollBar" TargetType="ScrollBar">

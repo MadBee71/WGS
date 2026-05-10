@@ -94,6 +94,43 @@
                 </StackPanel>
             </Border>
 
+            <!-- Web API -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Web Remote Control (HTTP API)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Enables a built-in web server for remote management from a browser or phone.
+                        Open http://your-ip:port in any browser. REST API available at /api/servers.
+                    </TextBlock>
+                    <CheckBox IsChecked="{Binding WebApiEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable Web API" Margin="0,0,0,12"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding WebApiPort, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Access token (leave empty to auto-generate)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding WebApiToken, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding WebApiStatus}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,16,0"/>
+                        <Button Content="Save" Style="{StaticResource PrimaryButton}"
+                                Command="{Binding SaveSettingsCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- General -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>

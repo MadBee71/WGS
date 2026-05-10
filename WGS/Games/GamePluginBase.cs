@@ -19,6 +19,8 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual bool   UseNativeConsole   => false;
     public virtual bool   SupportsOxide      => false;
     public virtual string MinecraftFlavor    => string.Empty;
+    public virtual int    WorkshopAppId      => 0;
+    public virtual List<string> ConfigFiles  => [];
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 

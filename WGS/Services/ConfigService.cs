@@ -17,6 +17,9 @@ public class ConfigService
     public string BackupPath  { get; set; }
     public string SteamLogin    { get; set; } = string.Empty;
     public string SteamPassword { get; set; } = string.Empty;
+    public bool   WebApiEnabled { get; set; } = false;
+    public int    WebApiPort    { get; set; } = 8765;
+    public string WebApiToken   { get; set; } = string.Empty;
 
     public ConfigService()
     {
@@ -35,7 +38,10 @@ public class ConfigService
         string DefaultInstallRoot,
         string SteamLogin,
         string SteamPasswordEncrypted,
-        string BackupPath = "");
+        string BackupPath     = "",
+        bool   WebApiEnabled  = false,
+        int    WebApiPort     = 8765,
+        string WebApiToken    = "");
 
     private void LoadSettings()
     {
@@ -50,6 +56,9 @@ public class ConfigService
             SteamPassword = string.IsNullOrEmpty(d.SteamPasswordEncrypted)
                 ? string.Empty
                 : EncryptionService.Decrypt(d.SteamPasswordEncrypted);
+            WebApiEnabled = d.WebApiEnabled;
+            WebApiPort    = d.WebApiPort > 0 ? d.WebApiPort : 8765;
+            WebApiToken   = d.WebApiToken;
         }
         catch { }
     }
@@ -59,7 +68,8 @@ public class ConfigService
         var encryptedPassword = string.IsNullOrEmpty(SteamPassword)
             ? string.Empty
             : EncryptionService.Encrypt(SteamPassword);
-        var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath);
+        var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
+            WebApiEnabled, WebApiPort, WebApiToken);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

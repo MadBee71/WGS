@@ -13,6 +13,7 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly ConfigService       _config;
     private readonly SteamCmdService     _steamCmd;
     private readonly DiscordBotService   _bot;
+    private readonly WebApiService       _webApi;
 
     // ── Webhook notifications ─────────────────────────────────────────────────
     [ObservableProperty] private bool   _discordEnabled;
@@ -30,6 +31,12 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _botAllowedUsers = string.Empty;
     [ObservableProperty] private string _botStatus       = string.Empty;
 
+    // ── Web API ───────────────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _webApiEnabled;
+    [ObservableProperty] private int    _webApiPort    = 8765;
+    [ObservableProperty] private string _webApiToken   = string.Empty;
+    [ObservableProperty] private string _webApiStatus  = string.Empty;
+
     // ── General / paths ───────────────────────────────────────────────────────
     [ObservableProperty] private string _defaultInstallRoot = string.Empty;
     [ObservableProperty] private string _backupPath         = string.Empty;
@@ -38,12 +45,13 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _steamPassword      = string.Empty;
 
     public SettingsViewModel(NotificationService notifications, ConfigService config,
-                             SteamCmdService steamCmd, DiscordBotService bot)
+                             SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi)
     {
         _notifications = notifications;
         _config        = config;
         _steamCmd      = steamCmd;
         _bot           = bot;
+        _webApi        = webApi;
         _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => BotStatus = msg);
         Load();
     }
@@ -68,6 +76,10 @@ public partial class SettingsViewModel : BaseViewModel
         SteamLogin         = _config.SteamLogin;
         SteamPassword      = _config.SteamPassword;
         BotStatus          = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
+        WebApiEnabled      = _config.WebApiEnabled;
+        WebApiPort         = _config.WebApiPort;
+        WebApiToken        = _config.WebApiToken;
+        WebApiStatus       = _webApi.IsRunning ? $"🟢 Running on port {_webApi.Port}" : "⚫ Stopped";
     }
 
     [RelayCommand]
@@ -97,6 +109,24 @@ public partial class SettingsViewModel : BaseViewModel
         // Apply bot settings immediately
         _bot.ApplySettings(s);
         BotStatus = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
+
+        // Apply Web API settings
+        _config.WebApiEnabled = WebApiEnabled;
+        _config.WebApiPort    = WebApiPort;
+        _config.WebApiToken   = string.IsNullOrWhiteSpace(WebApiToken) ? Guid.NewGuid().ToString("N") : WebApiToken;
+        WebApiToken           = _config.WebApiToken;
+        _config.Save();
+
+        if (WebApiEnabled)
+        {
+            _webApi.Start(WebApiPort, WebApiToken);
+            WebApiStatus = $"🟢 Running on port {WebApiPort}";
+        }
+        else
+        {
+            _webApi.Stop();
+            WebApiStatus = "⚫ Stopped";
+        }
 
         WpfMsgBox.Show("Settings saved.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
     }
