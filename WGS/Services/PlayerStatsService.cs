@@ -17,12 +17,21 @@ public class PlayerStatsService : IDisposable
 {
     private readonly SqliteConnection _db;
 
+    private bool _available = true;
+
     public PlayerStatsService(ConfigService config)
     {
         var path = System.IO.Path.Combine(config.AppDataPath, "player_stats.db");
         _db = new SqliteConnection($"Data Source={path}");
-        _db.Open();
-        EnsureSchema();
+        try
+        {
+            _db.Open();
+            EnsureSchema();
+        }
+        catch
+        {
+            _available = false;
+        }
     }
 
     private void EnsureSchema()
@@ -43,6 +52,7 @@ public class PlayerStatsService : IDisposable
 
     public void RecordJoin(string serverId, string playerName)
     {
+        if (!_available) return;
         using var cmd = _db.CreateCommand();
         cmd.CommandText = "INSERT INTO sessions (server_id, player_name, join_time) VALUES ($s, $p, $t)";
         cmd.Parameters.AddWithValue("$s", serverId);
@@ -53,6 +63,7 @@ public class PlayerStatsService : IDisposable
 
     public void RecordLeave(string serverId, string playerName)
     {
+        if (!_available) return;
         using var cmd = _db.CreateCommand();
         cmd.CommandText = """
             UPDATE sessions SET leave_time = $t
@@ -67,6 +78,7 @@ public class PlayerStatsService : IDisposable
 
     public List<PlayerSession> GetSessions(string serverId, int limit = 100)
     {
+        if (!_available) return [];
         using var cmd = _db.CreateCommand();
         cmd.CommandText = "SELECT id, player_name, join_time, leave_time FROM sessions WHERE server_id=$s ORDER BY id DESC LIMIT $l";
         cmd.Parameters.AddWithValue("$s", serverId);
@@ -89,6 +101,7 @@ public class PlayerStatsService : IDisposable
 
     public Dictionary<string, TimeSpan> GetTotalPlaytime(string serverId)
     {
+        if (!_available) return [];
         using var cmd = _db.CreateCommand();
         cmd.CommandText = """
             SELECT player_name,
