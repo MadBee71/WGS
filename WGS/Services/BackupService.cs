@@ -41,21 +41,29 @@ public class BackupService
         var zipPath = Path.Combine(outDir, $"{safeName}_{timestamp}.zip");
         ProgressMessage?.Invoke($"[Backup] Pakataan {server.DisplayName}...");
 
-        await Task.Run(() =>
+        try
         {
-            // exclude large executables, only back up config/save data
-            var saveDirs = GetSaveDirectories(server);
-            using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
-            foreach (var dir in saveDirs)
+            await Task.Run(() =>
             {
-                if (!Directory.Exists(dir)) continue;
-                foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                // exclude large executables, only back up config/save data
+                var saveDirs = GetSaveDirectories(server);
+                using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+                foreach (var dir in saveDirs)
                 {
-                    var rel = Path.GetRelativePath(server.InstallPath, file);
-                    zip.CreateEntryFromFile(file, rel, CompressionLevel.Optimal);
+                    if (!Directory.Exists(dir)) continue;
+                    foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                    {
+                        var rel = Path.GetRelativePath(server.InstallPath, file);
+                        zip.CreateEntryFromFile(file, rel, CompressionLevel.Optimal);
+                    }
                 }
-            }
-        });
+            });
+        }
+        catch
+        {
+            try { File.Delete(zipPath); } catch { }
+            throw;
+        }
 
         var info  = new FileInfo(zipPath);
         ProgressMessage?.Invoke($"[Backup] Valmis — {new BackupEntry { SizeBytes = info.Length }.SizeText}");

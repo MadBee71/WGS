@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -27,7 +28,7 @@ public class ServerInstance
 public class ServerManagerService
 {
     private readonly ConfigService _config;
-    private readonly Dictionary<string, ServerInstance> _running = new();
+    private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
 
     public event Action<string, ConsoleMessage>? LogReceived;
     public event Action<string, ServerStatus>?  StatusChanged;
@@ -147,7 +148,7 @@ public class ServerManagerService
 
                 if (!server.AutoRestart || !_running.ContainsKey(server.Id))
                 {
-                    _running.Remove(server.Id);
+                    _running.TryRemove(server.Id, out _);
                     return;
                 }
 
@@ -170,7 +171,7 @@ public class ServerManagerService
                     LogReceived?.Invoke(server.Id, giveUp);
                     server.AutoRestart = false;
                     SetStatus(server, ServerStatus.Error);
-                    _running.Remove(server.Id);
+                    _running.TryRemove(server.Id, out _);
                     CrashLimitReached?.Invoke(server.Id);
                     return;
                 }
@@ -190,7 +191,7 @@ public class ServerManagerService
                 // Re-check: user might have disabled auto-restart during the delay
                 if (!server.AutoRestart || !_running.ContainsKey(server.Id))
                 {
-                    _running.Remove(server.Id);
+                    _running.TryRemove(server.Id, out _);
                     return;
                 }
 
@@ -208,7 +209,7 @@ public class ServerManagerService
         }
         catch (Win32Exception ex)
         {
-            _running.Remove(server.Id);
+            _running.TryRemove(server.Id, out _);
             SetStatus(server, ServerStatus.Error);
             var errMsg = new ConsoleMessage
             {
@@ -300,7 +301,6 @@ public class ServerManagerService
             FirewallService.AddRules(server);
 
         SetStatus(server, ServerStatus.Running);
-        await Task.CompletedTask;
     }
 
     public async Task StopAsync(GameServer server)
@@ -321,8 +321,7 @@ public class ServerManagerService
         if (inst.Process?.HasExited == false)
             inst.Process.Kill(entireProcessTree: true);
 
-        server.AutoRestart = false;
-        _running.Remove(server.Id);
+        _running.TryRemove(server.Id, out _);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
         SetStatus(server, ServerStatus.Stopped);
     }
@@ -343,17 +342,16 @@ public class ServerManagerService
     public bool IsRunning(string serverId)
         => _running.TryGetValue(serverId, out var inst) && inst.Process?.HasExited == false;
 
-    public async Task KillAsync(GameServer server)
+    public Task KillAsync(GameServer server)
     {
-        if (!_running.TryGetValue(server.Id, out var inst)) return;
+        if (!_running.TryGetValue(server.Id, out var inst)) return Task.CompletedTask;
         SetStatus(server, ServerStatus.Stopping);
-        server.AutoRestart = false;
         try { inst.Process?.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* process already dead — swallow */ }
-        _running.Remove(server.Id);
+        _running.TryRemove(server.Id, out _);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
         SetStatus(server, ServerStatus.Stopped);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     public void KillAll()

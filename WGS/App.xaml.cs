@@ -45,9 +45,8 @@ public partial class App : System.Windows.Application
 
         // Start Web API if configured
         var webApi = Services.GetRequiredService<WebApiService>();
-        var cfgSvc = Services.GetRequiredService<ConfigService>();
-        if (cfgSvc.WebApiEnabled && cfgSvc.WebApiPort > 0)
-            webApi.Start(cfgSvc.WebApiPort, cfgSvc.WebApiToken);
+        if (config.WebApiEnabled && config.WebApiPort > 0)
+            webApi.Start(config.WebApiPort, config.WebApiToken);
 
         _tray = Services.GetRequiredService<TrayService>();
         _tray.ShowWindowRequested += () =>

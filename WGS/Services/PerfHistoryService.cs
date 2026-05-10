@@ -16,12 +16,8 @@ public class PerfHistoryService
         while (q.Count > MaxSamples) q.Dequeue();
     }
 
-    public IReadOnlyList<PerfSnapshot> Get(string serverId)
-    {
-        if (_history.TryGetValue(serverId, out var q))
-            return q.ToList();
-        return [];
-    }
+    public IReadOnlyCollection<PerfSnapshot> Get(string serverId)
+        => _history.TryGetValue(serverId, out var q) ? q : (IReadOnlyCollection<PerfSnapshot>)[];
 
     public void Clear(string serverId) => _history.Remove(serverId);
 }
