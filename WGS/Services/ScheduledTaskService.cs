@@ -105,16 +105,20 @@ public class ScheduledTaskService : IDisposable
         if (due.Count == 0) return;
 
         foreach (var task in due)
-        {
             await ExecuteTaskAsync(task);
-            task.LastRun = now;
-            task.NextRun = task.Frequency == ScheduleFrequency.Once
-                ? null
-                : ComputeNextRun(task);
-            if (task.NextRun == null) task.IsEnabled = false;
-        }
 
-        lock (_lock) { Save(); }
+        lock (_lock)
+        {
+            foreach (var task in due)
+            {
+                task.LastRun = now;
+                task.NextRun = task.Frequency == ScheduleFrequency.Once
+                    ? null
+                    : ComputeNextRun(task);
+                if (task.NextRun == null) task.IsEnabled = false;
+            }
+            Save();
+        }
     }
 
     private async Task ExecuteTaskAsync(ScheduledTask task)

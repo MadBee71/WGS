@@ -335,8 +335,7 @@ public class ServerManagerService
     public void SendCommand(string serverId, string command)
     {
         if (_running.TryGetValue(serverId, out var inst) && inst.Process?.StandardInput != null)
-            _ = inst.Process.StandardInput.WriteLineAsync(command)
-                    .ContinueWith(t => { /* swallow */ }, TaskContinuationOptions.OnlyOnFaulted);
+            _ = inst.Process.StandardInput.WriteLineAsync(command);
     }
 
     public bool IsRunning(string serverId)
