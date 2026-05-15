@@ -16,7 +16,8 @@ public interface IGamePlugin
     int DefaultQueryPort { get; }
     int DefaultSteamPort { get; }
     int DefaultMaxPlayers { get; }
-    bool RequiresSteamLogin { get; }
+    bool   RequiresSteamLogin { get; }
+    string SteamBranch        { get; }  // beta branch for SteamCMD (empty = default branch)
     bool HasRcon { get; }
     bool UseNativeConsole { get; }
 

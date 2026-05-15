@@ -51,7 +51,7 @@ public class SteamCmdService
         }
     }
 
-    public async Task InstallOrUpdateAsync(int appId, string installPath, string? login = null, string? password = null)
+    public async Task InstallOrUpdateAsync(int appId, string installPath, string? login = null, string? password = null, string? branch = null)
     {
         if (!IsInstalled) await DownloadSteamCmdAsync();
 
@@ -64,11 +64,12 @@ public class SteamCmdService
             throw new InvalidOperationException("Cannot create install directory: " + ex.Message, ex);
         }
 
-        var loginArg = (login != null && password != null)
+        var loginArg  = (login != null && password != null)
             ? $"+login {login} {password}"
             : "+login anonymous";
+        var branchArg = string.IsNullOrEmpty(branch) ? "" : $" -beta {branch}";
 
-        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId} +quit";
+        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId}{branchArg} +quit";
         await RunAsync(args, throwOnSteamError: true);
     }
 

@@ -11,9 +11,9 @@ public class TheForestPlugin : GamePluginBase
     public override int    SteamAppId    => 556450;
     public override int    GameStoreAppId => 242760;
     public override string Executable    => "TheForestDedicatedServer.exe";
-    public override int    DefaultPort   => 27015;
+    public override int    DefaultPort      => 27017;
     public override int    DefaultQueryPort => 27016;
-    public override int    DefaultMaxPlayers => 8;
+    public override int    DefaultMaxPlayers => 64;
     public override bool   HasRcon            => true;
     public override bool   RequiresSteamLogin => true;
 

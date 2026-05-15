@@ -15,9 +15,9 @@ public class Wreckfest2Plugin : GamePluginBase
     public override bool   RequiresSteamLogin    => true;
     public override bool   UseNativeConsole      => true;
     public override int    SteamClientAppId   => 0;
-    public override int    DefaultPort        => 27020;
-    public override int    DefaultQueryPort   => 27021;
-    public override int    DefaultMaxPlayers  => 24;
+    public override int    DefaultPort        => 30100;
+    public override int    DefaultQueryPort   => 27015;
+    public override int    DefaultMaxPlayers  => 16;
 
     public override string BuildStartArguments(GameServer s)
         => $"--server --save-dir={s.InstallPath.TrimEnd('\\', '/')}";

@@ -11,8 +11,8 @@ public class ReturnToMoriaPlugin : GamePluginBase
     public override int    SteamAppId      => 3349480;
     public override int    GameStoreAppId  => 2933130;
     public override string Executable      => @"Moria\Binaries\Win64\MoriaServer-Win64-Shipping.exe";
-    public override int    DefaultPort     => 20151;
-    public override int    DefaultQueryPort => 27015;
+    public override int    DefaultPort      => 20151;
+    public override int    DefaultQueryPort => 20151;
     public override int    DefaultMaxPlayers => 8;
 
     public override string BuildStartArguments(GameServer s)
