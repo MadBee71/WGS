@@ -18,7 +18,6 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="publish\**" />
@@ -31,10 +30,26 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-<PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.4" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OxyPlot.Wpf" Version="2.1.2" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
+
+  <!-- Exclude Roslyn compiler assemblies from single-file bundle.
+       They are published as separate DLLs alongside the exe so the
+       exe itself stays small, but runtime compilation still works. -->
+  <Target Name="ExcludeRoslynFromSingleFile" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+        ExcludeFromSingleFile="true"
+        Condition="
+          $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.CodeAnalysis')) Or
+          $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.CSharp')) Or
+          $([System.String]::Copy('%(Filename)').StartsWith('System.Reflection.Metadata')) Or
+          $([System.String]::Copy('%(Filename)').StartsWith('System.Collections.Immutable'))" />
+    </ItemGroup>
+  </Target>
 </Project>

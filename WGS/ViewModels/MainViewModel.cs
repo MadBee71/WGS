@@ -264,8 +264,8 @@ public partial class MainViewModel : BaseViewModel
     {
         using var dlg = new System.Windows.Forms.OpenFileDialog
         {
-            Title  = "Import plugin (.dll)",
-            Filter = "Plugin DLL (*.dll)|*.dll",
+            Title  = "Import plugin (.cs)",
+            Filter = "C# source files (*.cs)|*.cs",
         };
         if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 
