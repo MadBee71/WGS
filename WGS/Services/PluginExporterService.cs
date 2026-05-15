@@ -47,6 +47,8 @@ public static class PluginExporterService
 
         if (p.RequiresSteamLogin)
             sb.AppendLine($"    public override bool   RequiresSteamLogin => true;");
+        if (!string.IsNullOrEmpty(p.SteamBranch))
+            sb.AppendLine($"    public override string SteamBranch        => {Q(p.SteamBranch)};");
         if (p.HasRcon)
             sb.AppendLine($"    public override bool   HasRcon => true;");
         if (p.UseNativeConsole)

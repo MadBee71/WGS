@@ -6,7 +6,7 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-33+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-37+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -64,7 +64,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **33+ supported games** | Ready-made plugins for the most popular game servers |
+| 🎮 **37+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
 | 🔄 **Auto restart** | Automatic restart after crash, with configurable delay |
 | 🛡️ **Crash loop detection** | Counts crashes in a 10-minute window — stops retrying after a configurable limit |
