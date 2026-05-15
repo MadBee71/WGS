@@ -202,6 +202,18 @@ public partial class MainViewModel : BaseViewModel
     {
         if (NewServerGame == null || string.IsNullOrWhiteSpace(NewServerName)) return;
 
+        // Check for port conflicts with existing WGS servers
+        var conflicts = FindPortConflicts(NewServerPort, NewServerQueryPort, NewServerSteamPort);
+        if (conflicts.Count > 0)
+        {
+            var msg = "The following ports are already used by another server:\n\n" +
+                      string.Join("\n", conflicts) +
+                      "\n\nChange the ports before creating the server, or the servers will clash at startup.";
+            System.Windows.MessageBox.Show(msg, "Port conflict",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
         var srv = new GameServer
         {
             GameId        = NewServerGame.GameId,
@@ -357,5 +369,26 @@ public partial class MainViewModel : BaseViewModel
         OnPropertyChanged(nameof(TotalServers));
         OnPropertyChanged(nameof(RunningCount));
         OnPropertyChanged(nameof(StoppedCount));
+    }
+
+    /// <summary>
+    /// Returns human-readable conflict messages for any of the given ports
+    /// that are already assigned to an existing WGS server.
+    /// </summary>
+    private List<string> FindPortConflicts(int gamePort, int queryPort, int steamPort)
+    {
+        var msgs = new List<string>();
+        foreach (var vm in Servers)
+        {
+            var s = vm.Server;
+            var name = s.DisplayName;
+            if (gamePort  > 0 && s.ServerPort == gamePort)
+                msgs.Add($"  Game Port  {gamePort}  → already used by \"{name}\"");
+            if (queryPort > 0 && queryPort != gamePort && s.QueryPort == queryPort)
+                msgs.Add($"  Query Port {queryPort}  → already used by \"{name}\"");
+            if (steamPort > 0 && s.SteamPort == steamPort)
+                msgs.Add($"  Steam Port {steamPort}  → already used by \"{name}\"");
+        }
+        return msgs;
     }
 }
