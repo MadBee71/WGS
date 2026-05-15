@@ -11,9 +11,9 @@ public class ASTRONEERPlugin : GamePluginBase
     public override int    SteamAppId      => 728470;
     public override int    GameStoreAppId  => 361420;
     public override string Executable      => @"Astro\Binaries\Win64\AstroServer-Win64-Shipping.exe";
-    public override int    DefaultPort     => 7777;
-    public override int    DefaultQueryPort => 7778;
-    public override int    DefaultMaxPlayers => 8;
+    public override int    DefaultPort      => 7777;
+    public override int    DefaultQueryPort => 7777;
+    public override int    DefaultMaxPlayers => 4;
 
     public override string BuildStartArguments(GameServer s)
         => $"-MultiplayerPort={s.ServerPort} -QueryPort={s.QueryPort} " +

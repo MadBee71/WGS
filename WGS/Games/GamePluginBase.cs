@@ -15,6 +15,7 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual  int DefaultSteamPort { get; } = 0;
     public abstract int DefaultMaxPlayers { get; }
     public virtual bool   RequiresSteamLogin => false;
+    public virtual string SteamBranch        => string.Empty;
     public virtual bool   HasRcon            => false;
     public virtual bool   UseNativeConsole   => false;
     public virtual bool   SupportsOxide      => false;

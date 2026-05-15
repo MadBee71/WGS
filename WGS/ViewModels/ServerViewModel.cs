@@ -261,7 +261,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         try
         {
-            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password);
+            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password, Plugin.SteamBranch);
             Server.Status = ServerStatus.Stopped;
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
             await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
