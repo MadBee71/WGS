@@ -174,9 +174,11 @@ public partial class MainViewModel : BaseViewModel
     {
         UpdateInstallPath();
         if (value == null) return;
-        NewServerPort      = value.DefaultPort;
-        NewServerQueryPort = value.DefaultQueryPort;
-        NewServerSteamPort = value.DefaultSteamPort;
+        // Auto-assign free ports, incrementing by 1 until no conflict
+        var (gp, qp, sp) = AllocatePorts(value.DefaultPort, value.DefaultQueryPort, value.DefaultSteamPort);
+        NewServerPort         = gp;
+        NewServerQueryPort    = qp;
+        NewServerSteamPort    = sp;
         NewServerHasSteamPort = value.DefaultSteamPort > 0;
     }
     partial void OnNewServerNameChanged(string value)      => UpdateInstallPath();
@@ -201,18 +203,6 @@ public partial class MainViewModel : BaseViewModel
     private void ConfirmAddServer()
     {
         if (NewServerGame == null || string.IsNullOrWhiteSpace(NewServerName)) return;
-
-        // Check for port conflicts with existing WGS servers
-        var conflicts = FindPortConflicts(NewServerPort, NewServerQueryPort, NewServerSteamPort);
-        if (conflicts.Count > 0)
-        {
-            var msg = "The following ports are already used by another server:\n\n" +
-                      string.Join("\n", conflicts) +
-                      "\n\nChange the ports before creating the server, or the servers will clash at startup.";
-            System.Windows.MessageBox.Show(msg, "Port conflict",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-            return;
-        }
 
         var srv = new GameServer
         {
@@ -372,23 +362,44 @@ public partial class MainViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Returns human-readable conflict messages for any of the given ports
-    /// that are already assigned to an existing WGS server.
+    /// Returns all port numbers already assigned to any existing WGS server.
     /// </summary>
-    private List<string> FindPortConflicts(int gamePort, int queryPort, int steamPort)
+    private HashSet<int> UsedPorts()
     {
-        var msgs = new List<string>();
+        var used = new HashSet<int>();
         foreach (var vm in Servers)
         {
-            var s = vm.Server;
-            var name = s.DisplayName;
-            if (gamePort  > 0 && s.ServerPort == gamePort)
-                msgs.Add($"  Game Port  {gamePort}  → already used by \"{name}\"");
-            if (queryPort > 0 && queryPort != gamePort && s.QueryPort == queryPort)
-                msgs.Add($"  Query Port {queryPort}  → already used by \"{name}\"");
-            if (steamPort > 0 && s.SteamPort == steamPort)
-                msgs.Add($"  Steam Port {steamPort}  → already used by \"{name}\"");
+            used.Add(vm.Server.ServerPort);
+            if (vm.Server.QueryPort  > 0) used.Add(vm.Server.QueryPort);
+            if (vm.Server.SteamPort  > 0) used.Add(vm.Server.SteamPort);
         }
-        return msgs;
+        return used;
+    }
+
+    /// <summary>
+    /// Given default ports from a plugin, increments each until it finds
+    /// a combination where no port overlaps with existing servers.
+    /// Keeps the relative offsets between game/query/steam intact.
+    /// </summary>
+    private (int game, int query, int steam) AllocatePorts(int defGame, int defQuery, int defSteam)
+    {
+        var used  = UsedPorts();
+        int offset = 0;
+        while (offset < 1000)
+        {
+            int gp = defGame  + offset;
+            int qp = defQuery > 0 ? defQuery + offset : 0;
+            int sp = defSteam > 0 ? defSteam + offset : 0;
+
+            bool clash = used.Contains(gp)
+                      || (qp > 0 && used.Contains(qp))
+                      || (sp > 0 && used.Contains(sp));
+            if (!clash)
+                return (gp, qp > 0 ? qp : defQuery, sp);
+
+            offset++;
+        }
+        // Fallback: return defaults unchanged
+        return (defGame, defQuery, defSteam);
     }
 }
