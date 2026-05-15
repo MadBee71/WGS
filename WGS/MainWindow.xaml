@@ -37,7 +37,7 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
                         <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
                                Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="v1.0" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="v1.0.1" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                         <!-- stats -->
