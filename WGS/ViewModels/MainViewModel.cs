@@ -157,7 +157,6 @@ public partial class MainViewModel : BaseViewModel
         NewServerName    = string.Empty;
         NewServerGame    = AvailableGames.FirstOrDefault();
         // ports are set by OnNewServerGameChanged above
-        UpdateInstallPath();
         ShowAddDialog    = true;
     }
 

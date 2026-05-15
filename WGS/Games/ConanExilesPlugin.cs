@@ -24,17 +24,14 @@ public class ConanExilesPlugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["mapName"]    = "game",
-        ["pvpMode"]    = "0",
-        ["serverRegion"] = "1",
+        ["mapName"] = "game",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "mapName",   Label = "Kartta",    FieldType = ConfigFieldType.Dropdown, DefaultValue = "game", Options = ["game","Siptah"] },
-            new() { Key = "pvpMode",   Label = "PvP-tila",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "0", Options = ["0 - PvE","1 - PvP","2 - PvE-C"] },
+            new() { Key = "mapName", Label = "Kartta", FieldType = ConfigFieldType.Dropdown, DefaultValue = "game", Options = ["game","Siptah"] },
         ]);
         return fields;
     }

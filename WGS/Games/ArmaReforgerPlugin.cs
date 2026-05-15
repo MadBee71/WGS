@@ -23,21 +23,14 @@ public class ArmaReforgerPlugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["configFile"]  = "serverConfig.json",
-        ["scenario"]    = "{ECC61978EDCC2B5A}Missions/23_Campaign.conf",
-        ["adminPass"]   = "",
-        ["visible"]     = "true",
-        ["crossplay"]   = "true",
+        ["configFile"] = "serverConfig.json",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "configFile", Label = "Config JSON",       FieldType = ConfigFieldType.Text,   DefaultValue = "serverConfig.json" },
-            new() { Key = "adminPass",  Label = "Admin password",    FieldType = ConfigFieldType.Password,DefaultValue = "" },
-            new() { Key = "visible",    Label = "Visible in list",   FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
-            new() { Key = "crossplay",  Label = "Crossplay",         FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
+            new() { Key = "configFile", Label = "Config JSON", FieldType = ConfigFieldType.Text, DefaultValue = "serverConfig.json" },
         ]);
         return fields;
     }

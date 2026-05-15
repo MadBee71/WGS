@@ -21,8 +21,10 @@ public class ARMA3Plugin : GamePluginBase
     {
         var cfg     = S(s, "configFile",  "server.cfg");
         var profile = S(s, "profileName", "MyArmaServer");
+        var mods    = S(s, "mods", "");
+        var modArg  = string.IsNullOrWhiteSpace(mods) ? "" : $" \"-mod={mods}\"";
         return $"-port={s.ServerPort} -name={profile} -config={cfg} " +
-               $"-maxMem=8192 -noSplash -enableHT -hugePages";
+               $"-maxMem=8192 -noSplash -enableHT -hugePages{modArg}";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()

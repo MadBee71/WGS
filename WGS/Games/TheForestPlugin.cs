@@ -20,18 +20,21 @@ public class TheForestPlugin : GamePluginBase
     public override string BuildStartArguments(GameServer s)
     {
         var difficulty = S(s, "difficulty", "Normal");
+        var caves      = S(s, "caves",    "true")  == "true" ? "1" : "0";
+        var enemies    = S(s, "enemies",  "true")  == "true" ? "1" : "0";
+        var vegan      = S(s, "vegan",    "false") == "true" ? "1" : "0";
         return $"-batchmode -nographics serverName \"{s.ServerName}\" serverPlayers {s.MaxPlayers} " +
                $"serverPort {s.ServerPort} serverQueryPort {s.QueryPort} " +
-               $"serverPassword \"{s.ServerPassword}\" difficulty {difficulty}";
+               $"serverPassword \"{s.ServerPassword}\" difficulty {difficulty} " +
+               $"serverCaves {caves} serverEnemies {enemies} serverVegan {vegan}";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["difficulty"]    = "Normal",
-        ["caves"]         = "true",
-        ["enemies"]       = "true",
-        ["vegan"]         = "false",
-        ["veganEnemies"]  = "false",
+        ["difficulty"] = "Normal",
+        ["caves"]      = "true",
+        ["enemies"]    = "true",
+        ["vegan"]      = "false",
     };
 
     public override List<ConfigField> GetConfigFields()

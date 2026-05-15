@@ -24,17 +24,14 @@ public class ETS2Plugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["configFile"]    = "server_config.sii",
-        ["serverWelcome"] = "Welcome!",
-        ["moderatorList"] = "",
+        ["configFile"] = "server_config.sii",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "configFile",    Label = "Config-tiedosto",  FieldType = ConfigFieldType.Text, DefaultValue = "server_config.sii" },
-            new() { Key = "serverWelcome", Label = "Tervetuloviesti",  FieldType = ConfigFieldType.Text, DefaultValue = "Welcome!" },
+            new() { Key = "configFile", Label = "Config-tiedosto", FieldType = ConfigFieldType.Text, DefaultValue = "server_config.sii" },
         ]);
         return fields;
     }
