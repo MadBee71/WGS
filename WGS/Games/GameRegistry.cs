@@ -10,23 +10,45 @@ public static class GameRegistry
 
     static GameRegistry()
     {
+        // Survival
         Register(new ValheimPlugin());
-        Register(new MinecraftPlugin());
-        Register(new ConanExilesPlugin());
         Register(new RustPlugin());
         Register(new SevenDaysToDiePlugin());
-        Register(new ETS2Plugin());
-        Register(new STNPlugin());
-        Register(new WreckfestPlugin());
-        Register(new Wreckfest2Plugin());
-        Register(new TheForestPlugin());
-        Register(new SonsOfTheForestPlugin());
-        Register(new ArmaReforgerPlugin());
+        Register(new ConanExilesPlugin());
         Register(new ARKSEPlugin());
-        Register(new BlackMesaPlugin());
+        Register(new SonsOfTheForestPlugin());
+        Register(new TheForestPlugin());
+        Register(new STNPlugin());
         Register(new SCUMPlugin());
         Register(new VeinPlugin());
+        Register(new PalworldPlugin());
+        Register(new VRisingPlugin());
+        Register(new DSTPlugin());
+        Register(new TheIslePlugin());
+        Register(new ReturnToMoriaPlugin());
+        Register(new ASTRONEERPlugin());
+        Register(new LongvinterPlugin());
+        Register(new NoOneSurvivedPlugin());
+        Register(new ASKAPlugin());
+        Register(new RisingWorldPlugin());
+        Register(new SunkenlandPlugin());
+        // FPS
+        Register(new CS2Plugin());
+        Register(new BlackMesaPlugin());
+        Register(new GarrysModPlugin());
+        // Racing
+        Register(new WreckfestPlugin());
+        Register(new Wreckfest2Plugin());
         Register(new AssettoCorsaPlugin());
+        // Military
+        Register(new ArmaReforgerPlugin());
+        Register(new ARMA3Plugin());
+        // Simulation
+        Register(new ETS2Plugin());
+        Register(new AmericanTruckSimulatorPlugin());
+        Register(new SatisfactoryPlugin());
+        // Other
+        Register(new MinecraftPlugin());
     }
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
