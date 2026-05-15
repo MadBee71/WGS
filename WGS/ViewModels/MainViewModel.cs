@@ -37,6 +37,10 @@ public partial class MainViewModel : BaseViewModel
     [ObservableProperty] private string _newServerName    = string.Empty;
     [ObservableProperty] private string _newServerInstall = string.Empty;
     [ObservableProperty] private IGamePlugin? _newServerGame;
+    [ObservableProperty] private int  _newServerPort      = 7777;
+    [ObservableProperty] private int  _newServerQueryPort = 27015;
+    [ObservableProperty] private int  _newServerSteamPort = 0;
+    [ObservableProperty] private bool _newServerHasSteamPort = false;
     [ObservableProperty] private bool _showSettingsPage;
     [ObservableProperty] private bool _showDashboard;
     [ObservableProperty] private bool _showSupport;
@@ -152,6 +156,7 @@ public partial class MainViewModel : BaseViewModel
     {
         NewServerName    = string.Empty;
         NewServerGame    = AvailableGames.FirstOrDefault();
+        // ports are set by OnNewServerGameChanged above
         UpdateInstallPath();
         ShowAddDialog    = true;
     }
@@ -165,7 +170,15 @@ public partial class MainViewModel : BaseViewModel
         }
     }
     partial void OnSortModeChanged(string value) => OnPropertyChanged(nameof(SortedServers));
-    partial void OnNewServerGameChanged(IGamePlugin? value) => UpdateInstallPath();
+    partial void OnNewServerGameChanged(IGamePlugin? value)
+    {
+        UpdateInstallPath();
+        if (value == null) return;
+        NewServerPort      = value.DefaultPort;
+        NewServerQueryPort = value.DefaultQueryPort;
+        NewServerSteamPort = value.DefaultSteamPort;
+        NewServerHasSteamPort = value.DefaultSteamPort > 0;
+    }
     partial void OnNewServerNameChanged(string value)      => UpdateInstallPath();
 
     private void UpdateInstallPath()
@@ -195,9 +208,9 @@ public partial class MainViewModel : BaseViewModel
             DisplayName   = NewServerName,
             ServerName    = NewServerName,
             InstallPath   = NewServerInstall,
-            ServerPort    = NewServerGame.DefaultPort,
-            QueryPort     = NewServerGame.DefaultQueryPort,
-            SteamPort     = NewServerGame.DefaultSteamPort,
+            ServerPort    = NewServerPort,
+            QueryPort     = NewServerQueryPort,
+            SteamPort     = NewServerSteamPort,
             MaxPlayers    = NewServerGame.DefaultMaxPlayers,
             Status        = ServerStatus.NotInstalled,
             GameSpecificSettings = NewServerGame.GetDefaultSettings(),

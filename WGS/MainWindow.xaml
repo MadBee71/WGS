@@ -270,7 +270,37 @@
                         <TextBlock Text="{Binding DataContext.Loc.DialogInstall, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding DataContext.NewServerInstall, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}" Margin="0,0,0,24"/>
+                                 Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"/>
+
+                        <!-- Ports row -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Game Port -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Game Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <!-- Query Port -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Query Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerQueryPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <!-- Steam Port — only visible when game uses it -->
+                            <StackPanel Grid.Column="4"
+                                        Visibility="{Binding DataContext.NewServerHasSteamPort, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Steam Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerSteamPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="{Binding DataContext.Loc.DialogCancel, RelativeSource={RelativeSource AncestorType=Window}}"
