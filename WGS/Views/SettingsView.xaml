@@ -187,7 +187,7 @@
                     <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.0" FontWeight="SemiBold"
+                        <Run Text="Windows Game Server (WGS) v1.0.1" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
                         <Run Text="Supports 12 games: Valheim, Minecraft, Conan Exiles, Rust, 7 Days to Die,"/>
