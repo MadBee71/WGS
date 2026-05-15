@@ -30,6 +30,7 @@ public static class GameRegistry
         Register(new LongvinterPlugin());
         Register(new NoOneSurvivedPlugin());
         Register(new ASKAPlugin());
+        Register(new NecessePlugin());
         Register(new RisingWorldPlugin());
         Register(new SunkenlandPlugin());
         // FPS
@@ -43,12 +44,15 @@ public static class GameRegistry
         // Military
         Register(new ArmaReforgerPlugin());
         Register(new ARMA3Plugin());
+        Register(new ARMA2Plugin());
         // Simulation
         Register(new ETS2Plugin());
         Register(new AmericanTruckSimulatorPlugin());
         Register(new SatisfactoryPlugin());
         // Other
         Register(new MinecraftPlugin());
+        Register(new TerrariaPlugin());
+        Register(new RedMPlugin());
     }
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
