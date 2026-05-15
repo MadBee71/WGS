@@ -172,7 +172,7 @@ def cover_page(canv, doc):
     canv.roundRect(W / 2 - pw / 2, 538, pw, ph, 8, fill=1, stroke=0)
     canv.setFont("Helvetica-Bold", 10)
     canv.setFillColor(C_ACCENT2)
-    canv.drawCentredString(W / 2, 552, ".NET 8  ·  WPF  ·  SteamCMD  ·  17+ games")
+    canv.drawCentredString(W / 2, 552, ".NET 8  ·  WPF  ·  SteamCMD  ·  33+ games")
 
     # ── Divider ───────────────────────────────────────────────────────────────
     canv.setStrokeColor(C_BORDER)
@@ -220,7 +220,7 @@ def cover_page(canv, doc):
     canv.drawCentredString(W / 2, 276,
         "Free, open-source Windows game server manager — no command-line required.")
     canv.drawCentredString(W / 2, 260,
-        "Supports 17+ games with SteamCMD integration, backups, firewall, RCON and more.")
+        "Supports 33+ games with SteamCMD integration, backups, firewall, RCON and more.")
 
     # ── Bottom strip ──────────────────────────────────────────────────────────
     canv.setFillColor(C_DARK)
@@ -436,8 +436,11 @@ def build_story():
     add(*steps([
         ("Select server",    "Click a server in the left list."),
         ("Install / Update", "Click 'Install / Update' in the server detail view."),
-        ("Login",            "Games requiring a purchased copy will ask for Steam credentials. "
-                             "Most games support anonymous login."),
+        ("Login",            "Most games (Valheim, Rust, Palworld, CS2, Satisfactory, etc.) "
+                             "download anonymously — no Steam account needed. Games marked with "
+                             "* in the Supported Games list (The Forest, Arma 3, ETS2, Wreckfest, "
+                             "Assetto Corsa) require a Steam account. Enter credentials in "
+                             "Settings → Steam Login before installing those servers."),
         ("Progress",         "The console shows real-time download percentage from SteamCMD."),
         ("Done",             "When the download finishes the status changes to 'Stopped'."),
     ]))
@@ -947,42 +950,69 @@ def build_story():
     add(PageBreak())
 
     add(*sec("23.  Supported Games"))
-    CW = [6*cm, 3*cm, 3*cm, PAGE_W - 12*cm]
+    add(para(
+        "WGS ships with 33 built-in game plugins. Games marked <b>*</b> require "
+        "a Steam account to install — all others download anonymously."))
+    add(gap(4))
+    CW  = [5.8*cm, 2.8*cm, 2.5*cm, 2.2*cm, PAGE_W - 13.3*cm]
+    HDR = ["Game", "AppID", "Max Players", "Port", "Login"]
 
     add(*h2("Survival"))
-    add(tbl(
-        ["Game", "AppID", "Max Players", "Default Port"],
-        [
-            ["Valheim",               "896660",  "10",  "2456"],
-            ["Rust",                  "258550",  "100", "28015"],
-            ["7 Days to Die",         "294420",  "8",   "26900"],
-            ["Conan Exiles",          "443030",  "40",  "7777"],
-            ["ARK: Survival Evolved", "376030",  "70",  "7777"],
-            ["Sons of the Forest",    "2465200", "8",   "8766"],
-            ["The Forest",            "556450",  "8",   "27015"],
-            ["Survive the Nights",    "1502300", "16",  "7777"],
-            ["SCUM",                  "3792580", "32",  "10000"],
-            ["Vein",                  "2131400", "16",  "7777"],
-        ], CW))
+    add(tbl(HDR, [
+        ["Valheim",               "896660",  "10",  "2456",  "anon"],
+        ["Rust",                  "258550",  "100", "28015", "anon"],
+        ["7 Days to Die",         "294420",  "8",   "26900", "anon"],
+        ["Conan Exiles",          "443030",  "40",  "7777",  "anon"],
+        ["ARK: Survival Evolved", "376030",  "70",  "7777",  "anon"],
+        ["Sons of the Forest",    "2465200", "8",   "8766",  "anon"],
+        ["The Forest *",          "556450",  "8",   "27015", "Steam"],
+        ["Survive the Nights",    "1502300", "16",  "7777",  "anon"],
+        ["SCUM",                  "3792580", "32",  "10000", "anon"],
+        ["Vein",                  "2131400", "16",  "7777",  "anon"],
+        ["Palworld",              "2394010", "32",  "8211",  "anon"],
+        ["V Rising",              "1829350", "40",  "9876",  "anon"],
+        ["Don't Starve Together", "343050",  "10",  "10999", "anon"],
+        ["The Isle",              "412680",  "100", "7777",  "anon"],
+        ["Return to Moria",       "3349480", "8",   "7777",  "anon"],
+        ["ASTRONEER",             "728470",  "8",   "8777",  "anon"],
+        ["Longvinter",            "1639880", "32",  "7777",  "anon"],
+        ["No One Survived",       "2329680", "50",  "7777",  "anon"],
+        ["ASKA",                  "3246670", "4",   "27015", "anon"],
+        ["Rising World",          "339010",  "64",  "4255",  "anon"],
+        ["Sunkenland",            "2667530", "8",   "27015", "anon"],
+    ], CW))
+
+    add(*h2("FPS"))
+    add(tbl(HDR, [
+        ["Counter-Strike 2", "730",    "10", "27015", "anon"],
+        ["Black Mesa",       "346680", "24", "27015", "anon"],
+        ["Garry's Mod",      "4020",   "24", "27015", "anon"],
+    ], CW))
 
     add(*h2("Racing"))
-    add(tbl(
-        ["Game", "AppID", "Max Players", "Default Port"],
-        [
-            ["Wreckfest",     "361580",  "24", "33540"],
-            ["Wreckfest 2",   "3519390", "24", "27020"],
-            ["Assetto Corsa", "302550",  "18", "9600"],
-        ], CW))
+    add(tbl(HDR, [
+        ["Wreckfest *",   "361580",  "24", "33540", "Steam"],
+        ["Wreckfest 2 *", "3519390", "24", "27020", "Steam"],
+        ["Assetto Corsa *","302550", "18", "9600",  "Steam"],
+    ], CW))
+
+    add(*h2("Military"))
+    add(tbl(HDR, [
+        ["Arma Reforger", "1874900", "64", "2001", "anon"],
+        ["Arma 3 *",      "233780",  "64", "2302", "Steam"],
+    ], CW))
+
+    add(*h2("Simulation"))
+    add(tbl(HDR, [
+        ["Euro Truck Simulator 2 *",  "1948160", "8", "27015", "Steam"],
+        ["American Truck Simulator",  "2239530", "8", "27015", "anon"],
+        ["Satisfactory",              "1690800", "4", "7777",  "anon"],
+    ], CW))
 
     add(*h2("Other"))
-    add(tbl(
-        ["Game", "AppID", "Max Players", "Default Port"],
-        [
-            ["Minecraft Java",         "—",       "20", "25565"],
-            ["Euro Truck Simulator 2", "1948160", "8",  "27015"],
-            ["Arma Reforger",          "1874900", "64", "2001"],
-            ["Black Mesa",             "346680",  "24", "27015"],
-        ], CW))
+    add(tbl(HDR, [
+        ["Minecraft Java", "—", "20", "25565", "—"],
+    ], CW))
 
     # ══════════════════════════════════════════════════════════════════════════
     # 24  Custom Plugin Creator

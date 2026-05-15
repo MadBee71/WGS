@@ -6,7 +6,7 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-17+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-33+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -64,7 +64,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **17+ supported games** | Ready-made plugins for the most popular game servers |
+| 🎮 **33+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
 | 🔄 **Auto restart** | Automatic restart after crash, with configurable delay |
 | 🛡️ **Crash loop detection** | Counts crashes in a 10-minute window — stops retrying after a configurable limit |
@@ -111,34 +111,64 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 
 ## 🎮 Supported Games
 
+> `🔑` = Steam account required to install &nbsp;|&nbsp; all others install anonymously
+
 ### Survival
-| Game | Steam AppID | Max Players | Port |
-|---|---|---|---|
-| Valheim | 896660 | 10 | 2456 |
-| Rust | 258550 | 100 | 28015 |
-| 7 Days to Die | 294420 | 8 | 26900 |
-| Conan Exiles | 443030 | 40 | 7777 |
-| ARK: Survival Evolved | 376030 | 70 | 7777 |
-| Sons of the Forest | 2465200 | 8 | 8766 |
-| The Forest | 556450 | 8 | 27015 |
-| Survive the Nights | 1502300 | 16 | 7777 |
-| SCUM | 3792580 | 32 | 10000 |
-| Vein | 2131400 | 16 | 7777 |
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Valheim | 896660 | 10 | 2456 | |
+| Rust | 258550 | 100 | 28015 | |
+| 7 Days to Die | 294420 | 8 | 26900 | |
+| Conan Exiles | 443030 | 40 | 7777 | |
+| ARK: Survival Evolved | 376030 | 70 | 7777 | |
+| Sons of the Forest | 2465200 | 8 | 8766 | |
+| The Forest | 556450 | 8 | 27015 | 🔑 |
+| Survive the Nights | 1502300 | 16 | 7777 | |
+| SCUM | 3792580 | 32 | 10000 | |
+| Vein | 2131400 | 16 | 7777 | |
+| Palworld | 2394010 | 32 | 8211 | |
+| V Rising | 1829350 | 40 | 9876 | |
+| Don't Starve Together | 343050 | 10 | 10999 | |
+| The Isle | 412680 | 100 | 7777 | |
+| Return to Moria | 3349480 | 8 | 7777 | |
+| ASTRONEER | 728470 | 8 | 8777 | |
+| Longvinter | 1639880 | 32 | 7777 | |
+| No One Survived | 2329680 | 50 | 7777 | |
+| ASKA | 3246670 | 4 | 27015 | |
+| Rising World | 339010 | 64 | 4255 | |
+| Sunkenland | 2667530 | 8 | 27015 | |
+
+### FPS
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Counter-Strike 2 | 730 | 10 | 27015 | |
+| Black Mesa | 346680 | 24 | 27015 | |
+| Garry's Mod | 4020 | 24 | 27015 | |
 
 ### Racing
-| Game | Steam AppID | Max Players | Port |
-|---|---|---|---|
-| Wreckfest | 361580 | 24 | 33540 |
-| Wreckfest 2 | 3519390 | 24 | 27020 |
-| Assetto Corsa | 302550 | 18 | 9600 |
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Wreckfest | 361580 | 24 | 33540 | 🔑 |
+| Wreckfest 2 | 3519390 | 24 | 27020 | 🔑 |
+| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
+
+### Military
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Arma Reforger | 1874900 | 64 | 2001 | |
+| Arma 3 | 233780 | 64 | 2302 | 🔑 |
+
+### Simulation
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
+| American Truck Simulator | 2239530 | 8 | 27015 | |
+| Satisfactory | 1690800 | 4 | 7777 | |
 
 ### Other
-| Game | Steam AppID | Max Players | Port |
-|---|---|---|---|
-| Minecraft Java | — | 20 | 25565 |
-| Euro Truck Simulator 2 | 1948160 | 8 | 27015 |
-| Arma Reforger | 1874900 | 64 | 2001 |
-| Black Mesa | 346680 | 24 | 27015 |
+| Game | Steam AppID | Max Players | Port | |
+|---|---|---|---|---|
+| Minecraft Java | — | 20 | 25565 | |
 
 > The **Custom Plugin Creator** lets you add any other game server without touching code.
 
