@@ -17,11 +17,12 @@ public class ValheimPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var name  = S(s, "serverName", "MyValheim");
-        var world = S(s, "worldName", "Dedicated");
-        var pass  = s.ServerPassword;
-        var cross = S(s, "crossplay", "false") == "true" ? "-crossplay" : "";
-        return $"-nographics -batchmode -name \"{name}\" -world \"{world}\" -password \"{pass}\" -port {s.ServerPort} -savedir \"{s.InstallPath}\\saves\" {cross}";
+        var name   = S(s, "serverName", "MyValheim");
+        var world  = S(s, "worldName", "Dedicated");
+        var pass   = s.ServerPassword;
+        var cross  = S(s, "crossplay", "false") == "true" ? "-crossplay" : "";
+        var pub    = S(s, "public", "true") == "true" ? "1" : "0";
+        return $"-nographics -batchmode -name \"{name}\" -world \"{world}\" -password \"{pass}\" -port {s.ServerPort} -savedir \"{s.InstallPath}\\saves\" -public {pub} {cross}";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()

@@ -28,17 +28,14 @@ public class VRisingPlugin : GamePluginBase
     {
         ["saveName"]    = "world1",
         ["description"] = "V Rising Dedicated Server",
-        ["difficulty"]  = "Normal",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "saveName",    Label = "Save-nimi",   FieldType = ConfigFieldType.Text,     DefaultValue = "world1" },
-            new() { Key = "description", Label = "Kuvaus",      FieldType = ConfigFieldType.Text,     DefaultValue = "V Rising Dedicated Server" },
-            new() { Key = "difficulty",  Label = "Vaikeustaso", FieldType = ConfigFieldType.Dropdown, DefaultValue = "Normal",
-                    Options = ["Relaxed","Normal","Brutal"] },
+            new() { Key = "saveName",    Label = "Save-nimi", FieldType = ConfigFieldType.Text, DefaultValue = "world1" },
+            new() { Key = "description", Label = "Kuvaus",    FieldType = ConfigFieldType.Text, DefaultValue = "V Rising Dedicated Server" },
         ]);
         return fields;
     }

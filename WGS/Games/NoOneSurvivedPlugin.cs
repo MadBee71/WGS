@@ -4,7 +4,7 @@ namespace WGS.Games;
 
 public class NoOneSurvivedPlugin : GamePluginBase
 {
-    public override string GameId          => "noonesuvived";
+    public override string GameId          => "noonessurvived";
     public override string GameName        => "No One Survived";
     public override string Description     => "Zombie survival with base building";
     public override string Category        => "Survival";
