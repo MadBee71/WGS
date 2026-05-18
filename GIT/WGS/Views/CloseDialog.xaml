@@ -1,0 +1,23 @@
+<Window x:Class="WGS.Views.CloseDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="" Width="320" Height="150"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Border Background="#1E1E2E" CornerRadius="10" BorderBrush="#3A3A5C" BorderThickness="1">
+        <StackPanel Margin="24,20">
+            <TextBlock Text="What do you want to do?" Foreground="White" FontSize="14"
+                       FontWeight="SemiBold" Margin="0,0,0,18"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Minimize to Tray" Width="120" Height="32" Margin="0,0,8,0"
+                        Background="#2D2D44" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" Click="MinimizeClick"/>
+                <Button Content="Close WGS" Width="100" Height="32"
+                        Background="#E74C3C" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" Click="CloseAppClick"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
