@@ -1,0 +1,318 @@
+<Window x:Class="WGS.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:WGS.ViewModels"
+        xmlns:views="clr-namespace:WGS.Views"
+        Title="Windows Game Server" Height="800" Width="1280"
+        MinHeight="600" MinWidth="900"
+        Background="{StaticResource BgDeepBrush}"
+        WindowStyle="None" AllowsTransparency="True"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ══ TITLEBAR ══ -->
+            <Border Grid.Row="0" Grid.ColumnSpan="2"
+                    Background="{StaticResource BgSurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                    CornerRadius="10,10,0,0"
+                    MouseLeftButtonDown="TitleBar_MouseDown">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                        <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
+                               Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <TextBlock Text="v1.0.1" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <!-- stats -->
+                        <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="10,4" Margin="4,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="{StaticResource AccentGreenBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding RunningCount}" FontSize="12" Margin="6,0,0,0"/>
+                                <TextBlock Text="{Binding Loc.Running, StringFormat=' {0}'}" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="10,4" Margin="4,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding TotalServers}" FontSize="12"/>
+                                <TextBlock Text="{Binding Loc.Total, StringFormat=' {0}'}" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- window controls -->
+                        <Button Content="—" Width="36" Height="36" Margin="4,0,0,0"
+                                Style="{StaticResource GhostButton}" Padding="0"
+                                Click="MinimizeClick"/>
+                        <Button Content="☐" Width="36" Height="36" Margin="2,0"
+                                Style="{StaticResource GhostButton}" Padding="0"
+                                Click="MaximizeClick"/>
+                        <Button Content="✕" Width="36" Height="36"
+                                Style="{StaticResource DangerButton}" Padding="0"
+                                Click="CloseClick"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ══ SIDEBAR ══ -->
+            <Border Grid.Row="1" Grid.Column="0"
+                    Background="{StaticResource BgSurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- Bottom buttons — compact icon row -->
+                    <Border DockPanel.Dock="Bottom" Padding="10,10,10,12"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <StackPanel>
+                            <Button Content="{Binding Loc.AddServer}" Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,8"
+                                    Command="{Binding OpenAddDialogCommand}"/>
+                            <!-- Icon row: 7 secondary actions -->
+                            <UniformGrid Rows="1" Columns="7">
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenDashboardCommand}">
+                                    <Button.ToolTip><ToolTip Content="Dashboard"/></Button.ToolTip>
+                                    <TextBlock Text="📊" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding BackupAllCommand}">
+                                    <Button.ToolTip><ToolTip Content="{Binding Loc.BackupAll}"/></Button.ToolTip>
+                                    <TextBlock Text="💾" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenSettingsCommand}">
+                                    <Button.ToolTip><ToolTip Content="{Binding Loc.SettingsBtn}"/></Button.ToolTip>
+                                    <TextBlock Text="⚙️" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenPluginCreatorCommand}">
+                                    <Button.ToolTip><ToolTip Content="Add game"/></Button.ToolTip>
+                                    <TextBlock Text="🎮" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding ImportCsPluginCommand}">
+                                    <Button.ToolTip><ToolTip Content="Import .cs plugin"/></Button.ToolTip>
+                                    <TextBlock Text="⬆" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding ExportCsPluginCommand}">
+                                    <Button.ToolTip><ToolTip Content="Export .cs plugin"/></Button.ToolTip>
+                                    <TextBlock Text="⬇" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenSupportCommand}">
+                                    <Button.ToolTip><ToolTip Content="Info / Support"/></Button.ToolTip>
+                                    <TextBlock Text="ℹ" FontSize="15"/>
+                                </Button>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Server list -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Grid Margin="16,16,8,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Loc.Servers}" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" SelectedValue="{Binding SortMode}"
+                                          SelectedValuePath="Tag"
+                                          FontSize="11" Width="90" Height="22"
+                                          Background="{StaticResource BgSurface2Brush}"
+                                          Foreground="{StaticResource TextSecondaryBrush}"
+                                          BorderThickness="0">
+                                    <ComboBoxItem Content="A → Z"  Tag="name-asc"/>
+                                    <ComboBoxItem Content="Z → A"  Tag="name-desc"/>
+                                    <ComboBoxItem Content="Game"   Tag="game-asc"/>
+                                    <ComboBoxItem Content="Status" Tag="status"/>
+                                </ComboBox>
+                            </Grid>
+                            <ListBox ItemsSource="{Binding SortedServers}"
+                                     SelectedItem="{Binding SelectedServer}"
+                                     Background="Transparent" BorderThickness="0"
+                                     ItemContainerStyle="{StaticResource ServerListItem}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ServerViewModel}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- Game capsule image -->
+                                            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                                    Width="64" Height="24" CornerRadius="3"
+                                                    Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
+                                                    ClipToBounds="True">
+                                                <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Border>
+                                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Server.DisplayName}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="{Binding Plugin.GameName}"
+                                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
+                                                     Width="8" Height="8" VerticalAlignment="Center"
+                                                     Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- ══ MAIN CONTENT ══ -->
+            <Grid Grid.Row="1" Grid.Column="1">
+                <!-- Dashboard page -->
+                <views:DashboardView DataContext="{Binding Dashboard}"
+                                     Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Support / Info page -->
+                <views:SupportView Visibility="{Binding ShowSupport, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Server views (shown when not in dashboard and not in support) -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowDashboard}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowSupport}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <!-- No server selected -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Visibility="{Binding SelectedServer, Converter={StaticResource NullToInvVis}}">
+                        <TextBlock Text="&#x1F3AE;" FontSize="48" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc.EmptyTitle}" FontSize="16"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                        <TextBlock Text="{Binding Loc.EmptySubtitle}" FontSize="13"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- Server detail view -->
+                    <ContentControl Content="{Binding SelectedServer}"
+                                    Visibility="{Binding SelectedServer, Converter={StaticResource NullToVis}}">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate DataType="{x:Type vm:ServerViewModel}">
+                                <views:ServerDetailView/>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                </Grid>
+            </Grid>
+
+            <!-- ══ ADD SERVER DIALOG ══ -->
+            <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2"
+                  Visibility="{Binding ShowAddDialog, Converter={StaticResource BoolToVis}}">
+                <Rectangle Fill="#0D1117" Opacity="0.75"/>
+                <Border Style="{StaticResource Card}" Width="480" VerticalAlignment="Center"
+                        HorizontalAlignment="Center" Padding="28">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Loc.DialogTitle}" Style="{StaticResource SectionHeader}" FontSize="18"/>
+
+                        <TextBlock Text="{Binding Loc.DialogGame}" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding DataContext.AvailableGames, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  SelectedItem="{Binding DataContext.NewServerGame, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  Style="{StaticResource DarkComboBox}" Margin="0,0,0,16">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                                        <TextBlock Text="{Binding GameName}" FontWeight="SemiBold"
+                                                   Foreground="#E6EDF3" MinWidth="180"/>
+                                        <Border Background="#21262D" CornerRadius="3" Padding="6,2" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding Category}" Foreground="#58A6FF" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Text="{Binding DataContext.Loc.DialogName, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding DataContext.NewServerName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="{Binding DataContext.Loc.DialogInstall, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding DataContext.NewServerInstall, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"/>
+
+                        <!-- Ports row -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Game Port -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Game Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+                            </StackPanel>
+                            <!-- Query Port -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Query Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerQueryPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+                            </StackPanel>
+                            <!-- Steam Port — only visible when game uses it -->
+                            <StackPanel Grid.Column="4"
+                                        Visibility="{Binding DataContext.NewServerHasSteamPort, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Steam Port" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding DataContext.NewServerSteamPort, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="{Binding DataContext.Loc.DialogCancel, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.CloseAddDialogCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="{Binding DataContext.Loc.DialogCreate, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Command="{Binding DataContext.ConfirmAddServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

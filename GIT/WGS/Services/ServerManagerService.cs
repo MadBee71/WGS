@@ -1,0 +1,465 @@
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using WGS.Games;
+using WGS.Models;
+
+namespace WGS.Services;
+
+public class ServerInstance
+{
+    public GameServer Server { get; }
+    public Process? Process { get; set; }
+    public DateTime? StartTime { get; set; }
+    public ObservableCollection<ConsoleMessage> Log { get; } = [];
+    public int RestartCount { get; set; }
+
+    /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
+    public List<DateTime> CrashTimes { get; } = [];
+
+    public ServerInstance(GameServer server) => Server = server;
+
+    public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
+}
+
+public class ServerManagerService
+{
+    private readonly ConfigService _config;
+    private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
+
+    public event Action<string, ConsoleMessage>? LogReceived;
+    public event Action<string, ServerStatus>?  StatusChanged;
+    /// <summary>Fired when a server has crashed too many times and auto-restart gives up.</summary>
+    public event Action<string>? CrashLimitReached;
+
+    public ServerManagerService(ConfigService config)
+    {
+        _config = config;
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => KillAll();
+    }
+
+    public ServerInstance? GetInstance(string serverId)
+        => _running.TryGetValue(serverId, out var i) ? i : null;
+
+    public async Task StartAsync(GameServer server)
+    {
+        var plugin = GameRegistry.Get(server.GameId);
+        if (plugin == null) throw new InvalidOperationException("Unknown game: " + server.GameId);
+
+        SetStatus(server, ServerStatus.Starting);
+
+        try { Directory.CreateDirectory(server.InstallPath); } catch { }
+        await plugin.PreStartAsync(server);
+
+        // Pre-flight: kill any zombie instance of the same executable
+        var inst0 = new ServerInstance(server);
+        _running[server.Id] = inst0;
+        var exeName = Path.GetFileNameWithoutExtension(plugin.Executable);
+        if (!string.IsNullOrEmpty(exeName))
+        {
+            var zombies = Process.GetProcessesByName(exeName)
+                                 .Where(p => { try { return !p.HasExited; } catch { return false; } })
+                                 .ToList();
+            foreach (var z in zombies)
+            {
+                try
+                {
+                    z.Kill(entireProcessTree: true);
+                    z.WaitForExit(3000);
+                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] 🗑 Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
+                    inst0.Log.Add(msg);
+                    LogReceived?.Invoke(server.Id, msg);
+                }
+                catch { /* process already gone */ }
+            }
+            if (zombies.Count > 0)
+                await Task.Delay(1000); // brief pause so OS releases ports
+        }
+
+        // Pre-flight: warn if ports are still in use after cleanup
+        foreach (var r in PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable))
+        {
+            var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
+            inst0.Log.Add(w);
+            LogReceived?.Invoke(server.Id, w);
+        }
+
+        var args = plugin.BuildStartArguments(server);
+        if (!string.IsNullOrWhiteSpace(server.Gslt))       args += $" +sv_setsteamaccount {server.Gslt}";
+        if (!string.IsNullOrWhiteSpace(server.CustomArgs)) args += $" {server.CustomArgs.Replace(Environment.NewLine, " ")}";
+        var exe  = Path.Combine(server.InstallPath, plugin.Executable);
+
+        // If primary exe missing, try auto-detect from install folder
+        if (!File.Exists(exe))
+        {
+            var found = TryFindExecutable(server.InstallPath, plugin.Executable);
+            if (found != null)
+                exe = found;
+            else
+                throw new FileNotFoundException("Server executable not found in: " + server.InstallPath);
+        }
+
+        // Wrap .bat/.cmd files with cmd.exe so stdout/stderr can be captured
+        var ext = Path.GetExtension(exe);
+        if (ext.Equals(".bat", StringComparison.OrdinalIgnoreCase) ||
+            ext.Equals(".cmd", StringComparison.OrdinalIgnoreCase))
+        {
+            args = $"/c \"{exe}\" {args}";
+            exe  = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+        }
+
+        // WorkingDirectory must be the exe's own folder (not just InstallPath)
+        var exeDir = Path.GetDirectoryName(exe) ?? server.InstallPath;
+
+        // SteamClientAppId == 0 means "don't write steam_appid.txt or set Steam env vars"
+        // SteamClientAppId > 0 means explicit override; otherwise fall back to SteamAppId
+        var steamFileId = plugin.SteamClientAppId;
+        var steamEnvId  = plugin.SteamClientAppId > 0 ? plugin.SteamClientAppId : plugin.SteamAppId;
+
+        if (steamFileId > 0)
+        {
+            try { File.WriteAllText(Path.Combine(exeDir, "steam_appid.txt"), steamFileId.ToString()); }
+            catch { }
+        }
+
+        var native = plugin.UseNativeConsole;
+        var psi = new ProcessStartInfo
+        {
+            FileName               = exe,
+            Arguments              = args,
+            WorkingDirectory       = exeDir,
+            UseShellExecute        = false,
+            RedirectStandardOutput = !native,
+            RedirectStandardError  = !native,
+            RedirectStandardInput  = !native,
+            CreateNoWindow         = !native,
+            // WindowStyle.Hidden sets STARTF_USESHOWWINDOW|SW_HIDE in STARTUPINFO.
+            // This propagates to AllocConsole() AND to Windows Terminal so the tab
+            // is created hidden rather than stealing focus.
+            WindowStyle            = native ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
+            StandardOutputEncoding = native ? null : System.Text.Encoding.UTF8,
+            StandardErrorEncoding  = native ? null : System.Text.Encoding.UTF8,
+        };
+
+        // Steam environment variables — skip if plugin explicitly set SteamClientAppId = 0
+        if (steamFileId > 0)
+        {
+            psi.EnvironmentVariables["SteamAppId"]          = steamEnvId.ToString();
+            psi.EnvironmentVariables["SteamOverlayGameId"]  = steamEnvId.ToString();
+            psi.EnvironmentVariables["SteamGameId"]         = steamEnvId.ToString();
+        }
+
+        var inst = inst0;
+
+        var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+
+        proc.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data == null) return;
+            if (plugin.IsNoiseLine(e.Data)) return;
+            var msg = new ConsoleMessage { Text = e.Data, Type = DetectType(e.Data) };
+            inst.Log.Add(msg);
+            LogReceived?.Invoke(server.Id, msg);
+        };
+
+        proc.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data == null) return;
+            if (plugin.IsNoiseLine(e.Data)) return;
+            var msg = new ConsoleMessage { Text = e.Data, Type = ConsoleMessageType.Error };
+            inst.Log.Add(msg);
+            LogReceived?.Invoke(server.Id, msg);
+        };
+
+        proc.Exited += async (_, _) =>
+        {
+            try
+            {
+                SetStatus(server, ServerStatus.Stopped);
+
+                if (!server.AutoRestart || !_running.ContainsKey(server.Id))
+                {
+                    _running.TryRemove(server.Id, out _);
+                    return;
+                }
+
+                // ── Crash-loop detection ───────────────────────────────────────
+                var now = DateTime.Now;
+                inst.CrashTimes.Add(now);
+                // Forget crashes older than 10 minutes
+                inst.CrashTimes.RemoveAll(t => (now - t).TotalMinutes > 10);
+
+                int maxRetries = server.AutoRestartMaxRetries > 0 ? server.AutoRestartMaxRetries : 5;
+
+                if (inst.CrashTimes.Count > maxRetries)
+                {
+                    var giveUp = new ConsoleMessage
+                    {
+                        Text = $"[WGS] ⛔ Server crashed {inst.CrashTimes.Count}× in 10 min (limit {maxRetries}). Auto-restart disabled.",
+                        Type = ConsoleMessageType.Error
+                    };
+                    inst.Log.Add(giveUp);
+                    LogReceived?.Invoke(server.Id, giveUp);
+                    server.AutoRestart = false;
+                    SetStatus(server, ServerStatus.Error);
+                    _running.TryRemove(server.Id, out _);
+                    CrashLimitReached?.Invoke(server.Id);
+                    return;
+                }
+
+                int delaySec = server.AutoRestartDelaySec > 0 ? server.AutoRestartDelaySec : 10;
+                inst.RestartCount++;
+                var delayMsg = new ConsoleMessage
+                {
+                    Text = $"[WGS] ⚠ Server stopped unexpectedly (crash #{inst.CrashTimes.Count}/{maxRetries}). Restarting in {delaySec}s...",
+                    Type = ConsoleMessageType.Warning
+                };
+                inst.Log.Add(delayMsg);
+                LogReceived?.Invoke(server.Id, delayMsg);
+
+                await Task.Delay(delaySec * 1000);
+
+                // Re-check: user might have disabled auto-restart during the delay
+                if (!server.AutoRestart || !_running.ContainsKey(server.Id))
+                {
+                    _running.TryRemove(server.Id, out _);
+                    return;
+                }
+
+                await StartAsync(server);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WGS] Exited handler error for {server.Id}: {ex.Message}");
+            }
+        };
+
+        try
+        {
+            proc.Start();
+        }
+        catch (Win32Exception ex)
+        {
+            _running.TryRemove(server.Id, out _);
+            SetStatus(server, ServerStatus.Error);
+            var errMsg = new ConsoleMessage
+            {
+                Text = $"[ERR] Failed to start server process: {ex.Message}",
+                Type = ConsoleMessageType.Error
+            };
+            LogReceived?.Invoke(server.Id, errMsg);
+            throw;
+        }
+
+        if (!native)
+        {
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+
+            // Output is captured in WGS — hide any window the process creates.
+            // CreateNoWindow only suppresses the console host; some servers (e.g. Rust)
+            // still create a Win32 window via AllocConsole/CreateWindow internally.
+            // Poll until the window appears, then hide it completely.
+            _ = Task.Run(async () =>
+            {
+                for (int i = 0; i < 30 && !proc.HasExited; i++) // up to 15 seconds
+                {
+                    await Task.Delay(500);
+                    try
+                    {
+                        proc.Refresh();
+                        var hwnd = proc.MainWindowHandle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            ShowWindow(hwnd, SW_HIDE);
+                            break;
+                        }
+                    }
+                    catch { break; }
+                }
+            });
+        }
+        else
+        {
+            // Native-console server: has its own useful console window.
+            // Minimize to taskbar without stealing focus — user can open it with Console button.
+            _ = Task.Run(async () =>
+            {
+                for (int i = 0; i < 20 && !proc.HasExited; i++) // up to 10 seconds
+                {
+                    await Task.Delay(500);
+                    try
+                    {
+                        proc.Refresh();
+                        var hwnd = proc.MainWindowHandle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+                            break;
+                        }
+                    }
+                    catch { break; }
+                }
+            });
+        }
+
+        // Apply CPU affinity
+        if (server.CpuAffinityMask != 0)
+        {
+            try { proc.ProcessorAffinity = (IntPtr)server.CpuAffinityMask; } catch { }
+        }
+
+        // Apply process priority
+        try
+        {
+            proc.PriorityClass = server.ProcessPriority switch
+            {
+                "AboveNormal" => ProcessPriorityClass.AboveNormal,
+                "High"        => ProcessPriorityClass.High,
+                "BelowNormal" => ProcessPriorityClass.BelowNormal,
+                "RealTime"    => ProcessPriorityClass.RealTime,
+                _             => ProcessPriorityClass.Normal,
+            };
+        }
+        catch { }
+
+        inst.Process   = proc;
+        inst.StartTime = DateTime.Now;
+        server.LastStarted = DateTime.Now;
+
+        // Add firewall rules
+        if (server.FirewallAutoManage)
+            FirewallService.AddRules(server);
+
+        SetStatus(server, ServerStatus.Running);
+    }
+
+    public async Task StopAsync(GameServer server)
+    {
+        if (!_running.TryGetValue(server.Id, out var inst)) return;
+        SetStatus(server, ServerStatus.Stopping);
+
+        var plugin = GameRegistry.Get(server.GameId);
+        var stopCmd = plugin?.GetStopCommand(server);
+
+        if (stopCmd != null && inst.Process?.HasExited == false)
+        {
+            try { await inst.Process.StandardInput.WriteLineAsync(stopCmd); }
+            catch { }
+            await Task.Delay(5000);
+        }
+
+        if (inst.Process?.HasExited == false)
+            inst.Process.Kill(entireProcessTree: true);
+
+        _running.TryRemove(server.Id, out _);
+        if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
+        SetStatus(server, ServerStatus.Stopped);
+    }
+
+    public async Task SendCommandAsync(string serverId, string command)
+    {
+        if (_running.TryGetValue(serverId, out var inst) && inst.Process?.StandardInput != null)
+            await inst.Process.StandardInput.WriteLineAsync(command);
+    }
+
+    public void SendCommand(string serverId, string command)
+    {
+        if (_running.TryGetValue(serverId, out var inst) && inst.Process?.StandardInput != null)
+            _ = inst.Process.StandardInput.WriteLineAsync(command);
+    }
+
+    public bool IsRunning(string serverId)
+        => _running.TryGetValue(serverId, out var inst) && inst.Process?.HasExited == false;
+
+    public Task KillAsync(GameServer server)
+    {
+        if (!_running.TryGetValue(server.Id, out var inst)) return Task.CompletedTask;
+        SetStatus(server, ServerStatus.Stopping);
+        try { inst.Process?.Kill(entireProcessTree: true); }
+        catch (InvalidOperationException) { /* process already dead — swallow */ }
+        _running.TryRemove(server.Id, out _);
+        if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
+        SetStatus(server, ServerStatus.Stopped);
+        return Task.CompletedTask;
+    }
+
+    public void KillAll()
+    {
+        foreach (var id in _running.Keys.ToList())
+        {
+            try { _running[id].Process?.Kill(entireProcessTree: true); } catch { }
+        }
+        _running.Clear();
+    }
+
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    private const int SW_HIDE            = 0; // hide window completely
+    private const int SW_SHOWMINNOACTIVE = 7; // minimize without stealing focus
+    private const int SW_RESTORE         = 9;
+
+    public void ShowWindow(GameServer server)
+    {
+        if (!_running.TryGetValue(server.Id, out var inst)) return;
+        var proc = inst.Process;
+        if (proc == null || proc.HasExited) return;
+        try
+        {
+            var hwnd = proc.MainWindowHandle;
+            if (hwnd == IntPtr.Zero) return;
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+        catch { }
+    }
+
+    private void SetStatus(GameServer server, ServerStatus status)
+    {
+        server.Status = status;
+        StatusChanged?.Invoke(server.Id, status);
+    }
+
+    private static string? TryFindExecutable(string installPath, string hintExe)
+    {
+        if (!Directory.Exists(installPath)) return null;
+
+        // 1. exact in root
+        var root = Path.Combine(installPath, hintExe);
+        if (File.Exists(root)) return root;
+
+        // 2. any *server*.exe or *dedicated*.exe in root
+        foreach (var f in Directory.GetFiles(installPath, "*.exe"))
+        {
+            var n = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
+            if (n.Contains("server") || n.Contains("dedicated")) return f;
+        }
+
+        // 3. recurse one level
+        foreach (var dir in Directory.GetDirectories(installPath))
+        {
+            var sub = Path.Combine(dir, hintExe);
+            if (File.Exists(sub)) return sub;
+            foreach (var f in Directory.GetFiles(dir, "*.exe"))
+            {
+                var n = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
+                if (n.Contains("server") || n.Contains("dedicated")) return f;
+            }
+        }
+
+        // 4. any .exe at all
+        var any = Directory.GetFiles(installPath, "*.exe").FirstOrDefault();
+        return any;
+    }
+
+    private static ConsoleMessageType DetectType(string line)
+    {
+        var l = line.ToLowerInvariant();
+        if (l.Contains("error") || l.Contains("exception") || l.Contains("fatal")) return ConsoleMessageType.Error;
+        if (l.Contains("warn")) return ConsoleMessageType.Warning;
+        return ConsoleMessageType.Info;
+    }
+}
