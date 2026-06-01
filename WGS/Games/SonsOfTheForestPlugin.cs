@@ -15,6 +15,7 @@ public class SonsOfTheForestPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27016;
     public override int    DefaultMaxPlayers => 8;
     public override bool   HasRcon       => true;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
         => string.Empty; // config via dedicatedserver.cfg

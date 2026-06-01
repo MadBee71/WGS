@@ -29,6 +29,8 @@ public interface IGamePlugin
     int          WorkshopAppId { get; }  // Steam Workshop app ID (0 = no workshop)
     List<string> ConfigFiles   { get; }  // Relative paths to game config files
 
+    /// <summary>Returns true for known harmless log lines that should be hidden from the console.</summary>
+    bool IsNoiseLine(string line);
     string BuildStartArguments(GameServer server);
     Dictionary<string, string> GetDefaultSettings();
     List<ConfigField> GetConfigFields();

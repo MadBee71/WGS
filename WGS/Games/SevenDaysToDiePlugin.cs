@@ -16,6 +16,7 @@ public class SevenDaysToDiePlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 8;
     public override bool   HasRcon        => true;
     public override bool   SupportsOxide  => true;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -dedicated -configfile=\"{s.InstallPath}\\serverconfig.xml\"";

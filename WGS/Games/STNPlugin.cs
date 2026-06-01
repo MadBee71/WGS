@@ -14,6 +14,7 @@ public class STNPlugin : GamePluginBase
     public override int    DefaultPort   => 7777;
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 16;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -Port={s.ServerPort} -MaxPlayers={s.MaxPlayers} -ServerName=\"{s.ServerName}\" -Password=\"{s.ServerPassword}\"";

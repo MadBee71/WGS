@@ -6,7 +6,7 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-37+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -64,7 +64,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **37+ supported games** | Ready-made plugins for the most popular game servers |
+| 🎮 **50+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
 | 🔄 **Auto restart** | Automatic restart after crash, with configurable delay |
 | 🛡️ **Crash loop detection** | Counts crashes in a 10-minute window — stops retrying after a configurable limit |
@@ -116,63 +116,76 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Survival
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Valheim | 896660 | 10 | 2456 | |
-| Rust | 258550 | 100 | 28015 | |
 | 7 Days to Die | 294420 | 8 | 26900 | |
-| Conan Exiles | 443030 | 40 | 7777 | |
 | ARK: Survival Evolved | 376030 | 70 | 7777 | |
-| Sons of the Forest | 2465200 | 8 | 8766 | |
-| The Forest | 556450 | 64 | 27017 | 🔑 |
-| Survive the Nights | 1502300 | 16 | 7777 | |
-| SCUM | 3792580 | 32 | 10000 | |
-| Vein | 2131400 | 16 | 7777 | |
-| Palworld | 2394010 | 32 | 8211 | |
-| V Rising | 1829350 | 40 | 9876 | |
-| Don't Starve Together | 343050 | 10 | 10999 | |
-| The Isle | 412680 | 75 | 7777 | |
-| Return to Moria | 3349480 | 8 | 20151 | |
-| ASTRONEER | 728470 | 4 | 7777 | |
-| Longvinter | 1639880 | 32 | 7777 | |
-| No One Survived | 2329680 | 50 | 7777 | |
 | ASKA | 3246670 | 4 | 27015 | |
+| ASTRONEER | 728470 | 4 | 7777 | |
+| Barotrauma | 1026340 | 16 | 27015 | |
+| Conan Exiles | 443030 | 40 | 7777 | |
+| Core Keeper | 1963720 | 8 | 27015 | |
+| DayZ | 223350 | 60 | 2302 | 🔑 |
+| Don't Starve Together | 343050 | 10 | 10999 | |
+| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
+| Longvinter | 1639880 | 32 | 7777 | |
 | Necesse | 1169370 | 32 | 14159 | |
+| No One Survived | 2329680 | 50 | 7777 | |
+| Palworld | 2394010 | 32 | 8211 | |
+| Project Zomboid | 380870 | 32 | 16261 | |
+| Return to Moria | 3349480 | 8 | 20151 | |
 | Rising World | 339010 | 16 | 4255 | |
+| Rust | 258550 | 100 | 28015 | |
+| SCUM | 3792580 | 32 | 10000 | |
+| Sons of the Forest | 2465200 | 8 | 8766 | |
 | Sunkenland | 2667530 | 8 | 27015 | |
+| Survive the Nights | 1502300 | 16 | 7777 | |
+| The Forest | 556450 | 64 | 27017 | 🔑 |
+| The Isle | 412680 | 75 | 7777 | |
+| Unturned | 1110390 | 24 | 27015 | |
+| V Rising | 1829350 | 40 | 9876 | |
+| Valheim | 896660 | 10 | 2456 | |
+| Vein | 2131400 | 16 | 7777 | |
 
 ### FPS
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Counter-Strike 2 | 730 | 10 | 27015 | |
 | Black Mesa | 346680 | 24 | 27015 | |
+| Counter-Strike 2 | 730 | 10 | 27015 | |
 | Garry's Mod | 4020 | 24 | 27015 | |
+| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
+| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
+| MORDHAU | 629800 | 64 | 7777 | |
+| Team Fortress 2 | 232250 | 24 | 27015 | 🔑 |
 
 ### Racing
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
+| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
+| Assetto Corsa Competizione | 1430110 | 24 | 9600 | 🔑 |
 | Wreckfest | 361580 | 24 | 33540 | 🔑 |
 | Wreckfest 2 | 3519390 | 16 | 30100 | 🔑 |
-| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
 
 ### Military
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Arma Reforger | 1874900 | 16 | 2302 | |
-| Arma 3 | 233780 | 64 | 2302 | 🔑 |
 | Arma 2: Operation Arrowhead | 33905 | 64 | 2302 | 🔑 |
+| Arma 3 | 233780 | 64 | 2302 | 🔑 |
+| Arma Reforger | 1874900 | 16 | 2302 | |
+| Squad | 403240 | 100 | 7787 | |
 
 ### Simulation
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
 | American Truck Simulator | 2239530 | 8 | 27015 | |
+| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
 | Satisfactory | 1690800 | 4 | 7777 | |
+| Space Engineers | 298740 | 16 | 27016 | |
 
 ### Other
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
 | Minecraft Java | — | 20 | 25565 | |
-| Terraria | — | 8 | 7777 | |
 | RedM | — | 32 | 30120 | |
+| Terraria | — | 8 | 7777 | |
 
 > `—` = not on Steam; install manually (see plugin description for download link)
 >
@@ -308,44 +321,6 @@ Register(new MyGamePlugin());
 └─────────────────────────────────────┘
 ```
 
----
-
-## 🆕 What's new in v1.0.1
-
-### 4 new game plugins
-| Game | Category | Note |
-|---|---|---|
-| Arma 2: Operation Arrowhead | Military | AppId 33905 — requires Steam login |
-| Necesse | Survival | Bundled JRE launcher |
-| Terraria | Survival | Manual install from terraria.org |
-| RedM | Other | Manual install from cfx.re/redm |
-
-### Port & max-player data corrected (verified against WindowsGSM source)
-| Game | What changed |
-|---|---|
-| Arma Reforger | Port 2001 → 2302 · Query 17777 → 7777 · Max 64 → 16 · CLI flags fixed |
-| ASTRONEER | Port 8777 → 7777 · Query 7778 → 7777 · Max 8 → 4 |
-| Return to Moria | Port & Query 7777 → 20151 |
-| Wreckfest 2 | Port 27020 → 30100 · Query 27021 → 27015 · Max 24 → 16 |
-| The Forest | Port 27015 → 27017 · Max 8 → 64 |
-| Rising World | Max 64 → 16 · Start args format corrected |
-| The Isle | Default map Isle_V3 → Gateway · Max 100 → 75 |
-
-### Bug fixes
-- **GameId typo** — `noonesuvived` → `noonessurvived`
-- **ARMA 3** — mods (`-mod=`) setting now applied in start arguments
-- **Valheim** — `-public` flag now actually passed to server
-- **The Forest** — caves / enemies / vegan settings now applied as server args
-- **Dead settings removed** — ETS2, Conan Exiles, Arma Reforger, V Rising: settings that were shown in the UI but never applied to the server have been cleaned up
-- **Port conflict auto-resolution** — Add Server dialog now assigns conflict-free ports automatically
-- **Port fields** in Add Server dialog — Game Port, Query Port and Steam Port are all editable
-- **ValidatesOnExceptions** added to port input fields
-
-### SteamCMD beta branch support
-- `TheIslePlugin` → `-beta evrima` (Evrima update)
-- `RisingWorldPlugin` → `-beta unity` (Unity engine version)
-- **PluginExporter** now includes `SteamBranch` in exported `.cs` files
-- Any plugin can override `SteamBranch` to target a specific Steam beta branch
 
 ### Exe size
 - Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)

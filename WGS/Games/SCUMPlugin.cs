@@ -15,7 +15,6 @@ public class SCUMPlugin : GamePluginBase
     public override int    DefaultQueryPort => 10002;
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon         => true;
-
     public override string BuildStartArguments(GameServer s)
         => $"-port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers} -log";
 

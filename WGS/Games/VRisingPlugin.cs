@@ -14,11 +14,13 @@ public class VRisingPlugin : GamePluginBase
     public override int    DefaultPort     => 9876;
     public override int    DefaultQueryPort => 9877;
     public override int    DefaultMaxPlayers => 40;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
     {
         var saveName = S(s, "saveName", "world1");
-        return $"-persistentDataPath \"{s.InstallPath}\\Saves\" " +
+        return $"-batchmode -nographics " +
+               $"-persistentDataPath \"{s.InstallPath}\\Saves\" " +
                $"-serverName \"{s.ServerName}\" -description \"{S(s, "description", "")}\" " +
                $"-gamePort {s.ServerPort} -queryPort {s.QueryPort} " +
                $"-maxConnectedUsers {s.MaxPlayers} -saveName {saveName}";

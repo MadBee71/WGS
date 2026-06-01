@@ -15,9 +15,11 @@ public class RisingWorldPlugin : GamePluginBase
     public override int    DefaultPort      => 4255;
     public override int    DefaultQueryPort => 4254;
     public override int    DefaultMaxPlayers => 16;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
-        => $"+server_name=\"{s.ServerName}\" +Server_Port={s.ServerPort} " +
+        => $"-batchmode -nographics " +
+           $"+server_name=\"{s.ServerName}\" +Server_Port={s.ServerPort} " +
            $"+Server_QueryPort={s.QueryPort} +Settings_MaxPlayers={s.MaxPlayers}";
 
     public override Dictionary<string, string> GetDefaultSettings() => new()

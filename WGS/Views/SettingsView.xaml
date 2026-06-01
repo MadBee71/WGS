@@ -154,6 +154,10 @@
                     <TextBox Style="{StaticResource DarkTextBox}"
                              Text="{Binding SteamCmdPath}" IsReadOnly="True"
                              Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <CheckBox IsChecked="{Binding StartWithWindows}" Style="{StaticResource DarkCheckBox}"
+                              Content="Start WGS automatically with Windows" Margin="0,14,0,0"/>
+                    <TextBlock Text="Adds WGS to Windows startup (current user only, no UAC prompt)."
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>
@@ -190,11 +194,9 @@
                         <Run Text="Windows Game Server (WGS) v1.0.1" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
-                        <Run Text="Supports 12 games: Valheim, Minecraft, Conan Exiles, Rust, 7 Days to Die,"/>
+                        <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>
                         <LineBreak/>
-                        <Run Text="Euro Truck Simulator 2, Survive the Nights, Wreckfest, Wreckfest 2,"/>
-                        <LineBreak/>
-                        <Run Text="The Forest, Sons of the Forest, Arma Reforger"/>
+                        <Run Text="MIT License  ·  Free and open source"/>
                     </TextBlock>
                 </StackPanel>
             </Border>

@@ -14,6 +14,7 @@ public class ValheimPlugin : GamePluginBase
     public override int    DefaultPort   => 2456;
     public override int    DefaultQueryPort => 2457;
     public override int    DefaultMaxPlayers => 10;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
     {

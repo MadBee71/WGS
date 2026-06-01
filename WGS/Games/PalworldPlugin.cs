@@ -14,7 +14,6 @@ public class PalworldPlugin : GamePluginBase
     public override int    DefaultPort     => 8211;
     public override int    DefaultQueryPort => 8212;
     public override int    DefaultMaxPlayers => 32;
-
     public override string BuildStartArguments(GameServer s)
         => $"-port={s.ServerPort} -queryport={s.QueryPort} -players={s.MaxPlayers} " +
            $"EpicApp=PalServer -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS";

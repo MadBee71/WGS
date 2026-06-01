@@ -14,7 +14,6 @@ public class NoOneSurvivedPlugin : GamePluginBase
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 28015;
     public override int    DefaultMaxPlayers => 50;
-
     public override string BuildStartArguments(GameServer s)
         => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} " +
            $"-MaxPlayers={s.MaxPlayers} -ServerName=\"{s.ServerName}\"";
