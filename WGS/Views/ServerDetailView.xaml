@@ -183,15 +183,22 @@
                                        Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,8,0"/>
                             <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}"
                                      Text="{Binding ConsoleFilter, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Grid.Column="3" Content="{Binding Loc.ConsoleClear}" Style="{StaticResource GhostButton}"
-                                    Margin="8,0,0,0" Command="{Binding ClearConsoleCommand}"/>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                <ToggleButton x:Name="AutoScrollToggle" IsChecked="True"
+                                              Style="{StaticResource GhostToggleButton}"
+                                              Content="⬇ Auto scroll" ToolTip="Scroll to latest output automatically"
+                                              Margin="8,0,0,0" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
+                                <Button Content="{Binding Loc.ConsoleClear}" Style="{StaticResource GhostButton}"
+                                        Margin="8,0,0,0" Command="{Binding ClearConsoleCommand}"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
                     <!-- Log output -->
                     <ScrollViewer Grid.Row="1" x:Name="LogScroller"
                                   Background="{StaticResource BgDeepBrush}"
-                                  VerticalScrollBarVisibility="Auto" Padding="8">
+                                  VerticalScrollBarVisibility="Auto" Padding="8"
+                                  ScrollChanged="LogScroller_ScrollChanged">
                         <ItemsControl ItemsSource="{Binding FilteredLog}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
