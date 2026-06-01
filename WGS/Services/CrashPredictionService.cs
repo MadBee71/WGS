@@ -127,5 +127,9 @@ public class CrashPredictionService : IDisposable
     private static CrashPrediction Make(string id, string name, string reason, int severity, DateTime now) =>
         new() { ServerId = id, ServerName = name, Reason = reason, Severity = severity, DetectedAt = now };
 
-    public void Dispose() => _cts?.Cancel();
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        try { _task?.Wait(3000); } catch { }
+    }
 }

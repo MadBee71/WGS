@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -18,9 +19,11 @@ public class RemoteServerInfo
 public class RemoteMachineService : IDisposable
 {
     private readonly string _machinesFile;
+    private readonly object _machinesLock = new();
     private readonly List<MachineDefinition> _machines = new();
-    private readonly Dictionary<string, MachineDefinition> _byId = new();  // O(1) lookup
-    private readonly Dictionary<string, bool> _onlineStatus = new();
+    private readonly Dictionary<string, MachineDefinition> _byId = new();
+    // ConcurrentDictionary: written by multiple parallel PollMachine tasks
+    private readonly ConcurrentDictionary<string, bool> _onlineStatus = new();
     private readonly HttpClient _http;
     private CancellationTokenSource? _cts;
     private Task? _pollTask;
@@ -28,7 +31,10 @@ public class RemoteMachineService : IDisposable
     public event Action<string, List<RemoteServerInfo>>? MachineUpdated;
     public event Action? MachinesChanged;
 
-    public IReadOnlyList<MachineDefinition> Machines => _machines;
+    public IReadOnlyList<MachineDefinition> Machines
+    {
+        get { lock (_machinesLock) return _machines.ToList(); }
+    }
 
     public RemoteMachineService(ConfigService config)
     {
@@ -47,17 +53,22 @@ public class RemoteMachineService : IDisposable
         {
             var list = JsonConvert.DeserializeObject<List<MachineDefinition>>(File.ReadAllText(_machinesFile));
             if (list == null) return;
-            foreach (var m in list) Register(m);
+            lock (_machinesLock)
+                foreach (var m in list) RegisterLocked(m);
         }
         catch { }
     }
 
     private void Save()
-        => File.WriteAllText(_machinesFile, JsonConvert.SerializeObject(_machines, Formatting.Indented));
-
-    private void Register(MachineDefinition def)
     {
-        // Normalize URL once so every request reuses it
+        List<MachineDefinition> snapshot;
+        lock (_machinesLock) snapshot = _machines.ToList();
+        File.WriteAllText(_machinesFile, JsonConvert.SerializeObject(snapshot, Formatting.Indented));
+    }
+
+    // Must be called inside _machinesLock
+    private void RegisterLocked(MachineDefinition def)
+    {
         def.Url = def.Url.TrimEnd('/');
         _machines.Add(def);
         _byId[def.Id] = def;
@@ -65,15 +76,18 @@ public class RemoteMachineService : IDisposable
 
     public void AddMachine(MachineDefinition def)
     {
-        Register(def);
+        lock (_machinesLock) RegisterLocked(def);
         Save();
         MachinesChanged?.Invoke();
     }
 
     public void RemoveMachine(string id)
     {
-        _machines.RemoveAll(m => m.Id == id);
-        _byId.Remove(id);
+        lock (_machinesLock)
+        {
+            _machines.RemoveAll(m => m.Id == id);
+            _byId.Remove(id);
+        }
         Save();
         MachinesChanged?.Invoke();
     }
@@ -90,8 +104,9 @@ public class RemoteMachineService : IDisposable
     {
         while (!ct.IsCancellationRequested)
         {
-            // Snapshot list once per cycle, then poll all machines in parallel
-            var enabled = _machines.Where(m => m.Enabled).ToList();
+            List<MachineDefinition> enabled;
+            lock (_machinesLock) enabled = _machines.Where(m => m.Enabled).ToList();
+
             if (enabled.Count > 0)
                 await Task.WhenAll(enabled.Select(PollMachine));
 
@@ -127,7 +142,9 @@ public class RemoteMachineService : IDisposable
 
     private async Task<bool> PostAction(string machineId, string serverId, string action)
     {
-        if (!_byId.TryGetValue(machineId, out var machine)) return false;
+        MachineDefinition? machine;
+        lock (_machinesLock) _byId.TryGetValue(machineId, out machine);
+        if (machine == null) return false;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post,
@@ -146,6 +163,8 @@ public class RemoteMachineService : IDisposable
     public void Dispose()
     {
         _cts?.Cancel();
+        // Wait for poll loop to finish before disposing HttpClient
+        try { _pollTask?.Wait(3000); } catch { }
         _http.Dispose();
     }
 }

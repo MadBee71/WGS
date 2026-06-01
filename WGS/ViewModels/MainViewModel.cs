@@ -140,10 +140,14 @@ public partial class MainViewModel : BaseViewModel
         _remoteMachines.MachineUpdated += OnMachineUpdated;
         _remoteMachines.MachinesChanged += OnMachinesChanged;
 
-        // Wire CrashPredictionService
+        // Wire CrashPredictionService — snapshot on UI thread so background thread gets a safe copy
         _crashPrediction.GetRunningServers = () =>
-            Servers.Where(v => v.Server.Status == ServerStatus.Running)
-                   .Select(v => (v.Server.Id, v.Server.DisplayName));
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+                Servers.Where(v => v.Server.Status == ServerStatus.Running)
+                       .Select(v => (v.Server.Id, v.Server.DisplayName))
+                       .ToList()
+                       .AsEnumerable()
+            ) ?? [];
         _crashPrediction.PredictionRaised += OnCrashPrediction;
     }
 
@@ -170,11 +174,14 @@ public partial class MainViewModel : BaseViewModel
 
     private void OnCrashPrediction(string serverId, Services.CrashPrediction pred)
     {
-        // Log to server console
-        var serverVm = FindServer(serverId);
-        serverVm?.AppendConsoleWarning($"[WGS PREDICTION] {pred.Reason} (Severity {pred.Severity})");
+        // FindServer accesses Servers collection — must run on UI thread
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            FindServer(serverId)?.AppendConsoleWarning(
+                $"[WGS PREDICTION] {pred.Reason} (Severity {pred.Severity})");
+        });
 
-        // Notify Discord if enabled
+        // NotifyAsync is fire-and-forget, safe to call from any thread
         if (Settings.CrashPredictionDiscord)
         {
             var color = pred.Severity >= 2 ? "#F85149" : "#D29922";
