@@ -118,7 +118,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 
 ## 🎮 Supported Games
 
-> `🔑` = Steam account required to install &nbsp;|&nbsp; all others install anonymously
+> `🔑` = Requires owning the game on Steam — authenticate via Steam Guard (email or mobile app). SteamCMD may ask for a new code on every run. &nbsp;|&nbsp; all others install anonymously
 
 ### Survival
 | Game | Steam AppID | Max Players | Port | |
