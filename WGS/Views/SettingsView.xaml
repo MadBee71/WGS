@@ -131,6 +131,48 @@
                 </StackPanel>
             </Border>
 
+            <!-- Remote Control (Slave / Multi-Machine) -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Remote Control" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Slave mode: this machine runs as a background agent controllable from another WGS instance.
+                        The Web API is started automatically on launch. Add remote machines below to monitor and control them from this WGS.
+                    </TextBlock>
+
+                    <CheckBox IsChecked="{Binding SlaveMode}" Style="{StaticResource DarkCheckBox}"
+                              Content="Run as Slave (remote-controllable)" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
+                               Text="When enabled, the Web API starts on launch and this machine can be managed from a master WGS."/>
+
+                    <TextBlock Text="Machine name (shown on master)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"
+                             Text="{Binding SlaveName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Margin="0,0,0,0" Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Notifications: Crash Prediction -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Crash Prediction" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        WGS analyzes CPU/RAM history every 30 seconds and warns you before a likely crash:
+                        rapid RAM growth, sustained high CPU, or memory leaks.
+                    </TextBlock>
+                    <CheckBox IsChecked="{Binding CrashPredictionDiscord}" Style="{StaticResource DarkCheckBox}"
+                              Content="Send crash predictions to Discord" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
+                               Text="Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
             <!-- General -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
@@ -191,7 +233,7 @@
                     <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.0.1" FontWeight="SemiBold"
+                        <Run Text="Windows Game Server (WGS) v1.0.2" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
                         <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>

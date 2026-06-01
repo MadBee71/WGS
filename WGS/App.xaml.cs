@@ -43,10 +43,14 @@ public partial class App : System.Windows.Application
         var config = Services.GetRequiredService<ConfigService>();
         LocalizationService.Instance.Load(config);
 
-        // Start Web API if configured
+        // Start Web API if configured (includes slave mode via WebApiRequired)
         var webApi = Services.GetRequiredService<WebApiService>();
-        if (config.WebApiEnabled && config.WebApiPort > 0)
+        if (config.WebApiRequired && config.WebApiPort > 0)
             webApi.Start(config.WebApiPort, config.WebApiToken);
+
+        // Start background services after DI is fully built
+        Services.GetRequiredService<RemoteMachineService>().Initialize();
+        Services.GetRequiredService<CrashPredictionService>().Initialize();
 
         _tray = Services.GetRequiredService<TrayService>();
         _tray.ShowWindowRequested += () =>
@@ -108,6 +112,8 @@ public partial class App : System.Windows.Application
         s.AddSingleton<SteamWorkshopService>();
         s.AddSingleton<ServerGroupService>();
         s.AddSingleton<WebApiService>();
+        s.AddSingleton<RemoteMachineService>();
+        s.AddSingleton<CrashPredictionService>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<DashboardViewModel>(sp =>
