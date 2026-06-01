@@ -72,6 +72,38 @@
         <Setter Property="Background" Value="{StaticResource BgSurface3Brush}"/>
     </Style>
 
+    <Style x:Key="GhostToggleButton" TargetType="ToggleButton">
+        <Setter Property="Background"   Value="{StaticResource BgSurface3Brush}"/>
+        <Setter Property="Foreground"   Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="BorderBrush"  Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding"      Value="10,5"/>
+        <Setter Property="FontSize"     Value="12"/>
+        <Setter Property="Cursor"       Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background"  Value="{StaticResource AccentBlueBrush}"/>
+                            <Setter Property="Foreground"  Value="White"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- TextBox -->
     <Style x:Key="DarkTextBox" TargetType="TextBox">
         <Setter Property="Background" Value="{StaticResource BgSurface2Brush}"/>
