@@ -16,6 +16,7 @@ public class TheForestPlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 64;
     public override bool   HasRcon            => true;
     public override bool   RequiresSteamLogin => true;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
     {

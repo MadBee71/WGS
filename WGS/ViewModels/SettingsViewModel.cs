@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using WGS.Services;
 using WpfMsgBox       = System.Windows.MessageBox;
 using WpfMsgBoxButton = System.Windows.MessageBoxButton;
@@ -38,11 +39,36 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _webApiStatus  = string.Empty;
 
     // ── General / paths ───────────────────────────────────────────────────────
-    [ObservableProperty] private string _defaultInstallRoot = string.Empty;
-    [ObservableProperty] private string _backupPath         = string.Empty;
-    [ObservableProperty] private string _steamCmdPath       = string.Empty;
-    [ObservableProperty] private string _steamLogin         = string.Empty;
-    [ObservableProperty] private string _steamPassword      = string.Empty;
+    [ObservableProperty] private string _defaultInstallRoot  = string.Empty;
+    [ObservableProperty] private string _backupPath          = string.Empty;
+    [ObservableProperty] private string _steamCmdPath        = string.Empty;
+    [ObservableProperty] private string _steamLogin          = string.Empty;
+    [ObservableProperty] private string _steamPassword       = string.Empty;
+    [ObservableProperty] private bool   _startWithWindows;
+
+    private const string RunKey  = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+    private const string AppName = "WindowsGameServer";
+
+    private static bool GetStartWithWindows()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey, false);
+        return key?.GetValue(AppName) != null;
+    }
+
+    private static void SetStartWithWindows(bool enable)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey, true)!;
+        if (enable)
+        {
+            var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName
+                      ?? System.IO.Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe");
+            key.SetValue(AppName, $"\"{exe}\"");
+        }
+        else
+        {
+            key.DeleteValue(AppName, throwOnMissingValue: false);
+        }
+    }
 
     public SettingsViewModel(NotificationService notifications, ConfigService config,
                              SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi)
@@ -80,6 +106,7 @@ public partial class SettingsViewModel : BaseViewModel
         WebApiPort         = _config.WebApiPort;
         WebApiToken        = _config.WebApiToken;
         WebApiStatus       = _webApi.IsRunning ? $"🟢 Running on port {_webApi.Port}" : "⚫ Stopped";
+        StartWithWindows   = GetStartWithWindows();
     }
 
     [RelayCommand]
@@ -127,6 +154,8 @@ public partial class SettingsViewModel : BaseViewModel
             _webApi.Stop();
             WebApiStatus = "⚫ Stopped";
         }
+
+        SetStartWithWindows(StartWithWindows);
 
         WpfMsgBox.Show("Settings saved.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
     }

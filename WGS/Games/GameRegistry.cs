@@ -21,6 +21,7 @@ public static class GameRegistry
         Register(new STNPlugin());
         Register(new SCUMPlugin());
         Register(new VeinPlugin());
+        Register(new DayZPlugin());
         Register(new PalworldPlugin());
         Register(new VRisingPlugin());
         Register(new DSTPlugin());
@@ -37,18 +38,31 @@ public static class GameRegistry
         Register(new CS2Plugin());
         Register(new BlackMesaPlugin());
         Register(new GarrysModPlugin());
+        Register(new TF2Plugin());
+        Register(new KillingFloor2Plugin());
+        Register(new InsurgencySandstormPlugin());
+        Register(new MordhauPlugin());
         // Racing
         Register(new WreckfestPlugin());
         Register(new Wreckfest2Plugin());
         Register(new AssettoCorsaPlugin());
+        Register(new AssettoCorsaCompetizionPlugin());
         // Military
         Register(new ArmaReforgerPlugin());
         Register(new ARMA3Plugin());
         Register(new ARMA2Plugin());
+        Register(new SquadPlugin());
         // Simulation
         Register(new ETS2Plugin());
         Register(new AmericanTruckSimulatorPlugin());
         Register(new SatisfactoryPlugin());
+        Register(new SpaceEngineersPlugin());
+        // Survival (new)
+        Register(new EmpyrionPlugin());
+        Register(new BarotraumaPlugin());
+        Register(new ProjectZomboidPlugin());
+        Register(new UnturnedPlugin());
+        Register(new CoreKeeperPlugin());
         // Other
         Register(new MinecraftPlugin());
         Register(new TerrariaPlugin());

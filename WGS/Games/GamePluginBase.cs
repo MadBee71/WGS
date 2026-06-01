@@ -25,6 +25,20 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 
+    /// <summary>Set true in Unity-based game plugins to suppress harmless shader/GPU noise lines.</summary>
+    protected virtual bool FilterUnityShaderNoise => false;
+
+    public virtual bool IsNoiseLine(string line)
+    {
+        if (!FilterUnityShaderNoise) return false;
+        return line.Contains("shader is not supported on this GPU") ||
+               line.Contains("Shader Unsupported:") ||
+               line.Contains("Shader Did you use #pragma only_renderers") ||
+               line.Contains("Shader If subshaders removal was intentional") ||
+               line.Contains("3D Noise requires higher shader capabilities") ||
+               line.Contains("Microsoft Media Foundation video decoding") ||
+               line.StartsWith("WARNING: Shader ");
+    }
     public abstract string BuildStartArguments(GameServer server);
     public abstract Dictionary<string, string> GetDefaultSettings();
     public abstract List<ConfigField> GetConfigFields();

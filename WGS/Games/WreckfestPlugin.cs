@@ -11,7 +11,7 @@ public class WreckfestPlugin : GamePluginBase
     public override string Category        => "Racing";
     public override int    SteamAppId      => 361580;
     public override int    GameStoreAppId  => 228380;
-    public override int    SteamClientAppId => 0; // don't write steam_appid.txt, WindowsGSM doesn't either
+    public override int    SteamClientAppId => 0; // don't write steam_appid.txt — Wreckfest manages its own Steam context
     public override string Executable      => "Wreckfest_x64.exe";
     public override int    DefaultPort      => 33540;
     public override int    DefaultQueryPort => 27016;

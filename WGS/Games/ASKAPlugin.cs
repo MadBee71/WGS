@@ -14,9 +14,11 @@ public class ASKAPlugin : GamePluginBase
     public override int    DefaultPort     => 27015;
     public override int    DefaultQueryPort => 27016;
     public override int    DefaultMaxPlayers => 4;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
-        => $"-port {s.ServerPort} -queryport {s.QueryPort} " +
+        => $"-batchmode -nographics " +
+           $"-port {s.ServerPort} -queryport {s.QueryPort} " +
            $"-name \"{s.ServerName}\" -password \"{s.ServerPassword}\" " +
            $"-maxplayers {s.MaxPlayers}";
 

@@ -15,7 +15,6 @@ public class TheIslePlugin : GamePluginBase
     public override int    DefaultPort      => 7777;
     public override int    DefaultQueryPort => 27020;
     public override int    DefaultMaxPlayers => 75;
-
     public override string BuildStartArguments(GameServer s)
     {
         var map = S(s, "map", "Isle_V3");

@@ -54,9 +54,32 @@ public class ServerManagerService
         try { Directory.CreateDirectory(server.InstallPath); } catch { }
         await plugin.PreStartAsync(server);
 
-        // Pre-flight: warn if ports are already in use
+        // Pre-flight: kill any zombie instance of the same executable
         var inst0 = new ServerInstance(server);
         _running[server.Id] = inst0;
+        var exeName = Path.GetFileNameWithoutExtension(plugin.Executable);
+        if (!string.IsNullOrEmpty(exeName))
+        {
+            var zombies = Process.GetProcessesByName(exeName)
+                                 .Where(p => { try { return !p.HasExited; } catch { return false; } })
+                                 .ToList();
+            foreach (var z in zombies)
+            {
+                try
+                {
+                    z.Kill(entireProcessTree: true);
+                    z.WaitForExit(3000);
+                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] 🗑 Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
+                    inst0.Log.Add(msg);
+                    LogReceived?.Invoke(server.Id, msg);
+                }
+                catch { /* process already gone */ }
+            }
+            if (zombies.Count > 0)
+                await Task.Delay(1000); // brief pause so OS releases ports
+        }
+
+        // Pre-flight: warn if ports are still in use after cleanup
         foreach (var r in PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable))
         {
             var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
@@ -77,6 +100,15 @@ public class ServerManagerService
                 exe = found;
             else
                 throw new FileNotFoundException("Server executable not found in: " + server.InstallPath);
+        }
+
+        // Wrap .bat/.cmd files with cmd.exe so stdout/stderr can be captured
+        var ext = Path.GetExtension(exe);
+        if (ext.Equals(".bat", StringComparison.OrdinalIgnoreCase) ||
+            ext.Equals(".cmd", StringComparison.OrdinalIgnoreCase))
+        {
+            args = $"/c \"{exe}\" {args}";
+            exe  = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
         }
 
         // WorkingDirectory must be the exe's own folder (not just InstallPath)
@@ -127,6 +159,7 @@ public class ServerManagerService
         proc.OutputDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
+            if (plugin.IsNoiseLine(e.Data)) return;
             var msg = new ConsoleMessage { Text = e.Data, Type = DetectType(e.Data) };
             inst.Log.Add(msg);
             LogReceived?.Invoke(server.Id, msg);
@@ -135,6 +168,7 @@ public class ServerManagerService
         proc.ErrorDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
+            if (plugin.IsNoiseLine(e.Data)) return;
             var msg = new ConsoleMessage { Text = e.Data, Type = ConsoleMessageType.Error };
             inst.Log.Add(msg);
             LogReceived?.Invoke(server.Id, msg);

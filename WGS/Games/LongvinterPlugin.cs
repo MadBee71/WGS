@@ -14,7 +14,6 @@ public class LongvinterPlugin : GamePluginBase
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 32;
-
     public override string BuildStartArguments(GameServer s)
         => $"LongvinterServer -Port={s.ServerPort} -QueryPort={s.QueryPort} " +
            $"-MaxPlayers={s.MaxPlayers}";

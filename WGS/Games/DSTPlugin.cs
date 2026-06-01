@@ -15,6 +15,7 @@ public class DSTPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27016;
     public override int    DefaultMaxPlayers => 10;
     public override bool   UseNativeConsole => true;
+    protected override bool FilterUnityShaderNoise => true;
 
     public override string BuildStartArguments(GameServer s)
     {

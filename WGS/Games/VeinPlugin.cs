@@ -15,7 +15,6 @@ public class VeinPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 16;
     public override bool   HasRcon         => true;
-
     public override string BuildStartArguments(GameServer s)
         => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} -multihome={s.ServerIp} -log";
 

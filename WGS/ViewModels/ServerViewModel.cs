@@ -92,7 +92,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public bool IsStopped    => Server.Status is ServerStatus.Stopped or ServerStatus.NotInstalled;
     public bool CanStart     => Server.Status is ServerStatus.Stopped or ServerStatus.Error or ServerStatus.NotInstalled;
     public bool CanStop      => Server.Status is ServerStatus.Running or ServerStatus.Starting;
-    public bool HasRcon      => Plugin?.HasRcon == true;
+    public bool HasRcon          => Plugin?.HasRcon == true;
+    public bool UseNativeConsole => Plugin?.UseNativeConsole == true;
 
     public string? GameImageUrl => Plugin?.GameStoreAppId > 0
         ? $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg"

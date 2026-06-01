@@ -42,7 +42,8 @@
                     <Button Content="💀 Kill" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
                             Command="{Binding KillCommand}" IsEnabled="{Binding CanStop}" ToolTip="Kill process immediately"/>
                     <Button Content="🖥 Console" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
-                            Command="{Binding ShowWindowCommand}" IsEnabled="{Binding IsRunning}" ToolTip="Bring server console to front"/>
+                            Command="{Binding ShowWindowCommand}" IsEnabled="{Binding IsRunning}" ToolTip="Bring server console to front"
+                            Visibility="{Binding UseNativeConsole, Converter={StaticResource BoolToVis}}"/>
                     <Button Content="↺" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding RestartCommand}" IsEnabled="{Binding CanStop}" ToolTip="Restart"/>
                     <Button Content="{Binding Loc.BtnInstall}" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
@@ -159,7 +160,8 @@
             </TabControl.Resources>
 
             <!-- ── CONSOLE ── -->
-            <TabItem Header="{Binding Loc.TabConsole}">
+            <TabItem Header="{Binding Loc.TabConsole}"
+                     Visibility="{Binding UseNativeConsole, Converter={StaticResource InvBoolToVis}}">
                 <Grid Background="{StaticResource BgDeepBrush}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
