@@ -38,6 +38,13 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _webApiToken   = string.Empty;
     [ObservableProperty] private string _webApiStatus  = string.Empty;
 
+    // ── Slave / Remote Control ────────────────────────────────────────────────
+    [ObservableProperty] private bool   _slaveMode;
+    [ObservableProperty] private string _slaveName = "This Machine";
+
+    // ── Crash Prediction ──────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _crashPredictionDiscord;
+
     // ── General / paths ───────────────────────────────────────────────────────
     [ObservableProperty] private string _defaultInstallRoot  = string.Empty;
     [ObservableProperty] private string _backupPath          = string.Empty;
@@ -102,11 +109,14 @@ public partial class SettingsViewModel : BaseViewModel
         SteamLogin         = _config.SteamLogin;
         SteamPassword      = _config.SteamPassword;
         BotStatus          = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
-        WebApiEnabled      = _config.WebApiEnabled;
-        WebApiPort         = _config.WebApiPort;
-        WebApiToken        = _config.WebApiToken;
-        WebApiStatus       = _webApi.IsRunning ? $"🟢 Running on port {_webApi.Port}" : "⚫ Stopped";
-        StartWithWindows   = GetStartWithWindows();
+        WebApiEnabled            = _config.WebApiEnabled;
+        WebApiPort               = _config.WebApiPort;
+        WebApiToken              = _config.WebApiToken;
+        WebApiStatus             = _webApi.IsRunning ? $"🟢 Running on port {_webApi.Port}" : "⚫ Stopped";
+        SlaveMode                = _config.SlaveMode;
+        SlaveName                = _config.SlaveName;
+        CrashPredictionDiscord   = _config.CrashPredictionDiscord;
+        StartWithWindows         = GetStartWithWindows();
     }
 
     [RelayCommand]
@@ -154,6 +164,11 @@ public partial class SettingsViewModel : BaseViewModel
             _webApi.Stop();
             WebApiStatus = "⚫ Stopped";
         }
+
+        _config.SlaveMode              = SlaveMode;
+        _config.SlaveName              = SlaveName;
+        _config.CrashPredictionDiscord = CrashPredictionDiscord;
+        _config.Save();
 
         SetStartWithWindows(StartWithWindows);
 

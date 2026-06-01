@@ -907,6 +907,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void AppendLog(string text, ConsoleMessageType type = ConsoleMessageType.Info)
         => WpfApplication.Current?.Dispatcher?.Invoke(() => Log.Add(new ConsoleMessage { Text = text, Type = type }));
 
+    public void AppendConsoleWarning(string text)
+        => AppendLog(text, ConsoleMessageType.Warning);
+
     private void RefreshStatus()
     {
         StatusText = Server.Status switch

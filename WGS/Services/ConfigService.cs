@@ -17,9 +17,15 @@ public class ConfigService
     public string BackupPath  { get; set; }
     public string SteamLogin    { get; set; } = string.Empty;
     public string SteamPassword { get; set; } = string.Empty;
-    public bool   WebApiEnabled { get; set; } = false;
-    public int    WebApiPort    { get; set; } = 8765;
-    public string WebApiToken   { get; set; } = string.Empty;
+    public bool   WebApiEnabled          { get; set; } = false;
+    public int    WebApiPort             { get; set; } = 8765;
+    public string WebApiToken            { get; set; } = string.Empty;
+    public bool   SlaveMode              { get; set; } = false;
+    public string SlaveName              { get; set; } = "This Machine";
+    public bool   CrashPredictionDiscord { get; set; } = false;
+
+    /// <summary>True when the Web API must be started — either by user choice or slave mode.</summary>
+    public bool WebApiRequired => WebApiEnabled || SlaveMode;
 
     public ConfigService()
     {
@@ -38,10 +44,13 @@ public class ConfigService
         string DefaultInstallRoot,
         string SteamLogin,
         string SteamPasswordEncrypted,
-        string BackupPath     = "",
-        bool   WebApiEnabled  = false,
-        int    WebApiPort     = 8765,
-        string WebApiToken    = "");
+        string BackupPath              = "",
+        bool   WebApiEnabled           = false,
+        int    WebApiPort              = 8765,
+        string WebApiToken             = "",
+        bool   SlaveMode               = false,
+        string SlaveName               = "This Machine",
+        bool   CrashPredictionDiscord  = false);
 
     private void LoadSettings()
     {
@@ -56,9 +65,12 @@ public class ConfigService
             SteamPassword = string.IsNullOrEmpty(d.SteamPasswordEncrypted)
                 ? string.Empty
                 : EncryptionService.Decrypt(d.SteamPasswordEncrypted);
-            WebApiEnabled = d.WebApiEnabled;
-            WebApiPort    = d.WebApiPort > 0 ? d.WebApiPort : 8765;
-            WebApiToken   = d.WebApiToken;
+            WebApiEnabled          = d.WebApiEnabled;
+            WebApiPort             = d.WebApiPort > 0 ? d.WebApiPort : 8765;
+            WebApiToken            = d.WebApiToken;
+            SlaveMode              = d.SlaveMode;
+            SlaveName              = string.IsNullOrEmpty(d.SlaveName) ? "This Machine" : d.SlaveName;
+            CrashPredictionDiscord = d.CrashPredictionDiscord;
         }
         catch { }
     }
@@ -69,7 +81,7 @@ public class ConfigService
             ? string.Empty
             : EncryptionService.Encrypt(SteamPassword);
         var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
-            WebApiEnabled, WebApiPort, WebApiToken);
+            WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

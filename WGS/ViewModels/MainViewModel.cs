@@ -27,10 +27,13 @@ public partial class MainViewModel : BaseViewModel
     private readonly ServerGroupService        _groups;
     private readonly WebApiService             _webApi;
     private readonly ScheduledTaskService      _scheduler;
+    private readonly RemoteMachineService      _remoteMachines;
+    private readonly CrashPredictionService    _crashPrediction;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
     public ObservableCollection<ServerViewModel> Servers { get; } = [];
+    public ObservableCollection<MachineViewModel> RemoteMachines { get; } = [];
 
     [ObservableProperty] private ServerViewModel? _selectedServer;
     [ObservableProperty] private bool _showAddDialog;
@@ -68,27 +71,30 @@ public partial class MainViewModel : BaseViewModel
         ModManagerService mods, DiscordBotService bot,
         ConfigEditorService configEditor, PlayerStatsService playerStats, PerfHistoryService perfHistory,
         SteamWorkshopService workshop, ServerGroupService groups, WebApiService webApi,
-        ScheduledTaskService scheduler)
+        ScheduledTaskService scheduler, RemoteMachineService remoteMachines,
+        CrashPredictionService crashPrediction)
     {
-        _config        = config;
-        _manager       = manager;
-        _steamCmd      = steamCmd;
-        _backup        = backup;
-        _notifications = notifications;
-        _perfMonitor   = perfMonitor;
-        _tray          = tray;
-        _metrics       = metrics;
-        _mods          = mods;
-        _bot           = bot;
-        _configEditor  = configEditor;
-        _playerStats   = playerStats;
-        _perfHistory   = perfHistory;
-        _workshop      = workshop;
-        _groups        = groups;
-        _webApi        = webApi;
-        _scheduler     = scheduler;
-        Settings       = settings;
-        Dashboard      = new DashboardViewModel(metrics, Servers);
+        _config          = config;
+        _manager         = manager;
+        _steamCmd        = steamCmd;
+        _backup          = backup;
+        _notifications   = notifications;
+        _perfMonitor     = perfMonitor;
+        _tray            = tray;
+        _metrics         = metrics;
+        _mods            = mods;
+        _bot             = bot;
+        _configEditor    = configEditor;
+        _playerStats     = playerStats;
+        _perfHistory     = perfHistory;
+        _workshop        = workshop;
+        _groups          = groups;
+        _webApi          = webApi;
+        _scheduler       = scheduler;
+        _remoteMachines  = remoteMachines;
+        _crashPrediction = crashPrediction;
+        Settings         = settings;
+        Dashboard        = new DashboardViewModel(metrics, Servers);
 
         manager.StatusChanged += (_, _) =>
             WpfApplication.Current.Dispatcher.Invoke(() =>
@@ -126,6 +132,57 @@ public partial class MainViewModel : BaseViewModel
         _webApi.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
         _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
         _webApi.GetMetrics    = () => metrics.Current;
+
+        // Wire RemoteMachineService
+        foreach (var machine in _remoteMachines.Machines)
+            RemoteMachines.Add(new MachineViewModel(machine, _remoteMachines));
+
+        _remoteMachines.MachineUpdated += OnMachineUpdated;
+        _remoteMachines.MachinesChanged += OnMachinesChanged;
+
+        // Wire CrashPredictionService
+        _crashPrediction.GetRunningServers = () =>
+            Servers.Where(v => v.Server.Status == ServerStatus.Running)
+                   .Select(v => (v.Server.Id, v.Server.DisplayName));
+        _crashPrediction.PredictionRaised += OnCrashPrediction;
+    }
+
+    private void OnMachineUpdated(string machineId, List<Services.RemoteServerInfo> servers)
+    {
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            var vm = RemoteMachines.FirstOrDefault(m => m.Definition.Id == machineId);
+            if (vm == null) return;
+            vm.IsOnline = servers.Count > 0 || _remoteMachines.IsOnline(machineId);
+            vm.UpdateServers(servers);
+        });
+    }
+
+    private void OnMachinesChanged()
+    {
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            RemoteMachines.Clear();
+            foreach (var machine in _remoteMachines.Machines)
+                RemoteMachines.Add(new MachineViewModel(machine, _remoteMachines));
+        });
+    }
+
+    private void OnCrashPrediction(string serverId, Services.CrashPrediction pred)
+    {
+        // Log to server console
+        var serverVm = FindServer(serverId);
+        serverVm?.AppendConsoleWarning($"[WGS PREDICTION] {pred.Reason} (Severity {pred.Severity})");
+
+        // Notify Discord if enabled
+        if (Settings.CrashPredictionDiscord)
+        {
+            var color = pred.Severity >= 2 ? "#F85149" : "#D29922";
+            _ = _notifications.NotifyAsync(
+                $"⚠ Crash predicted: {pred.ServerName}",
+                $"{pred.Reason}\nSeverity: {(pred.Severity >= 2 ? "Critical" : "Warning")}",
+                color);
+        }
     }
 
     private void LoadServers()
