@@ -136,23 +136,24 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotAllowedUsers   = BotAllowedUsers;
         _notifications.Save();
 
-        _config.DefaultInstallRoot = DefaultInstallRoot;
-        _config.BackupPath         = BackupPath;
-        _config.SteamLogin         = SteamLogin;
-        _config.SteamPassword      = SteamPassword;
-        _config.Save();
+        _config.DefaultInstallRoot     = DefaultInstallRoot;
+        _config.BackupPath             = BackupPath;
+        _config.SteamLogin             = SteamLogin;
+        _config.SteamPassword          = SteamPassword;
+        _config.WebApiEnabled          = WebApiEnabled;
+        _config.WebApiPort             = WebApiPort;
+        _config.WebApiToken            = string.IsNullOrWhiteSpace(WebApiToken) ? Guid.NewGuid().ToString("N") : WebApiToken;
+        WebApiToken                    = _config.WebApiToken; // reflect generated token back to UI
+        _config.SlaveMode              = SlaveMode;
+        _config.SlaveName              = SlaveName;
+        _config.CrashPredictionDiscord = CrashPredictionDiscord;
+        _config.Save(); // single save — all settings written atomically
+
         System.IO.Directory.CreateDirectory(BackupPath);
 
         // Apply bot settings immediately
         _bot.ApplySettings(s);
         BotStatus = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
-
-        // Apply Web API settings
-        _config.WebApiEnabled = WebApiEnabled;
-        _config.WebApiPort    = WebApiPort;
-        _config.WebApiToken   = string.IsNullOrWhiteSpace(WebApiToken) ? Guid.NewGuid().ToString("N") : WebApiToken;
-        WebApiToken           = _config.WebApiToken;
-        _config.Save();
 
         if (WebApiEnabled)
         {
@@ -164,11 +165,6 @@ public partial class SettingsViewModel : BaseViewModel
             _webApi.Stop();
             WebApiStatus = "⚫ Stopped";
         }
-
-        _config.SlaveMode              = SlaveMode;
-        _config.SlaveName              = SlaveName;
-        _config.CrashPredictionDiscord = CrashPredictionDiscord;
-        _config.Save();
 
         SetStartWithWindows(StartWithWindows);
 
