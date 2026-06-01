@@ -3,6 +3,7 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
+  ![Version](https://img.shields.io/badge/version-1.0.2-blue)
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
@@ -29,6 +30,8 @@ Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and ma
 - **Install Workshop mods** and manage Oxide/Minecraft plugins from the same interface
 - **Add any game** that isn't built-in using the graphical Plugin Creator — no coding required
 - **Control servers remotely** via Discord bot commands or the built-in REST API
+- **Manage servers on multiple machines** — slave mode lets any PC run as a background agent, controlled from your main WGS window
+- **Predict crashes before they happen** — WGS monitors RAM growth and CPU load and warns you in advance
 - **Manage firewall rules** automatically — WGS opens and closes the right ports when servers start and stop
 
 WGS is designed for home lab hosts, small community server admins and anyone who wants a clean, reliable way to keep game servers running on Windows without spending time on maintenance.
@@ -76,6 +79,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📊 **System dashboard** | Global CPU, RAM and disk usage across all running servers |
 | 📈 **Per-server performance charts** | CPU and RAM history graphs (last 6 minutes) per server |
 | 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
+| 🔮 **Crash prediction** | Detects rapid RAM growth, sustained CPU load and memory leaks — warns before a crash happens |
 
 ### Automation
 | Feature | Description |
@@ -89,6 +93,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
 | 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
 | 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics endpoints |
+| 🖥️ **Multi-machine management** | Run WGS as a slave agent on any PC or VPS — master sees and controls all machines in one window |
 
 ### Configuration & mods
 | Feature | Description |
@@ -106,6 +111,8 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |
 | 🔔 **System tray** | Runs minimised in the background with tray notifications |
 | 🔒 **Encrypted credentials** | Steam login and Discord bot token encrypted with Windows DPAPI |
+| ⬇️ **Console auto-scroll** | Console scrolls to latest output automatically; disables when you scroll up manually |
+| 🚀 **Start with Windows** | Optional registry entry to launch WGS automatically on login |
 
 ---
 
@@ -310,6 +317,8 @@ Register(new MyGamePlugin());
 │  NotificationService                │  ← Discord webhooks
 │  DiscordBotService                  │  ← Discord bot (long-poll)
 │  WebApiService                      │  ← REST API (HttpListener)
+│  RemoteMachineService               │  ← Multi-machine polling & control
+│  CrashPredictionService             │  ← RAM/CPU trend analysis
 │  ServerGroupService                 │  ← Server grouping
 └─────────────────────────────────────┘
          │
@@ -323,7 +332,7 @@ Register(new MyGamePlugin());
 
 
 ### Exe size
-- Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
+- Release binary kept at ~20 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
 
 ---
 
