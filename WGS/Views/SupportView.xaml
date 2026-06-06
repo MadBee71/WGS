@@ -6,6 +6,12 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
 
+            <!-- Debug header - poistetaan kun toimii -->
+            <Border Background="#1A2A3A" CornerRadius="6" Padding="16,10" Margin="0,0,0,16">
+                <TextBlock Text="ℹ SUPPORT — näkymä toimii!" FontSize="14" FontWeight="Bold"
+                           Foreground="#58A6FF"/>
+            </Border>
+
             <!-- ── Logo + Title ── -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                 <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
@@ -15,7 +21,7 @@
                     <TextBlock Text="Windows Game Server"
                                FontSize="26" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"/>
-                    <TextBlock Text="v1.0.2  ·  2026 © MadBee71"
+                    <TextBlock Text="v1.0.4  ·  2026 © MadBee71"
                                FontSize="12"
                                Foreground="{StaticResource TextMutedBrush}"
                                Margin="0,4,0,0"/>
@@ -87,7 +93,7 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="1.0.2"
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="1.0.4"
                                    Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" Margin="0,0,0,8"/>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"

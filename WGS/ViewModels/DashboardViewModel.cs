@@ -7,27 +7,33 @@ namespace WGS.ViewModels;
 
 public partial class DashboardViewModel : BaseViewModel
 {
-    private readonly SystemMetricsService _metrics;
+    private readonly SystemMetricsService  _metrics;
+    private readonly NetworkMonitorService _network;
     private readonly ObservableCollection<ServerViewModel> _servers;
 
-    [ObservableProperty] private float _cpuPercent;
-    [ObservableProperty] private long _ramUsedMb;
-    [ObservableProperty] private long _ramTotalMb;
+    [ObservableProperty] private float  _cpuPercent;
+    [ObservableProperty] private long   _ramUsedMb;
+    [ObservableProperty] private long   _ramTotalMb;
     [ObservableProperty] private double _ramPercent;
     [ObservableProperty] private IReadOnlyList<DriveStats> _drives = [];
-    [ObservableProperty] private int _serverCount;
-    [ObservableProperty] private int _onlineCount;
-    [ObservableProperty] private int _stoppedCount;
+    [ObservableProperty] private int    _serverCount;
+    [ObservableProperty] private int    _onlineCount;
+    [ObservableProperty] private int    _stoppedCount;
+    [ObservableProperty] private string _networkIn  = "—";
+    [ObservableProperty] private string _networkOut = "—";
 
     public double RamUsedGb  => Math.Round(RamUsedMb  / 1024.0, 1);
     public double RamTotalGb => Math.Round(RamTotalMb / 1024.0, 1);
 
-    public DashboardViewModel(SystemMetricsService metrics, ObservableCollection<ServerViewModel> servers)
+    public DashboardViewModel(SystemMetricsService metrics, NetworkMonitorService network,
+        ObservableCollection<ServerViewModel> servers)
     {
         _metrics = metrics;
+        _network = network;
         _servers = servers;
 
         _metrics.MetricsUpdated += OnMetricsUpdated;
+        _network.Updated        += OnNetworkUpdated;
         _servers.CollectionChanged += (_, _) => UpdateServerCounts();
 
         OnMetricsUpdated();
@@ -48,6 +54,15 @@ public partial class DashboardViewModel : BaseViewModel
             OnPropertyChanged(nameof(RamTotalGb));
 
             UpdateServerCounts();
+        });
+    }
+
+    private void OnNetworkUpdated()
+    {
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            NetworkIn  = NetworkMonitorService.FormatSpeed(_network.CurrentBytesInPerSec);
+            NetworkOut = NetworkMonitorService.FormatSpeed(_network.CurrentBytesOutPerSec);
         });
     }
 

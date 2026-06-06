@@ -24,6 +24,10 @@ public partial class MainViewModel : BaseViewModel
     private readonly PlayerStatsService        _playerStats;
     private readonly PerfHistoryService        _perfHistory;
     private readonly SteamWorkshopService      _workshop;
+    private readonly WorkshopDbService         _workshopDb;
+    private readonly NetworkMonitorService     _network;
+    private readonly TemplateService           _templates;
+    private readonly UserService               _users;
     private readonly ServerGroupService        _groups;
     private readonly WebApiService             _webApi;
     private readonly ScheduledTaskService      _scheduler;
@@ -32,10 +36,12 @@ public partial class MainViewModel : BaseViewModel
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
-    public ObservableCollection<ServerViewModel> Servers { get; } = [];
-    public ObservableCollection<MachineViewModel> RemoteMachines { get; } = [];
+    public ObservableCollection<ServerViewModel>       Servers       { get; } = [];
+    public ObservableCollection<MachineViewModel>      RemoteMachines { get; } = [];
+    public ObservableCollection<RemoteServerViewModel> RemoteServers  { get; } = [];
 
-    [ObservableProperty] private ServerViewModel? _selectedServer;
+    [ObservableProperty] private ServerViewModel?       _selectedServer;
+    [ObservableProperty] private RemoteServerViewModel? _selectedRemoteServer;
     [ObservableProperty] private bool _showAddDialog;
     [ObservableProperty] private string _newServerName    = string.Empty;
     [ObservableProperty] private string _newServerInstall = string.Empty;
@@ -47,7 +53,27 @@ public partial class MainViewModel : BaseViewModel
     [ObservableProperty] private bool _showSettingsPage;
     [ObservableProperty] private bool _showDashboard;
     [ObservableProperty] private bool _showSupport;
+    [ObservableProperty] private bool _showMachines;
+
+    // Laskettu: näytä normaali palvelinruudukko vain kun mikään sivu ei ole auki
+    public bool ShowServerGrid =>
+        !ShowDashboard && !ShowSupport && !ShowMachines && SelectedRemoteServer == null;
+
+    partial void OnShowDashboardChanged(bool _)      => OnPropertyChanged(nameof(ShowServerGrid));
+    partial void OnShowSupportChanged(bool _)        => OnPropertyChanged(nameof(ShowServerGrid));
+    partial void OnShowMachinesChanged(bool _)       => OnPropertyChanged(nameof(ShowServerGrid));
+    partial void OnSelectedRemoteServerChanged(RemoteServerViewModel? _) => OnPropertyChanged(nameof(ShowServerGrid));
     [ObservableProperty] private string _sortMode = "name-asc";
+
+    // ── Add Machine dialog fields ─────────────────────────────────────────────
+    [ObservableProperty] private string _newMachineName  = string.Empty;
+    [ObservableProperty] private string _newMachineUrl   = string.Empty;
+    [ObservableProperty] private string _newMachineToken = string.Empty;
+
+    // ── User Management ───────────────────────────────────────────────────────
+    [ObservableProperty] private string _newUserName = string.Empty;
+    [ObservableProperty] private string _newUserRole = "Viewer";
+    public List<Services.WgsUser> Users => _users.GetAll();
 
     public string[] SortModes { get; } = ["name-asc", "name-desc", "game-asc", "status"];
 
@@ -70,9 +96,10 @@ public partial class MainViewModel : BaseViewModel
         TrayService tray, SettingsViewModel settings, SystemMetricsService metrics,
         ModManagerService mods, DiscordBotService bot,
         ConfigEditorService configEditor, PlayerStatsService playerStats, PerfHistoryService perfHistory,
-        SteamWorkshopService workshop, ServerGroupService groups, WebApiService webApi,
-        ScheduledTaskService scheduler, RemoteMachineService remoteMachines,
-        CrashPredictionService crashPrediction)
+        SteamWorkshopService workshop, WorkshopDbService workshopDb,
+        NetworkMonitorService network, TemplateService templates, UserService users,
+        ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
+        RemoteMachineService remoteMachines, CrashPredictionService crashPrediction)
     {
         _config          = config;
         _manager         = manager;
@@ -88,13 +115,17 @@ public partial class MainViewModel : BaseViewModel
         _playerStats     = playerStats;
         _perfHistory     = perfHistory;
         _workshop        = workshop;
+        _network         = network;
+        _templates       = templates;
+        _users           = users;
+        _workshopDb      = workshopDb;
         _groups          = groups;
         _webApi          = webApi;
         _scheduler       = scheduler;
         _remoteMachines  = remoteMachines;
         _crashPrediction = crashPrediction;
         Settings         = settings;
-        Dashboard        = new DashboardViewModel(metrics, Servers);
+        Dashboard        = new DashboardViewModel(metrics, network, Servers);
 
         manager.StatusChanged += (_, _) =>
             WpfApplication.Current.Dispatcher.Invoke(() =>
@@ -132,6 +163,25 @@ public partial class MainViewModel : BaseViewModel
         _webApi.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
         _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
         _webApi.GetMetrics    = () => metrics.Current;
+        _webApi.GetNetwork    = () => (network.CurrentBytesInPerSec, network.CurrentBytesOutPerSec);
+        _webApi.GetLog = (id, offset) =>
+        {
+            var inst = manager.GetInstance(id);
+            if (inst == null) return ([], [], offset);
+            var all   = inst.Log.ToList();
+            var slice = all.Skip(offset).ToList();
+            return (
+                slice.Select(m => m.Text).ToList(),
+                slice.Select(m => m.Type.ToString()).ToList(),
+                offset + slice.Count
+            );
+        };
+        _webApi.Users     = users;
+        _webApi.GetUptime = id => manager.GetInstance(id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
+            ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
+            : null;
+        _webApi.GetOnlinePlayers = id =>
+            FindServer(id)?.OnlinePlayers ?? [];
 
         // Wire RemoteMachineService
         foreach (var machine in _remoteMachines.Machines)
@@ -155,10 +205,33 @@ public partial class MainViewModel : BaseViewModel
     {
         WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
-            var vm = RemoteMachines.FirstOrDefault(m => m.Definition.Id == machineId);
-            if (vm == null) return;
-            vm.IsOnline = servers.Count > 0 || _remoteMachines.IsOnline(machineId);
-            vm.UpdateServers(servers);
+            var machineVm = RemoteMachines.FirstOrDefault(m => m.Definition.Id == machineId);
+            if (machineVm != null)
+            {
+                machineVm.IsOnline = servers.Count > 0 || _remoteMachines.IsOnline(machineId);
+                machineVm.UpdateServers(servers);
+            }
+
+            // Sync RemoteServers sidebar list
+            var machineDef = _remoteMachines.Machines.FirstOrDefault(m => m.Id == machineId);
+            if (machineDef == null) return;
+
+            foreach (var info in servers)
+            {
+                var existing = RemoteServers.FirstOrDefault(r => r.ServerId == info.Id && r.MachineName == machineDef.Name);
+                if (existing != null)
+                    existing.UpdateInfo(info);
+                else
+                    RemoteServers.Add(new RemoteServerViewModel(machineId, machineDef.Name, info, _remoteMachines));
+            }
+            // Remove servers that disappeared
+            var ids = servers.Select(s => s.Id).ToHashSet();
+            foreach (var gone in RemoteServers.Where(r => r.MachineName == machineDef.Name && !ids.Contains(r.ServerId)).ToList())
+            {
+                if (SelectedRemoteServer == gone) { gone.StopPolling(); SelectedRemoteServer = null; }
+                gone.Dispose();
+                RemoteServers.Remove(gone);
+            }
         });
     }
 
@@ -169,6 +242,15 @@ public partial class MainViewModel : BaseViewModel
             RemoteMachines.Clear();
             foreach (var machine in _remoteMachines.Machines)
                 RemoteMachines.Add(new MachineViewModel(machine, _remoteMachines));
+
+            // Clear remote servers that belong to removed machines
+            var machineNames = _remoteMachines.Machines.Select(m => m.Name).ToHashSet();
+            foreach (var gone in RemoteServers.Where(r => !machineNames.Contains(r.MachineName)).ToList())
+            {
+                if (SelectedRemoteServer == gone) { gone.StopPolling(); SelectedRemoteServer = null; }
+                gone.Dispose();
+                RemoteServers.Remove(gone);
+            }
         });
     }
 
@@ -200,8 +282,8 @@ public partial class MainViewModel : BaseViewModel
             var vm = MakeVm(srv);
             Servers.Add(vm);
             if (srv.AutoStart)
-                _ = Task.Run(() => vm.StartCommand.ExecuteAsync(null))
-                        .ContinueWith(t => Console.WriteLine($"[WGS] AutoStart failed for {srv.DisplayName}: {t.Exception?.InnerException?.Message}"),
+                _ = WpfApplication.Current?.Dispatcher?.InvokeAsync(() => vm.StartCommand.ExecuteAsync(null))
+                        .Task.ContinueWith(t => Console.WriteLine($"[WGS] AutoStart failed for {srv.DisplayName}: {t.Exception?.InnerException?.Message}"),
                             TaskContinuationOptions.OnlyOnFaulted);
         }
         SelectedServer = Servers.FirstOrDefault();
@@ -213,7 +295,7 @@ public partial class MainViewModel : BaseViewModel
 
     private ServerViewModel MakeVm(GameServer srv)
         => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
-               _configEditor, _playerStats, _perfHistory, _workshop, _scheduler);
+               _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler, _network);
 
     [RelayCommand]
     private void OpenAddDialog()
@@ -228,8 +310,26 @@ public partial class MainViewModel : BaseViewModel
     {
         if (value != null)
         {
-            ShowDashboard = false;
-            ShowSupport   = false;
+            ShowDashboard      = false;
+            ShowSupport        = false;
+            ShowMachines       = false;
+            ShowSettingsPage   = false;
+            SelectedRemoteServer?.StopPolling();
+            SelectedRemoteServer = null;
+        }
+    }
+
+    partial void OnSelectedRemoteServerChanged(RemoteServerViewModel? oldValue, RemoteServerViewModel? newValue)
+    {
+        oldValue?.StopPolling();
+        if (newValue != null)
+        {
+            SelectedServer   = null;
+            ShowDashboard    = false;
+            ShowSupport      = false;
+            ShowMachines     = false;
+            ShowSettingsPage = false;
+            newValue.StartPolling();
         }
     }
     partial void OnSortModeChanged(string value) => OnPropertyChanged(nameof(SortedServers));
@@ -293,11 +393,40 @@ public partial class MainViewModel : BaseViewModel
     private async Task RemoveServerAsync(ServerViewModel? vm)
     {
         if (vm == null) return;
-        var result = System.Windows.MessageBox.Show(
-            $"Remove server \"{vm.Server.DisplayName}\"?\n\nFiles will not be deleted from disk.",
-            "Confirm removal", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
-        if (result != System.Windows.MessageBoxResult.Yes) return;
-        if (vm.IsRunning) await vm.StopCommand.ExecuteAsync(null);
+
+        var dlg = new WGS.Views.RemoveServerDialog(vm.Server.DisplayName)
+        {
+            Owner = WpfApplication.Current.MainWindow,
+        };
+        dlg.ShowDialog();
+
+        if (dlg.Result == WGS.Views.RemoveServerResult.Cancel) return;
+
+        if (vm.IsRunning)
+        {
+            await vm.StopCommand.ExecuteAsync(null);
+            // Wait for the process to fully release file handles before deleting
+            var inst = _manager.GetInstance(vm.Server.Id);
+            if (inst?.Process != null)
+            {
+                try { await inst.Process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10)); }
+                catch { /* timeout or already exited */ }
+            }
+            await Task.Delay(500); // extra buffer for OS handle release
+        }
+
+        if (dlg.Result == WGS.Views.RemoveServerResult.RemoveWithFiles
+            && System.IO.Directory.Exists(vm.Server.InstallPath))
+        {
+            try { System.IO.Directory.Delete(vm.Server.InstallPath, recursive: true); }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Tiedostojen poisto epäonnistui:\n{ex.Message}",
+                    "Virhe", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
         vm.Dispose();
         Servers.Remove(vm);
         if (SelectedServer == vm) SelectedServer = Servers.FirstOrDefault();
@@ -318,6 +447,8 @@ public partial class MainViewModel : BaseViewModel
         ShowDashboard    = true;
         ShowSettingsPage = false;
         ShowSupport      = false;
+        ShowMachines     = false;
+        DebugLog("OpenDashboard");
     }
 
     [RelayCommand]
@@ -326,6 +457,118 @@ public partial class MainViewModel : BaseViewModel
         ShowSupport      = true;
         ShowDashboard    = false;
         ShowSettingsPage = false;
+        ShowMachines     = false;
+        DebugLog("OpenSupport");
+    }
+
+    [RelayCommand]
+    private void OpenMachines()
+    {
+        ShowMachines     = true;
+        ShowDashboard    = false;
+        ShowSettingsPage = false;
+        ShowSupport      = false;
+        DebugLog("OpenMachines");
+    }
+
+    // ── User Management ───────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _userChangePassword = string.Empty;
+    public List<Services.AuditEntry> AuditLog => _users.GetAuditLog(50);
+
+    [RelayCommand]
+    private void AddUser(System.Windows.Controls.PasswordBox? pwBox)
+    {
+        if (string.IsNullOrWhiteSpace(NewUserName) || pwBox == null) return;
+        var role = Enum.TryParse<Services.UserRole>(NewUserRole, out var r) ? r : Services.UserRole.Viewer;
+        _users.CreateUser(NewUserName, pwBox.Password, role);
+        _users.WriteAudit("admin", "create_user", $"user={NewUserName} role={role}");
+        NewUserName = string.Empty;
+        pwBox.Clear();
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void RegenerateToken(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        _users.RegenerateToken(user.Id, "admin");
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void ToggleEnabled(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        _users.SetEnabled(user.Id, !user.IsEnabled, "admin");
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void ChangeUserRole(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        var newRole = user.Role == Services.UserRole.Admin
+            ? Services.UserRole.Viewer
+            : Services.UserRole.Admin;
+        _users.ChangeRole(user.Id, newRole, "admin");
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void ChangeUserPassword(Services.WgsUser? user)
+    {
+        if (user == null || string.IsNullOrWhiteSpace(UserChangePassword)) return;
+        _users.ChangePassword(user.Id, UserChangePassword, "admin");
+        UserChangePassword = string.Empty;
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void DeleteUser(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        var result = System.Windows.MessageBox.Show(
+            $"Poistetaanko käyttäjä \"{user.Username}\"?", "Vahvista",
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+        _users.DeleteUser(user.Id, "admin");
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void RefreshAuditLog() => OnPropertyChanged(nameof(AuditLog));
+
+    private void RefreshUsers()
+    {
+        OnPropertyChanged(nameof(Users));
+        OnPropertyChanged(nameof(AuditLog));
+    }
+
+    // ── Remote Machines (Master side) ────────────────────────────────────────
+
+    [RelayCommand]
+    private void AddMachine()
+    {
+        if (string.IsNullOrWhiteSpace(NewMachineUrl)) return;
+        var def = new Models.MachineDefinition
+        {
+            Name    = string.IsNullOrWhiteSpace(NewMachineName) ? NewMachineUrl : NewMachineName,
+            Url     = NewMachineUrl.TrimEnd('/'),
+            Token   = NewMachineToken,
+            Enabled = true,
+        };
+        _remoteMachines.AddMachine(def);
+        NewMachineName  = string.Empty;
+        NewMachineUrl   = string.Empty;
+        NewMachineToken = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveMachine(MachineViewModel? vm)
+    {
+        if (vm == null) return;
+        _remoteMachines.RemoveMachine(vm.Definition.Id);
     }
 
     [RelayCommand]
@@ -422,6 +665,18 @@ public partial class MainViewModel : BaseViewModel
         OnPropertyChanged(nameof(TotalServers));
         OnPropertyChanged(nameof(RunningCount));
         OnPropertyChanged(nameof(StoppedCount));
+    }
+
+    private static void DebugLog(string msg)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "WGS", "crash.log");
+            System.IO.File.AppendAllText(path, $"[{DateTime.Now:HH:mm:ss}] NAV: {msg}\n");
+        }
+        catch { }
     }
 
     /// <summary>

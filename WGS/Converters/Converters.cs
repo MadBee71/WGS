@@ -84,6 +84,13 @@ public class ZeroToVisibilityConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+public class ZeroToInverseVisibilityConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is int i && i > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 public class TimeSpanToStringConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)
@@ -94,5 +101,18 @@ public class TimeSpanToStringConverter : IValueConverter
                  : $"{(int)ts.TotalHours}h {ts.Minutes}m";
         return "0s";
     }
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Palauttaa GridLength "*" kun bool on true, "0" kun false.
+/// Käytetään editoripaneelin leveyden toggle-näyttöön ilman erillistä näkyvyys-saraketta.
+/// </summary>
+public class BoolToGridLengthConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is true
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(0);
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }

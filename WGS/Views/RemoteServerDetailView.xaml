@@ -1,0 +1,99 @@
+<UserControl x:Class="WGS.Views.RemoteServerDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDeepBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,14,24,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                             Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
+                    <TextBlock Text="{Binding DisplayName}" FontSize="20" FontWeight="Bold" Margin="10,0,0,0"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding GameName}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MachineName}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="▶ Start" Style="{StaticResource SuccessButton}" Margin="0,0,4,0"
+                            Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"/>
+                    <Button Content="■ Stop" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                            Command="{Binding StopCommand}" IsEnabled="{Binding CanStop}"/>
+                    <Button Content="↺" Style="{StaticResource GhostButton}" Width="36" Padding="0" Margin="0,0,4,0"
+                            Command="{Binding RestartCommand}" IsEnabled="{Binding CanStop}" ToolTip="Restart"/>
+                    <Button Content="🗑" Style="{StaticResource GhostButton}" Width="36" Padding="0"
+                            Command="{Binding ClearConsoleCommand}" ToolTip="Clear console"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Console output -->
+        <ScrollViewer x:Name="LogScroller" Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="{StaticResource BgDeepBrush}"
+                      ScrollChanged="LogScroller_ScrollChanged">
+            <ItemsControl ItemsSource="{Binding Log}" Padding="12,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Text}" FontFamily="Consolas" FontSize="12"
+                                   TextWrapping="Wrap" Margin="0,1">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="Error">
+                                            <Setter Property="Foreground" Value="#F85149"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Warning">
+                                            <Setter Property="Foreground" Value="#D29922"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="System">
+                                            <Setter Property="Foreground" Value="#58A6FF"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Input">
+                                            <Setter Property="Foreground" Value="#3FB950"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Console input -->
+        <Border Grid.Row="2" Background="{StaticResource BgSurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text=">" FontFamily="Consolas" FontSize="14"
+                           Foreground="{StaticResource AccentGreenBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}"
+                         Text="{Binding ConsoleInput, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="Consolas" BorderThickness="0" Background="Transparent">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Return" Command="{Binding SendConsoleCommandCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Grid.Column="2" Content="Send" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                        Command="{Binding SendConsoleCommandCommand}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ARKSEPlugin : GamePluginBase
+public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId          => "arkse";
     public override string GameName        => "ARK: Survival Evolved";
@@ -10,11 +10,25 @@ public class ARKSEPlugin : GamePluginBase
     public override string Category        => "Survival";
     public override int    SteamAppId      => 376030;
     public override int    GameStoreAppId  => 346110;
+    public override int    WorkshopAppId   => 346110;
+
+    public string ModTargetDirectory => @"ShooterGame/Content/Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override string Executable      => @"ShooterGame\Binaries\Win64\ShooterGameServer.exe";
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 70;
     public override bool   HasRcon         => true;
+
+        public override string  EngineFamily                                     => ArkRcon.Family;
+    public override string? GetKickCommand(string p)                         => ArkRcon.Kick(p);
+    public override string? GetKickCommand(string p, string reason)          => ArkRcon.Kick(p, reason);
+    public override string? GetBanCommand(string p)                          => ArkRcon.Ban(p);
+    public override string? GetBanCommand(string p, string reason)           => ArkRcon.Ban(p, reason);
+    public override string? GetUnbanCommand(string p)                        => ArkRcon.Unban(p);
+    public override string? GetPlayersCommand()                              => ArkRcon.Players();
 
     public override string BuildStartArguments(GameServer s)
     {

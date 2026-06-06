@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class STNPlugin : GamePluginBase
+public class STNPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId        => "stn";
     public override string GameName      => "Survive the Nights";
@@ -10,6 +10,12 @@ public class STNPlugin : GamePluginBase
     public override string Category      => "Survival";
     public override int    SteamAppId    => 1502300;
     public override int    GameStoreAppId => 541300;
+    public override int    WorkshopAppId   => 1502300;
+
+    public string ModTargetDirectory => @"Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override string Executable    => "STNServer.exe";
     public override int    DefaultPort   => 7777;
     public override int    DefaultQueryPort => 27015;

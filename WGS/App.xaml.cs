@@ -35,6 +35,45 @@ public partial class App : System.Windows.Application
             }));
 
         base.OnStartup(e);
+
+        var logPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WGS", "crash.log");
+
+        void WriteLog(string msg)
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)!);
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] {msg}\n");
+            }
+            catch { }
+        }
+
+        WriteLog("=== WGS käynnistyy ===");
+
+        // UI-säikeen poikkeukset
+        DispatcherUnhandledException += (_, ex) =>
+        {
+            WriteLog($"DISPATCHER: {ex.Exception}");
+            System.Windows.MessageBox.Show(
+                $"Virhe:\n{ex.Exception.Message}\n\nLoki: {logPath}",
+                "WGS — virhe", System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error);
+            ex.Handled = true;
+        };
+
+        // Background-säikeiden poikkeukset
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+            WriteLog($"APPDOMAIN: {ex.ExceptionObject}");
+
+        // Task-poikkeukset
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, ex) =>
+        {
+            WriteLog($"TASK: {ex.Exception}");
+            ex.SetObserved();
+        };
+
         var collection = new ServiceCollection();
         ConfigureServices(collection);
         Services = collection.BuildServiceProvider();
@@ -110,6 +149,11 @@ public partial class App : System.Windows.Application
         s.AddSingleton<PlayerStatsService>();
         s.AddSingleton<PerfHistoryService>();
         s.AddSingleton<SteamWorkshopService>();
+        s.AddSingleton<WorkshopDbService>();
+        s.AddSingleton<UPnPService>();
+        s.AddSingleton<TemplateService>();
+        s.AddSingleton<NetworkMonitorService>();
+        s.AddSingleton<UserService>();
         s.AddSingleton<ServerGroupService>();
         s.AddSingleton<WebApiService>();
         s.AddSingleton<RemoteMachineService>();

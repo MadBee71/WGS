@@ -122,9 +122,21 @@
                                      Text="{Binding WebApiToken, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
                         <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding WebApiStatus}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,16,0"/>
+                        <TextBlock Text="{Binding WebApiStatus}" FontSize="12" VerticalAlignment="Center" Margin="4,0,16,0"
+                                   TextWrapping="Wrap" MaxWidth="480">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Foreground" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <Button Content="Save" Style="{StaticResource PrimaryButton}"
                                 Command="{Binding SaveSettingsCommand}"/>
                     </StackPanel>
@@ -134,24 +146,167 @@
             <!-- Remote Control (Slave / Multi-Machine) -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="Remote Control" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                    <TextBlock Text="Remote Control — Slave Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                        Slave mode: this machine runs as a background agent controllable from another WGS instance.
-                        The Web API is started automatically on launch. Add remote machines below to monitor and control them from this WGS.
+                        Enable Slave mode on THIS machine so a master WGS can control it over the network.
+                        Configure port and token below, then add this machine on the master using the connection info shown.
                     </TextBlock>
 
                     <CheckBox IsChecked="{Binding SlaveMode}" Style="{StaticResource DarkCheckBox}"
-                              Content="Run as Slave (remote-controllable)" Margin="0,0,0,8"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
-                               Text="When enabled, the Web API starts on launch and this machine can be managed from a master WGS."/>
+                              Content="Run as Slave (remote-controllable)" Margin="0,0,0,12"/>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="API Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding WebApiPort, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Access Token (shared secret)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding WebApiToken, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
 
                     <TextBlock Text="Machine name (shown on master)" Style="{StaticResource FieldLabel}"/>
-                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"
+                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
                              Text="{Binding SlaveName, UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                            Margin="0,0,0,0" Command="{Binding SaveSettingsCommand}"/>
+                    <!-- Connection info box -->
+                    <Border Background="{StaticResource BgDeepBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="📋  Add this to the master WGS (Machines tab):" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="URL:    " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
+                                <TextBlock Text="{Binding SlaveConnectionUrl}" FontSize="12" FontFamily="Consolas"
+                                           Foreground="{StaticResource AccentBlueBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Token: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
+                                <TextBlock Text="{Binding WebApiToken}" FontSize="12" FontFamily="Consolas"
+                                           Foreground="{StaticResource AccentBlueBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Save &amp; Apply" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"
+                                Command="{Binding SaveSettingsCommand}"/>
+                        <Button Content="📋 Copy connection info" Style="{StaticResource GhostButton}"
+                                Command="{Binding CopySlaveInfoCommand}"
+                                Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding WebApiStatus}" FontSize="11" Margin="0,8,0,0"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                        <Setter Property="Foreground" Value="#F0A500"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Master: Remote Machines -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Remote Machines — Master Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Add slave machines here. Use the URL and Token shown in the slave's Remote Control section.
+                    </TextBlock>
+
+                    <!-- Add form -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding DataContext.NewMachineName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Display name for this machine"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="URL  (e.g. http://192.168.1.50:8765)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding DataContext.NewMachineUrl, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Token" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding DataContext.NewMachineToken, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <Button Grid.Column="6" Content="＋ Add" Style="{StaticResource PrimaryButton}"
+                                VerticalAlignment="Bottom"
+                                Command="{Binding DataContext.AddMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    </Grid>
+
+                    <!-- Machine list -->
+                    <TextBlock Text="No machines added yet." FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,8,0,0"
+                               Visibility="{Binding DataContext.RemoteMachines.Count, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ZeroToVis}}"/>
+                    <ItemsControl ItemsSource="{Binding DataContext.RemoteMachines, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  Margin="0,4,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Status dot -->
+                                        <Ellipse Grid.Column="0" Width="9" Height="9" Margin="0,0,10,0" VerticalAlignment="Center">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="#8B949E"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                            <Setter Property="Fill" Value="#3FB950"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding MachineName}"/>
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                       Text="{Binding MachineUrl}" FontFamily="Consolas"/>
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                       Text="{Binding StatusText}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="🗑" Style="{StaticResource DangerButton}"
+                                                Width="36" Padding="0" VerticalAlignment="Center"
+                                                Command="{Binding DataContext.RemoveMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
 
@@ -233,13 +388,195 @@
                     <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.0.2" FontWeight="SemiBold"
+                        <Run Text="Windows Game Server (WGS) v1.0.4" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
                         <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>
                         <LineBreak/>
                         <Run Text="MIT License  ·  Free and open source"/>
                     </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- User Management -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="User Management" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Manage web dashboard users. Each user has an individual token for API access.
+                        Default admin password is "admin" — change it after first login.
+                    </TextBlock>
+
+                    <!-- Add user form -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding DataContext.NewUserName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+                            <PasswordBox x:Name="NewUserPwBox" Style="{StaticResource DarkPasswordBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Role" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox SelectedValue="{Binding DataContext.NewUserRole, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      Style="{StaticResource DarkComboBox}">
+                                <ComboBoxItem Content="Admin"/>
+                                <ComboBoxItem Content="Viewer"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <Button Grid.Column="6" Content="＋ Add" Style="{StaticResource PrimaryButton}"
+                                VerticalAlignment="Bottom"
+                                Command="{Binding DataContext.AddUserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding ElementName=NewUserPwBox}"/>
+                    </Grid>
+
+                    <!-- User list -->
+                    <ItemsControl ItemsSource="{Binding DataContext.Users, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
+                                        Padding="12,10" Margin="0,0,0,6">
+                                    <StackPanel>
+                                        <!-- Rivi 1: Nimi + rooli + tila -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Username}" FontWeight="SemiBold" FontSize="13"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                <!-- Roolibadge -->
+                                                <Border CornerRadius="4" Padding="6,2" Margin="8,0,0,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#1A3A2A"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Role}" Value="Admin">
+                                                                    <Setter Property="Background" Value="#1A2A3A"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding RoleLabel}" FontSize="11"
+                                                               Foreground="{StaticResource AccentBlueBrush}"/>
+                                                </Border>
+                                                <!-- Aktiivisuuspallo -->
+                                                <Ellipse Width="8" Height="8" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="#3FB950"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                                    <Setter Property="Fill" Value="#8B949E"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock Text="{Binding StatusLabel}" FontSize="11"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <!-- Päänapit -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <Button Content="↕ Rooli" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                                        Command="{Binding DataContext.ChangeUserRoleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" ToolTip="Vaihda rooli Admin ↔ Viewer"/>
+                                                <Button Margin="0,0,4,0"
+                                                        Command="{Binding DataContext.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" ToolTip="Ota käyttöön / poista käytöstä">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                                            <Setter Property="Content" Value="⏸ Poista"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                                    <Setter Property="Content" Value="▶ Aktivoi"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                                <Button Content="🔄" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
+                                                        Command="{Binding DataContext.RegenerateTokenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" ToolTip="Uusi API-token"/>
+                                                <Button Content="🗑" Style="{StaticResource DangerButton}" Width="32" Padding="0"
+                                                        Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <!-- Rivi 2: Token + viimeksi kirjautunut -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
+                                            <TextBlock Text="Token: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBlock Text="{Binding Token}" FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBlock Text="  |  Kirjautui: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBlock Text="{Binding LastLoginText}" FontSize="10"
+                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                        </StackPanel>
+                                        <!-- Rivi 3: Salasanan vaihto -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox x:Name="PwChangeBox"
+                                                     Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
+                                                     Text="{Binding DataContext.UserChangePassword, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Uusi salasana"/>
+                                            <Button Content="🔑 Vaihda salasana" Style="{StaticResource GhostButton}"
+                                                    Command="{Binding DataContext.ChangeUserPasswordCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Audit log -->
+                    <StackPanel Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="Tapahtumaloki" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Button Content="↻" Style="{StaticResource GhostButton}" Width="28" Padding="0" Margin="8,0,0,0"
+                                    Command="{Binding DataContext.RefreshAuditLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding DataContext.AuditLog, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource BgDeepBrush}" CornerRadius="4"
+                                            Padding="10,5" Margin="0,0,0,2">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="130"/>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding TimestampText}" FontSize="11"
+                                                       FontFamily="Consolas" Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Username}" FontSize="11"
+                                                       FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Action}" FontSize="11"
+                                                       Foreground="{StaticResource AccentGreenBrush}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Detail}" FontSize="11"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>

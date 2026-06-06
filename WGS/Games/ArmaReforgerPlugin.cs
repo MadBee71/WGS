@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ArmaReforgerPlugin : GamePluginBase
+public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId        => "armareforger";
     public override string GameName      => "Arma Reforger";
@@ -10,7 +10,13 @@ public class ArmaReforgerPlugin : GamePluginBase
     public override string Category      => "Military";
     public override int    SteamAppId    => 1874900;
     public override int    GameStoreAppId => 1874880;
+    public override int    WorkshopAppId  => 1874880;
     public override string Executable    => "ArmaReforgerServer.exe";
+
+    public string ModTargetDirectory => string.Empty;
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupAHelper.OnModDownloadedAsync(s, w, id);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupAHelper.OnModRemovedAsync(s, w, id);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _)      => GroupAHelper.BuildModArguments(ids);
     public override int    DefaultPort      => 2302;
     public override int    DefaultQueryPort => 7777;
     public override int    DefaultMaxPlayers => 16;

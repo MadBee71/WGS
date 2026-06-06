@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class CS2Plugin : GamePluginBase
+public class CS2Plugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId          => "cs2";
     public override string GameName        => "Counter-Strike 2";
@@ -10,11 +10,25 @@ public class CS2Plugin : GamePluginBase
     public override string Category        => "FPS";
     public override int    SteamAppId      => 730;
     public override int    GameStoreAppId  => 730;
+    public override int    WorkshopAppId   => 730;
     public override string Executable      => @"game\bin\win64\cs2.exe";
+
+    public string ModTargetDirectory => @"game\csgo\addons";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override int    DefaultPort     => 27015;
     public override int    DefaultQueryPort => 27016;
     public override int    DefaultMaxPlayers => 10;
     public override bool   HasRcon         => true;
+
+        public override string  EngineFamily                                     => SourceRcon.Family;
+    public override string? GetKickCommand(string p)                         => SourceRcon.Kick(p);
+    public override string? GetKickCommand(string p, string reason)          => SourceRcon.Kick(p, reason);
+    public override string? GetBanCommand(string p)                          => SourceRcon.Ban(p);
+    public override string? GetBanCommand(string p, string reason)           => SourceRcon.Ban(p, reason);
+    public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
+    public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
     public override string BuildStartArguments(GameServer s)
     {

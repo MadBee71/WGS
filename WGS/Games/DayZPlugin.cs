@@ -1,8 +1,10 @@
+using System.IO;
 using WGS.Models;
+using WGS.Services;
 
 namespace WGS.Games;
 
-public class DayZPlugin : GamePluginBase
+public class DayZPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId           => "dayz";
     public override string GameName         => "DayZ";
@@ -10,6 +12,7 @@ public class DayZPlugin : GamePluginBase
     public override string Category         => "Survival";
     public override int    SteamAppId       => 223350;
     public override int    GameStoreAppId   => 221100;
+    public override int    WorkshopAppId    => 221100;
     public override string Executable       => "DayZServer_x64.exe";
     public override int    DefaultPort      => 2302;
     public override int    DefaultQueryPort => 2303;
@@ -17,18 +20,32 @@ public class DayZPlugin : GamePluginBase
     public override bool   HasRcon          => true;
     public override bool   RequiresSteamLogin => true;
 
+    // IWorkshopPlugin
+    public string ModTargetDirectory => string.Empty;
+
+    public Task OnModDownloadedAsync(string serverInstallPath, string workshopItemPath, ulong modId, string modName)
+        => GroupAHelper.OnModDownloadedAsync(serverInstallPath, workshopItemPath, modId);
+
+    public Task OnModRemovedAsync(string serverInstallPath, string workshopItemPath, ulong modId, string modName)
+        => GroupAHelper.OnModRemovedAsync(serverInstallPath, workshopItemPath, modId);
+
+    public string BuildModArguments(IReadOnlyList<ulong> activeModIds, string serverInstallPath)
+        => GroupAHelper.BuildModArguments(activeModIds);
+
     public override string BuildStartArguments(GameServer s)
     {
         var cfg      = S(s, "configFile", "serverDZ.cfg");
         var profiles = S(s, "profiles", "profiles");
-        var mods     = S(s, "mods", "");
 
         var args = $"-config={cfg} -port={s.ServerPort} " +
                    $"-profiles=\"{s.InstallPath}\\{profiles}\" " +
                    $"-dologs -adminlog -freezecheck";
 
-        if (!string.IsNullOrWhiteSpace(mods))
-            args += $" \"-mod={mods}\"";
+        var workshopMods = S(s, "__wgsWorkshopMods", ""); // set by ServerViewModel before start
+        var manualMods   = S(s, "mods", "");
+        var allMods = string.Join(";", new[] { workshopMods, manualMods }.Where(m => !string.IsNullOrWhiteSpace(m)));
+        if (!string.IsNullOrWhiteSpace(allMods))
+            args += $" \"-mod={allMods}\"";
 
         return args;
     }
@@ -48,7 +65,7 @@ public class DayZPlugin : GamePluginBase
         fields.AddRange([
             new() { Key = "configFile", Label = "Config file",                         FieldType = ConfigFieldType.Text, DefaultValue = "serverDZ.cfg" },
             new() { Key = "profiles",   Label = "Profiles folder (logs & saves)",      FieldType = ConfigFieldType.Text, DefaultValue = "profiles" },
-            new() { Key = "mods",       Label = "Mods (;-sep, e.g. @CF;@VPPAdmin)",    FieldType = ConfigFieldType.Text, DefaultValue = "" },
+            new() { Key = "mods",       Label = "Extra mods (manual, ;-sep)",          FieldType = ConfigFieldType.Text, DefaultValue = "" },
         ]);
         return fields;
     }

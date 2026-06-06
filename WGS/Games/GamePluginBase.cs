@@ -45,6 +45,15 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual string? GetStopCommand(GameServer server) => null;
     public virtual Task PreStartAsync(GameServer server) => Task.CompletedTask;
 
+    // Player management — override in plugins that support RCON player commands
+    public virtual string? GetKickCommand(string playerName)                => null;
+    public virtual string? GetKickCommand(string playerName, string reason) => GetKickCommand(playerName);
+    public virtual string? GetBanCommand(string playerName)                 => null;
+    public virtual string? GetBanCommand(string playerName, string reason)  => GetBanCommand(playerName);
+    public virtual string? GetUnbanCommand(string playerName)               => null;
+    public virtual string? GetPlayersCommand()                              => null;
+    public virtual string  EngineFamily                                     => string.Empty;
+
     public override string ToString() => $"{GameName}  ({Category})";
 
     protected string S(GameServer server, string key, string fallback = "")

@@ -3,13 +3,21 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class AssettoCorsaPlugin : GamePluginBase
+public class AssettoCorsaPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId            => "assettocorsa";
     public override string GameName          => "Assetto Corsa";
     public override string Description       => "Racing simulation dedicated server";
     public override string Category          => "Racing";
     public override int    SteamAppId        => 302550;
+    public override int    WorkshopAppId   => 244210;
+
+    public string ModTargetDirectory => "mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n)
+        => GroupDHelper.OnModDownloadedAsync(s, w, id, n, "cfg/server_cfg.ini", "MODS");
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)
+        => GroupDHelper.OnModRemovedAsync(s, id, "cfg/server_cfg.ini");
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override int    GameStoreAppId    => 244210;
     public override string Executable        => "acServer.exe";
     public override int    DefaultPort       => 9600;
