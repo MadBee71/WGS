@@ -6,12 +6,6 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
 
-            <!-- Debug header - poistetaan kun toimii -->
-            <Border Background="#1A2A3A" CornerRadius="6" Padding="16,10" Margin="0,0,0,16">
-                <TextBlock Text="ℹ SUPPORT — näkymä toimii!" FontSize="14" FontWeight="Bold"
-                           Foreground="#58A6FF"/>
-            </Border>
-
             <!-- ── Logo + Title ── -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                 <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
