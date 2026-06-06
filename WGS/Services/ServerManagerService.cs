@@ -27,7 +27,8 @@ public class ServerInstance
 
 public class ServerManagerService
 {
-    private readonly ConfigService _config;
+    private readonly ConfigService         _config;
+    private readonly NetworkMonitorService _network;
     private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
 
     public event Action<string, ConsoleMessage>? LogReceived;
@@ -35,9 +36,10 @@ public class ServerManagerService
     /// <summary>Fired when a server has crashed too many times and auto-restart gives up.</summary>
     public event Action<string>? CrashLimitReached;
 
-    public ServerManagerService(ConfigService config)
+    public ServerManagerService(ConfigService config, NetworkMonitorService network)
     {
-        _config = config;
+        _config  = config;
+        _network = network;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => KillAll();
     }
 
@@ -330,6 +332,9 @@ public class ServerManagerService
         inst.StartTime = DateTime.Now;
         server.LastStarted = DateTime.Now;
 
+        // Rekisteröi kaistaseurantaan
+        _network.RegisterServer(server.Id, proc.Id);
+
         // Add firewall rules
         if (server.FirewallAutoManage)
             FirewallService.AddRules(server);
@@ -356,6 +361,7 @@ public class ServerManagerService
             inst.Process.Kill(entireProcessTree: true);
 
         _running.TryRemove(server.Id, out _);
+        _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
         SetStatus(server, ServerStatus.Stopped);
     }
@@ -382,6 +388,7 @@ public class ServerManagerService
         try { inst.Process?.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* process already dead — swallow */ }
         _running.TryRemove(server.Id, out _);
+        _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
         SetStatus(server, ServerStatus.Stopped);
         return Task.CompletedTask;

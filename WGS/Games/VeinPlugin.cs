@@ -2,13 +2,19 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class VeinPlugin : GamePluginBase
+public class VeinPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId          => "vein";
     public override string GameName        => "Vein";
     public override string Description     => "Open world survival dedicated server";
     public override string Category        => "Survival";
     public override int    SteamAppId      => 2131400;
+    public override int    WorkshopAppId   => 2131400;
+
+    public string ModTargetDirectory => @"Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override int    GameStoreAppId  => 2131400;
     public override string Executable      => @"Vein\Binaries\Win64\VeinServer-Win64-Test.exe";
     public override int    DefaultPort     => 7777;

@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ValheimPlugin : GamePluginBase
+public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId        => "valheim";
     public override string GameName      => "Valheim";
@@ -10,6 +10,12 @@ public class ValheimPlugin : GamePluginBase
     public override string Category      => "Survival";
     public override int    SteamAppId    => 896660;
     public override int    GameStoreAppId => 892970;
+    public override int    WorkshopAppId  => 896660;
+
+    public string ModTargetDirectory => "BepInEx/plugins";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override string Executable    => "valheim_server.exe";
     public override int    DefaultPort   => 2456;
     public override int    DefaultQueryPort => 2457;

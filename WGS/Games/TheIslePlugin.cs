@@ -2,13 +2,19 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class TheIslePlugin : GamePluginBase
+public class TheIslePlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId          => "theisle";
     public override string GameName        => "The Isle";
     public override string Description     => "Dinosaur survival on a massive open island";
     public override string Category        => "Survival";
     public override int    SteamAppId       => 412680;
+    public override int    WorkshopAppId   => 412680;
+
+    public string ModTargetDirectory => @"TheIsle/Content/Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override int    GameStoreAppId   => 376210;
     public override string SteamBranch      => "evrima";
     public override string Executable       => @"TheIsle\Binaries\Win64\TheIsleServer-Win64-Shipping.exe";

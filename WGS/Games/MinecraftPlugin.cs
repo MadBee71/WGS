@@ -16,6 +16,14 @@ public class MinecraftPlugin : GamePluginBase
     public override bool   HasRcon         => true;
     public override string MinecraftFlavor => "paper";
 
+        public override string  EngineFamily                                     => MinecraftRcon.Family;
+    public override string? GetKickCommand(string p)                         => MinecraftRcon.Kick(p);
+    public override string? GetKickCommand(string p, string reason)          => MinecraftRcon.Kick(p, reason);
+    public override string? GetBanCommand(string p)                          => MinecraftRcon.Ban(p);
+    public override string? GetBanCommand(string p, string reason)           => MinecraftRcon.Ban(p, reason);
+    public override string? GetUnbanCommand(string p)                        => MinecraftRcon.Unban(p);
+    public override string? GetPlayersCommand()                              => MinecraftRcon.Players();
+
     public override string BuildStartArguments(GameServer s)
     {
         var ram  = S(s, "ramGb", "4");

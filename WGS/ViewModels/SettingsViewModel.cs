@@ -37,10 +37,13 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private int    _webApiPort    = 8765;
     [ObservableProperty] private string _webApiToken   = string.Empty;
     [ObservableProperty] private string _webApiStatus  = string.Empty;
+    public bool WebApiStatusIsWarning => WebApiStatus.StartsWith("⚠");
 
     // ── Slave / Remote Control ────────────────────────────────────────────────
     [ObservableProperty] private bool   _slaveMode;
     [ObservableProperty] private string _slaveName = "This Machine";
+
+    public string SlaveConnectionUrl => BuildSlaveUrl();
 
     // ── Crash Prediction ──────────────────────────────────────────────────────
     [ObservableProperty] private bool   _crashPredictionDiscord;
@@ -112,7 +115,7 @@ public partial class SettingsViewModel : BaseViewModel
         WebApiEnabled            = _config.WebApiEnabled;
         WebApiPort               = _config.WebApiPort;
         WebApiToken              = _config.WebApiToken;
-        WebApiStatus             = _webApi.IsRunning ? $"🟢 Running on port {_webApi.Port}" : "⚫ Stopped";
+        WebApiStatus             = BuildWebApiStatus();
         SlaveMode                = _config.SlaveMode;
         SlaveName                = _config.SlaveName;
         CrashPredictionDiscord   = _config.CrashPredictionDiscord;
@@ -155,10 +158,10 @@ public partial class SettingsViewModel : BaseViewModel
         _bot.ApplySettings(s);
         BotStatus = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
 
-        if (WebApiEnabled)
+        if (WebApiEnabled || SlaveMode)
         {
             _webApi.Start(WebApiPort, WebApiToken);
-            WebApiStatus = $"🟢 Running on port {WebApiPort}";
+            WebApiStatus = BuildWebApiStatus();
         }
         else
         {
@@ -191,6 +194,46 @@ public partial class SettingsViewModel : BaseViewModel
         WpfMsgBox.Show(ok ? "Discord webhook test succeeded!" : "Test failed. Check the webhook URL.",
             "WGS Discord", WpfMsgBoxButton.OK,
             ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
+    }
+
+    partial void OnWebApiPortChanged(int value) => OnPropertyChanged(nameof(SlaveConnectionUrl));
+    partial void OnSlaveModeChanged(bool value) => OnPropertyChanged(nameof(SlaveConnectionUrl));
+
+    private string BuildSlaveUrl()
+    {
+        // Try to get a useful local IP rather than 0.0.0.0
+        string ip;
+        try
+        {
+            using var s = new System.Net.Sockets.Socket(
+                System.Net.Sockets.AddressFamily.InterNetwork,
+                System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            s.Connect("8.8.8.8", 80);
+            ip = (s.LocalEndPoint as System.Net.IPEndPoint)?.Address.ToString() ?? "YOUR-IP";
+        }
+        catch { ip = "YOUR-IP"; }
+        return $"http://{ip}:{WebApiPort}";
+    }
+
+    [RelayCommand]
+    private void CopySlaveInfo()
+    {
+        var text = $"URL:   {SlaveConnectionUrl}\nToken: {WebApiToken}";
+        try { System.Windows.Clipboard.SetText(text); }
+        catch { }
+    }
+
+    private string BuildWebApiStatus()
+    {
+        if (!_webApi.IsRunning) return "⚫ Stopped";
+        if (!_webApi.BoundToAllInterfaces)
+        {
+            OnPropertyChanged(nameof(WebApiStatusIsWarning));
+            return $"⚠ localhost:{_webApi.Port} only — run WGS as Administrator or: " +
+                   $"netsh http add urlacl url=http://+:{_webApi.Port}/ user=Everyone";
+        }
+        OnPropertyChanged(nameof(WebApiStatusIsWarning));
+        return $"🟢 Running on port {_webApi.Port}  (network reachable)";
     }
 
     [RelayCommand]

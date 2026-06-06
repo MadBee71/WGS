@@ -34,14 +34,14 @@
                     </StackPanel>
                 </StackPanel>
                 <!-- Action buttons row -->
-                <WrapPanel Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal">
                     <Button Content="{Binding Loc.BtnStart}" Style="{StaticResource SuccessButton}" Margin="0,0,4,0"
                             Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"/>
                     <Button Content="{Binding Loc.BtnStop}" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
                             Command="{Binding StopCommand}" IsEnabled="{Binding CanStop}"/>
-                    <Button Content="💀 Kill" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                    <Button Content="💀" Style="{StaticResource DangerButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding KillCommand}" IsEnabled="{Binding CanStop}" ToolTip="Kill process immediately"/>
-                    <Button Content="🖥 Console" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                    <Button Content="🖥" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding ShowWindowCommand}" IsEnabled="{Binding IsRunning}" ToolTip="Bring server console to front"
                             Visibility="{Binding UseNativeConsole, Converter={StaticResource BoolToVis}}"/>
                     <Button Content="↺" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
@@ -49,12 +49,18 @@
                     <Button Content="{Binding Loc.BtnInstall}" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                             Command="{Binding InstallCommand}" IsEnabled="{Binding IsInstalling, Converter={StaticResource InvBool}}"/>
                     <Button Content="📁" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
-                            Command="{Binding OpenInstallFolderCommand}" ToolTip="Open folder"/>
-                    <Button Content="🗑 Remove" Style="{StaticResource DangerButton}"
+                            Command="{Binding OpenInstallFolderCommand}" ToolTip="Open install folder"/>
+                    <Button Content="🎮" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
+                            Command="{Binding JoinServerCommand}" IsEnabled="{Binding IsRunning}"
+                            ToolTip="Join server (steam://connect)"/>
+                    <Button Content="🔗" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
+                            Command="{Binding CopyConnectionLinkCommand}"
+                            ToolTip="Copy steam://connect link to clipboard"/>
+                    <Button Content="🗑" Style="{StaticResource DangerButton}" Width="36" Padding="0"
                             Command="{Binding DataContext.RemoveServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"
                             ToolTip="Remove server from list"/>
-                </WrapPanel>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -84,6 +90,20 @@
                     </StackPanel>
                     <ProgressBar Value="{Binding MemoryMb}" Maximum="16384" Width="120"
                                  Style="{StaticResource DarkProgressBar}" Foreground="{StaticResource AccentGreenBrush}"/>
+                </StackPanel>
+                <!-- Kaistanseuranta -->
+                <StackPanel Margin="0,0,32,0" VerticalAlignment="Center">
+                    <TextBlock Text="Kaista ↓" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="{Binding NetIn}" FontSize="15" FontWeight="Bold"
+                               Foreground="{StaticResource AccentGreenBrush}"/>
+                    <TextBlock Text="Kaista ↑" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding NetOut}" FontSize="15" FontWeight="Bold"
+                               Foreground="{StaticResource AccentBlueBrush}"/>
+                </StackPanel>
+                <!-- Yhteydet -->
+                <StackPanel Margin="0,0,32,0" VerticalAlignment="Center">
+                    <TextBlock Text="Yhteydet" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="{Binding ConnectionCount}" FontSize="22" FontWeight="Bold"/>
                 </StackPanel>
                 <!-- RCON status -->
                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0"
@@ -470,6 +490,135 @@
                                         HorizontalAlignment="Left" Command="{Binding CheckPortsCommand}"/>
                             </StackPanel>
                         </Border>
+
+                        <!-- Templates -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="Palvelinmallit" Style="{StaticResource SectionHeader}"/>
+
+                                <!-- Tallennuslomake -->
+                                <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
+                                        Padding="10,8" Margin="0,4,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="Tallenna nykyiset asetukset mallina"
+                                                   FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="120"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Style="{StaticResource DarkTextBox}"
+                                                     Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Mallin nimi (pakollinen)"/>
+                                            <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
+                                                     Text="{Binding TemplateCategory, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Kategoria (valinnainen)"/>
+                                        </Grid>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,4"
+                                                 Text="{Binding TemplateTagsInput, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Tagit pilkulla eroteltuina, esim. pvp,hardcore,competitive"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,6"
+                                                 Text="{Binding TemplateDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Kuvaus (valinnainen)"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="💾 Tallenna mallina" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                                    Command="{Binding SaveAsTemplateCommand}"/>
+                                            <Button Content="📥 Tuo tiedostosta" Style="{StaticResource GhostButton}"
+                                                    Command="{Binding ImportTemplatesCommand}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Suodatuspalkki -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="Suodata:" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" Width="130" Margin="0,0,6,0"
+                                              ItemsSource="{Binding AvailableCategories}"
+                                              SelectedItem="{Binding TemplateFilterCategory}"
+                                              ToolTip="Suodata kategorian mukaan"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="130"
+                                             Text="{Binding TemplateFilterTag, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Suodata tagin mukaan"/>
+                                </StackPanel>
+
+                                <!-- Mallilista -->
+                                <TextBlock Text="Ei malleja tälle pelille." FontSize="12"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           Visibility="{Binding FilteredTemplates.Count, Converter={StaticResource ZeroToVis}}"/>
+                                <ItemsControl ItemsSource="{Binding FilteredTemplates}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
+                                                    Padding="10,8" Margin="0,0,0,4">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Nimi + kategoria + tagit -->
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                                       Text="{Binding Category}"
+                                                                       Visibility="{Binding Category.Length, Converter={StaticResource ZeroToVis}}"/>
+                                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                                       Text=" · " Margin="0"
+                                                                       Visibility="{Binding Category.Length, Converter={StaticResource ZeroToVis}}"/>
+                                                            <ItemsControl ItemsSource="{Binding Tags}"
+                                                                          Visibility="{Binding Tags.Count, Converter={StaticResource ZeroToVis}}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Background="#2A4A6B" CornerRadius="4"
+                                                                                Padding="5,1" Margin="0,0,3,0">
+                                                                            <TextBlock Text="{Binding}" FontSize="10"
+                                                                                       Foreground="#7EC8E3"/>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <!-- Toimintopainikkeet -->
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="↺" Style="{StaticResource GhostButton}"
+                                                                Width="32" Padding="0" Margin="0,0,2,0"
+                                                                ToolTip="Sovella tämä malli"
+                                                                Command="{Binding DataContext.ApplyTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Content="⎘" Style="{StaticResource GhostButton}"
+                                                                Width="32" Padding="0" Margin="0,0,2,0"
+                                                                ToolTip="Kloonaa malli"
+                                                                Command="{Binding DataContext.CloneTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Content="📤" Style="{StaticResource GhostButton}"
+                                                                Width="32" Padding="0" Margin="0,0,2,0"
+                                                                ToolTip="Vie tiedostoon"
+                                                                Command="{Binding DataContext.ExportTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Content="🗑" Style="{StaticResource DangerButton}"
+                                                                Width="32" Padding="0"
+                                                                ToolTip="Poista malli"
+                                                                Command="{Binding DataContext.DeleteTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -487,7 +636,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Button Content="{Binding Loc.BackupCreate}" Style="{StaticResource PrimaryButton}"
                                     Command="{Binding CreateBackupCommand}" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding Backups.Count, StringFormat='{}{0} backups'}"
+                            <TextBlock Text="{Binding Backups.Count, Mode=OneWay, StringFormat='{}{0} backups'}"
                                        VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
                     </Border>
@@ -766,15 +915,15 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
                                                     <TextBlock FontWeight="SemiBold" FontSize="13">
-                                                        <Run Text="{Binding ActionText}"/>
+                                                        <Run Text="{Binding ActionText, Mode=OneWay}"/>
                                                         <Run Text=" — "/>
-                                                        <Run Text="{Binding FrequencyText}"/>
+                                                        <Run Text="{Binding FrequencyText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Foreground="{StaticResource TextMutedBrush}" FontSize="12">
                                                         <Run Text="Last: "/>
-                                                        <Run Text="{Binding LastRun, StringFormat='dd.MM HH:mm', TargetNullValue='Never'}"/>
+                                                        <Run Text="{Binding LastRun, StringFormat='dd.MM HH:mm', TargetNullValue='Never', Mode=OneWay}"/>
                                                         <Run Text="  Next: "/>
-                                                        <Run Text="{Binding NextRun, StringFormat='dd.MM HH:mm', TargetNullValue='—'}"/>
+                                                        <Run Text="{Binding NextRun, StringFormat='dd.MM HH:mm', TargetNullValue='—', Mode=OneWay}"/>
                                                     </TextBlock>
                                                 </StackPanel>
                                                 <Button Grid.Column="1" Content="✕" Style="{StaticResource DangerButton}"
@@ -837,41 +986,242 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
+
+                    <!-- Toolbar: Kick/Ban perusteluineen -->
                     <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
-                        <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
-                                Command="{Binding RefreshPlayersCommand}"/>
-                    </Border>
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
                         <StackPanel>
-                            <TextBlock Text="Recent sessions" Style="{StaticResource SectionHeader}"/>
-                            <ItemsControl ItemsSource="{Binding PlayerHistory}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource Card}" Margin="0,0,0,6">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding PlayerName}"
-                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1" Foreground="{StaticResource TextMutedBrush}"
-                                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0">
-                                                    <Run Text="{Binding JoinTime, StringFormat='dd.MM HH:mm'}"/>
-                                                </TextBlock>
-                                                <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="12"
-                                                           Text="{Binding DurationText}" VerticalAlignment="Center"
-                                                           HorizontalAlignment="Right"
-                                                           Foreground="{StaticResource AccentGreenBrush}"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="↻ Päivitä" Style="{StaticResource GhostButton}"
+                                        Command="{Binding RefreshPlayersCommand}"/>
+                            </StackPanel>
+                            <!-- Manuaalinen kick/ban (fallback jos RCON ei tue playerlistia) -->
+                            <StackPanel Visibility="{Binding HasPlayerCommands, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Perustelu (valinnainen):" FontSize="11"
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="160" Margin="0,0,6,0"
+                                             Text="{Binding PlayerInput, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Nimi tai SteamID"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
+                                             Text="{Binding KickReason, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Kick-perustelu"/>
+                                    <Button Content="👢 Kick" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                            Command="{Binding KickPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180" Margin="8,0,6,0"
+                                             Text="{Binding BanReason, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Ban-perustelu"/>
+                                    <Button Content="🚫 Ban" Style="{StaticResource DangerButton}"
+                                            Command="{Binding BanPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
-                    </ScrollViewer>
+                    </Border>
+
+                    <!-- Sisältö: reaaliaikainen lista + historia + tilastot -->
+                    <TabControl Grid.Row="1" Background="{StaticResource BgDeepBrush}"
+                                BorderThickness="0">
+
+                        <!-- ── Pelaa nyt ── -->
+                        <TabItem Header="🟢 Pelaa nyt">
+                            <Grid Background="{StaticResource BgDeepBrush}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Padding="16,8" Background="{StaticResource BgSurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center">
+                                            <Run Text="{Binding OnlinePlayers.Count, Mode=OneWay}"/>
+                                            <Run Text=" pelaajaa paikalla"/>
+                                        </TextBlock>
+                                        <TextBlock Text="  • päivittyy 15 s välein" FontSize="11"
+                                                   Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Ei pelaajia tai RCON ei ole yhdistetty."
+                                                   FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                                                   Visibility="{Binding OnlinePlayers.Count,
+                                                       Converter={StaticResource ZeroToVis}}"/>
+                                        <ItemsControl ItemsSource="{Binding OnlinePlayers}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource BgSurface2Brush}"
+                                                            CornerRadius="6" Padding="12,8" Margin="0,0,0,4">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <!-- Nimi + SteamID -->
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}"
+                                                                           FontWeight="SemiBold" FontSize="13"
+                                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                                <TextBlock Text="{Binding SteamIdShort}"
+                                                                           FontSize="10" FontFamily="Consolas"
+                                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                                           Visibility="{Binding SteamId.Length,
+                                                                               Converter={StaticResource ZeroToVis}}"/>
+                                                            </StackPanel>
+                                                            <!-- Ping -->
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="Ping" FontSize="10"
+                                                                           Foreground="{StaticResource TextMutedBrush}"/>
+                                                                <TextBlock Text="{Binding PingText}"
+                                                                           FontSize="13" FontFamily="Consolas"/>
+                                                            </StackPanel>
+                                                            <!-- Peliaika -->
+                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                                <TextBlock Text="Peliaika" FontSize="10"
+                                                                           Foreground="{StaticResource TextMutedBrush}"/>
+                                                                <TextBlock Text="{Binding ConnectedText}"
+                                                                           FontSize="13" FontFamily="Consolas"
+                                                                           Foreground="{StaticResource AccentGreenBrush}"/>
+                                                            </StackPanel>
+                                                            <!-- Kick/Ban perustelukenttä -->
+                                                            <TextBox Grid.Column="3" Style="{StaticResource DarkTextBox}"
+                                                                     Margin="4,0"
+                                                                     Text="{Binding DataContext.KickReason,
+                                                                         RelativeSource={RelativeSource AncestorType=UserControl},
+                                                                         UpdateSourceTrigger=PropertyChanged}"
+                                                                     ToolTip="Kick/Ban -perustelu"
+                                                                     VerticalAlignment="Center"/>
+                                                            <!-- Toimintopainikkeet -->
+                                                            <StackPanel Grid.Column="4" Orientation="Horizontal"
+                                                                        VerticalAlignment="Center">
+                                                                <Button Content="👢" Style="{StaticResource GhostButton}"
+                                                                        Width="34" Padding="0" Margin="0,0,3,0"
+                                                                        ToolTip="Kick"
+                                                                        Command="{Binding DataContext.KickOnlinePlayerCommand,
+                                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+                                                                <Button Content="🚫" Style="{StaticResource DangerButton}"
+                                                                        Width="34" Padding="0"
+                                                                        ToolTip="Ban"
+                                                                        Command="{Binding DataContext.BanOnlinePlayerCommand,
+                                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- ── Sessiohistoria ── -->
+                        <TabItem Header="📋 Historia">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
+                                <StackPanel>
+                                    <TextBlock Text="Viimeisimmät sessiot" Style="{StaticResource SectionHeader}"/>
+                                    <ItemsControl ItemsSource="{Binding PlayerHistory}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{StaticResource BgSurface2Brush}"
+                                                        CornerRadius="6" Padding="12,6" Margin="0,0,0,3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="120"/>
+                                                            <ColumnDefinition Width="90"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding PlayerName}"
+                                                                       FontWeight="SemiBold" FontSize="12"/>
+                                                            <TextBlock Text="{Binding SteamId}" FontSize="10"
+                                                                       FontFamily="Consolas"
+                                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                                       Visibility="{Binding SteamId.Length,
+                                                                           Converter={StaticResource ZeroToVis}}"/>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" FontSize="11" VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource TextMutedBrush}">
+                                                            <Run Text="{Binding JoinTime, StringFormat='dd.MM HH:mm', Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="12"
+                                                                   Text="{Binding DurationText}" VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource AccentGreenBrush}"/>
+                                                        <Border Grid.Column="3" VerticalAlignment="Center"
+                                                                Background="#1A3A2A" CornerRadius="4" Padding="6,2"
+                                                                Visibility="{Binding IsOnline, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="● Paikalla" FontSize="10"
+                                                                       Foreground="{StaticResource AccentGreenBrush}"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- ── Tilastot ── -->
+                        <TabItem Header="📊 Tilastot">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
+                                <StackPanel>
+                                    <TextBlock Text="Pelaajatilastot (top 50)" Style="{StaticResource SectionHeader}"/>
+                                    <ItemsControl ItemsSource="{Binding PlayerStatsList}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{StaticResource BgSurface2Brush}"
+                                                        CornerRadius="6" Padding="12,6" Margin="0,0,0,3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="130"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding PlayerName}"
+                                                                       FontWeight="SemiBold" FontSize="12"/>
+                                                            <TextBlock Text="{Binding SteamId}" FontSize="10"
+                                                                       FontFamily="Consolas"
+                                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                                       Visibility="{Binding SteamId.Length,
+                                                                           Converter={StaticResource ZeroToVis}}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="Sessioita" FontSize="10"
+                                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                                            <TextBlock Text="{Binding SessionCount}"
+                                                                       FontSize="13" FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                            <TextBlock Text="Peliaika yht." FontSize="10"
+                                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                                            <TextBlock Text="{Binding TotalTimeText}"
+                                                                       FontSize="13" FontFamily="Consolas"
+                                                                       Foreground="{StaticResource AccentGreenBrush}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                                            <TextBlock Text="Viimeksi nähty" FontSize="10"
+                                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                                            <TextBlock Text="{Binding LastSeen, StringFormat='dd.MM.yyyy HH:mm'}"
+                                                                       FontSize="11"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                    </TabControl>
                 </Grid>
             </TabItem>
 
@@ -893,53 +1243,353 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
                     <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
                         <StackPanel>
-                            <TextBlock Text="Install Workshop item by ID" Style="{StaticResource FieldLabel}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <TextBox Style="{StaticResource DarkTextBox}" Width="200"
-                                         Text="{Binding WorkshopItemId, UpdateSourceTrigger=PropertyChanged}"
-                                         FontFamily="Consolas" Margin="0,0,8,0"/>
-                                <Button Content="⬇ Install" Style="{StaticResource PrimaryButton}"
-                                        Command="{Binding InstallWorkshopItemCommand}"
+                            <!-- Search row -->
+                            <TextBlock Text="Search Steam Workshop" Style="{StaticResource FieldLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="280"
+                                         Text="{Binding WorkshopSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,0,6,0">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding SearchWorkshopCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <Button Content="🔍 Search" Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding SearchWorkshopCommand}"
                                         IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
                                         Margin="0,0,8,0"/>
                                 <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
-                                        Command="{Binding RefreshWorkshopCommand}"/>
+                                        Command="{Binding RefreshWorkshopCommand}"
+                                        IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="⬆ Update All" Style="{StaticResource GhostButton}"
+                                        Command="{Binding UpdateAllModsCommand}"
+                                        IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
+                                        ToolTip="Re-download all active mods via SteamCMD"/>
+                            </StackPanel>
+                            <!-- Direct ID install -->
+                            <TextBlock Text="Install by Workshop ID" Style="{StaticResource FieldLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="200"
+                                         Text="{Binding WorkshopItemId, UpdateSourceTrigger=PropertyChanged}"
+                                         FontFamily="Consolas" Margin="0,0,6,0"/>
+                                <Button Content="⬇ Install" Style="{StaticResource GhostButton}"
+                                        Command="{Binding InstallWorkshopItemCommand}"
+                                        IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"/>
+                            </StackPanel>
+                            <!-- Busy indicator -->
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                                        Visibility="{Binding WorkshopBusy, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="⏳" FontSize="13" Margin="0,0,6,0"/>
+                                <TextBlock Text="Working..." FontSize="13" Foreground="{StaticResource AccentBlueBrush}"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
-                        <StackPanel>
-                            <TextBlock Text="Installed items" Style="{StaticResource SectionHeader}"/>
-                            <TextBlock Text="No items installed." FontSize="13" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
-                                       Visibility="{Binding WorkshopItems.Count, Converter={StaticResource ZeroToVis}}"/>
-                            <ItemsControl ItemsSource="{Binding WorkshopItems}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding Title}"/>
-                                                    <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}"
-                                                               Text="{Binding PublishedFileId, StringFormat='ID: {0}'}"/>
-                                                </StackPanel>
-                                                <Button Grid.Column="1" Content="🗑 Remove" Style="{StaticResource DangerButton}"
-                                                        VerticalAlignment="Center"
-                                                        Command="{Binding DataContext.UninstallWorkshopItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </ScrollViewer>
+
+                    <!-- Content area -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Installed mods (from DB) -->
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Installed Mods" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="No mods installed." FontSize="13"
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
+                                           Visibility="{Binding WorkshopDbMods.Count, Converter={StaticResource ZeroToVis}}"/>
+                                <ItemsControl ItemsSource="{Binding WorkshopDbMods}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                                                              IsChecked="{Binding IsEnabled}"
+                                                              Command="{Binding DataContext.ToggleModEnabledCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              CommandParameter="{Binding}"
+                                                              ToolTip="Enable/disable mod in startup args"/>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding ModName}"/>
+                                                        <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                                   Text="{Binding ModId, StringFormat='ID: {0}'}"/>
+                                                        <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                                   Text="{Binding LastUpdated, StringFormat='Updated: {0:dd.MM.yyyy}'}"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="2" Content="🗑" Style="{StaticResource DangerButton}"
+                                                            Width="36" Padding="0" VerticalAlignment="Center"
+                                                            Command="{Binding DataContext.UninstallWorkshopItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip="Remove mod"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Divider -->
+                        <Border Grid.Column="1" Width="1" Background="{StaticResource BorderBrush}" Margin="0,16"/>
+
+                        <!-- Search results -->
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Search Results" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="Search above to find Workshop mods." FontSize="13"
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
+                                           Visibility="{Binding WorkshopSearchResults.Count, Converter={StaticResource ZeroToVis}}"/>
+                                <ItemsControl ItemsSource="{Binding WorkshopSearchResults}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding Title}"/>
+                                                        <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                                   Text="{Binding PublishedFileId, StringFormat='ID: {0}'}" Margin="0,2,0,0"/>
+                                                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   Text="{Binding Description}" TextWrapping="Wrap"
+                                                                   MaxWidth="300" Margin="0,4,0,0"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource PrimaryButton}"
+                                                            VerticalAlignment="Top" Margin="8,0,0,0"
+                                                            Command="{Binding DataContext.InstallWorkshopFromSearchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            IsEnabled="{Binding DataContext.WorkshopBusy, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InvBool}}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ── FILES ── -->
+            <TabItem Header="📂 Files">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="↑" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
+                                        ToolTip="Ylös" Command="{Binding FileBrowser.GoUpCommand}"
+                                        IsEnabled="{Binding FileBrowser.CanGoUp}"/>
+                                <Button Content="↻" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
+                                        ToolTip="Päivitä" Command="{Binding FileBrowser.RefreshCommand}"/>
+                                <Button Content="📁 Uusi kansio" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                        Command="{Binding FileBrowser.CreateFolderCommand}"/>
+                                <Button Content="🗔 Explorer" Style="{StaticResource GhostButton}" Margin="0,0,12,0"
+                                        Command="{Binding FileBrowser.OpenInExplorerCommand}"/>
+                                <TextBlock Text="{Binding FileBrowser.StatusText}" FontSize="11"
+                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <!-- Hakukenttä -->
+                            <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Width="200"
+                                     Text="{Binding FileBrowser.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Hae tiedostoa nimellä"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Pääsisältö -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Breadcrumb -->
+                        <ItemsControl Grid.Row="0" ItemsSource="{Binding FileBrowser.Breadcrumb}" Margin="12,6,12,4">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="›" Foreground="{StaticResource TextMutedBrush}" Margin="4,0"/>
+                                        <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Rename box -->
+                        <Border Grid.Row="1" Background="{StaticResource BgSurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,1" Padding="12,6"
+                                Visibility="{Binding FileBrowser.ShowRenameBox, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Uusi nimi:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                                           Foreground="{StaticResource TextMutedBrush}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="300"
+                                         Text="{Binding FileBrowser.NewName, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding FileBrowser.ConfirmRenameCommand}"/>
+                                        <KeyBinding Key="Escape" Command="{Binding FileBrowser.CancelRenameCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <Button Content="✓" Style="{StaticResource SuccessButton}" Margin="6,0" Width="32" Padding="0"
+                                        Command="{Binding FileBrowser.ConfirmRenameCommand}"/>
+                                <Button Content="✕" Style="{StaticResource DangerButton}" Width="32" Padding="0"
+                                        Command="{Binding FileBrowser.CancelRenameCommand}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tiedostolista + editori rinnakkain -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <!-- Editori vie 50% tilasta kun auki -->
+                                <ColumnDefinition Width="{Binding FileBrowser.IsEditing,
+                                    Converter={StaticResource BoolToGridLength}, ConverterParameter=*}"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Tiedostolista -->
+                            <ListView ItemsSource="{Binding FileBrowser.Items}"
+                                      SelectedItem="{Binding FileBrowser.SelectedItem}"
+                                      Background="{StaticResource BgDeepBrush}" BorderThickness="0">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Nimi" Width="260">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Icon}" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="12"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="Koko" Width="80"
+                                                        DisplayMemberBinding="{Binding SizeText}"/>
+                                        <GridViewColumn Header="Muokattu" Width="130"
+                                                        DisplayMemberBinding="{Binding Modified}"/>
+                                    </GridView>
+                                </ListView.View>
+                                <ListView.InputBindings>
+                                    <MouseBinding MouseAction="LeftDoubleClick"
+                                                  Command="{Binding FileBrowser.OpenCommand}"
+                                                  CommandParameter="{Binding FileBrowser.SelectedItem,
+                                                      RelativeSource={RelativeSource AncestorType=ListView}}"/>
+                                </ListView.InputBindings>
+                                <ListView.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Avaa / Navigoi"
+                                                  Command="{Binding FileBrowser.OpenCommand}"
+                                                  CommandParameter="{Binding FileBrowser.SelectedItem}"/>
+                                        <MenuItem Header="✏ Muokkaa tekstinä"
+                                                  Command="{Binding FileBrowser.EditSelectedItemCommand}"/>
+                                        <MenuItem Header="📥 Lataa tiedostoon"
+                                                  Command="{Binding FileBrowser.DownloadFileCommand}"
+                                                  CommandParameter="{Binding FileBrowser.SelectedItem}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Nimeä uudelleen"
+                                                  Command="{Binding FileBrowser.RenameItemCommand}"
+                                                  CommandParameter="{Binding FileBrowser.SelectedItem}"/>
+                                        <Separator/>
+                                        <MenuItem Header="🗑 Poista"
+                                                  Command="{Binding FileBrowser.DeleteItemCommand}"
+                                                  CommandParameter="{Binding FileBrowser.SelectedItem}"/>
+                                    </ContextMenu>
+                                </ListView.ContextMenu>
+                            </ListView>
+
+                            <!-- Tekstieditori (näkyy vain kun IsEditing=true) -->
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource BgSurfaceBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
+                                    Visibility="{Binding FileBrowser.IsEditing, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Editorin otsikkopalkki -->
+                                    <Border Grid.Row="0" Background="{StaticResource BgSurface2Brush}"
+                                            Padding="10,6" BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="0,0,0,1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="✏ " FontSize="12"/>
+                                                <TextBlock Text="{Binding FileBrowser.EditingFileName}"
+                                                           FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                <TextBlock Text=" •" FontSize="12" Foreground="#E3B341"
+                                                           Visibility="{Binding FileBrowser.EditorDirty,
+                                                               Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Content="✕" Style="{StaticResource GhostButton}"
+                                                    Width="28" Padding="0"
+                                                    Command="{Binding FileBrowser.CloseEditorCommand}"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Tekstikenttä -->
+                                    <TextBox Grid.Row="1"
+                                             Text="{Binding FileBrowser.EditorContent,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                             AcceptsReturn="True" AcceptsTab="True"
+                                             HorizontalScrollBarVisibility="Auto"
+                                             VerticalScrollBarVisibility="Auto"
+                                             FontFamily="Consolas, Courier New" FontSize="12"
+                                             Background="#0D1117" Foreground="#C9D1D9"
+                                             BorderThickness="0" Padding="10"
+                                             TextWrapping="NoWrap"/>
+
+                                    <!-- Tallennuspalkki -->
+                                    <Border Grid.Row="2" Background="{StaticResource BgSurface2Brush}"
+                                            Padding="10,6" BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="0,1,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="💾 Tallenna" Style="{StaticResource SuccessButton}"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding FileBrowser.SaveEditCommand}"/>
+                                            <Button Content="Sulje" Style="{StaticResource GhostButton}"
+                                                    Command="{Binding FileBrowser.CloseEditorCommand}"/>
+                                            <TextBlock Margin="12,0,0,0" FontSize="11"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Text="{Binding FileBrowser.StatusText}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </TabItem>
 

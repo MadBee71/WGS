@@ -160,11 +160,54 @@ public class RemoteMachineService : IDisposable
     public Task<bool> StopServer(string machineId, string serverId)    => PostAction(machineId, serverId, "stop");
     public Task<bool> RestartServer(string machineId, string serverId) => PostAction(machineId, serverId, "restart");
 
+    public async Task<bool> SendCommandAsync(string machineId, string serverId, string command)
+    {
+        MachineDefinition? machine;
+        lock (_machinesLock) _byId.TryGetValue(machineId, out machine);
+        if (machine == null) return false;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post,
+                $"{machine.Url}/api/servers/{serverId}/cmd");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", machine.Token);
+            req.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(new { command }),
+                System.Text.Encoding.UTF8, "application/json");
+            return (await _http.SendAsync(req)).IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    public record LogChunk(List<string> Lines, List<string> Types, int NextOffset);
+
+    public async Task<LogChunk?> GetLogAsync(string machineId, string serverId, int offset)
+    {
+        MachineDefinition? machine;
+        lock (_machinesLock) _byId.TryGetValue(machineId, out machine);
+        if (machine == null) return null;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get,
+                $"{machine.Url}/api/servers/{serverId}/log?offset={offset}");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", machine.Token);
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode) return null;
+            var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+            var lines = doc.RootElement.GetProperty("lines").EnumerateArray()
+                .Select(e => e.GetString() ?? "").ToList();
+            var types = doc.RootElement.GetProperty("types").EnumerateArray()
+                .Select(e => e.GetString() ?? "Info").ToList();
+            var next  = doc.RootElement.GetProperty("nextOffset").GetInt32();
+            return new LogChunk(lines, types, next);
+        }
+        catch { return null; }
+    }
+
     public void Dispose()
     {
         _cts?.Cancel();
-        // Wait for poll loop to finish before disposing HttpClient
-        try { _pollTask?.Wait(3000); } catch { }
+        // HttpClient timeout is 5 s — wait long enough for in-flight requests to complete
+        try { _pollTask?.Wait(8000); } catch { }
         _http.Dispose();
     }
 }

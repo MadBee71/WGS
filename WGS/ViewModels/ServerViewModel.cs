@@ -21,7 +21,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly PlayerStatsService    _playerStats;
     private readonly PerfHistoryService    _perfHistory;
     private readonly SteamWorkshopService  _workshop;
-    private readonly ScheduledTaskService  _scheduler;
+    private readonly WorkshopDbService     _workshopDb;
+    private readonly TemplateService        _templates;
+    private readonly ScheduledTaskService   _scheduler;
+    private readonly NetworkMonitorService  _network;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -48,8 +51,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private Services.ConfigFileEntry? _selectedConfigFile;
     [ObservableProperty] private string _configContent = string.Empty;
 
-    // Players
-    [ObservableProperty] private List<Services.PlayerSession> _playerHistory = [];
+    // Players — reaaliaikainen lista
+    [ObservableProperty] private List<Models.OnlinePlayer>    _onlinePlayers  = [];
+    [ObservableProperty] private List<Services.PlayerSession> _playerHistory  = [];
+    [ObservableProperty] private List<Services.PlayerStats>   _playerStatsList = [];
+    [ObservableProperty] private bool   _playersBusy;
+    [ObservableProperty] private string _kickReason  = string.Empty;
+    [ObservableProperty] private string _banReason   = string.Empty;
+
+    private System.Timers.Timer? _playerRefreshTimer;
 
     // Performance history
     [ObservableProperty] private OxyPlot.PlotModel _perfPlot = CreateEmptyPlot();
@@ -58,14 +68,52 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private OxyPlot.Series.LineSeries?  _memSeries;
 
     // Workshop
-    [ObservableProperty] private List<Services.WorkshopItem> _workshopItems = [];
-    [ObservableProperty] private string _workshopItemId = string.Empty;
+    [ObservableProperty] private List<Services.WorkshopItem>   _workshopItems = [];
+    [ObservableProperty] private List<Services.WorkshopMod>    _workshopDbMods = [];
+    [ObservableProperty] private List<Services.WorkshopItem>   _workshopSearchResults = [];
+    [ObservableProperty] private string _workshopItemId      = string.Empty;
+    [ObservableProperty] private string _workshopSearchQuery = string.Empty;
     [ObservableProperty] private bool   _workshopBusy;
 
     // Scheduled tasks
     [ObservableProperty] private List<Services.ScheduledTask> _scheduledTasks = [];
 
     public bool HasWorkshop => _workshop.SupportsWorkshop(Plugin);
+    public bool HasPlayerCommands => Plugin?.GetPlayersCommand() != null
+                                  || Plugin?.GetKickCommand("") != null;
+
+    public FileBrowserViewModel FileBrowser { get; } = new();
+    public List<Models.ServerTemplate> GameTemplates => FilteredTemplates;
+
+    // ── Template filter ───────────────────────────────────────────────────────
+    [ObservableProperty] private string _templateFilterCategory = string.Empty;
+    [ObservableProperty] private string _templateFilterTag      = string.Empty;
+
+    partial void OnTemplateFilterCategoryChanged(string _) => OnPropertyChanged(nameof(FilteredTemplates));
+    partial void OnTemplateFilterTagChanged(string _)      => OnPropertyChanged(nameof(FilteredTemplates));
+
+    public List<Models.ServerTemplate> FilteredTemplates
+    {
+        get
+        {
+            var all = _templates.ForGame(Server.GameId);
+            if (!string.IsNullOrWhiteSpace(TemplateFilterCategory))
+                all = all.Where(t => t.Category.Equals(TemplateFilterCategory,
+                    StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!string.IsNullOrWhiteSpace(TemplateFilterTag))
+                all = all.Where(t => t.Tags.Contains(TemplateFilterTag,
+                    StringComparer.OrdinalIgnoreCase)).ToList();
+            return all.ToList();
+        }
+    }
+
+    public List<string> AvailableCategories =>
+        _templates.ForGame(Server.GameId)
+                  .Select(t => t.Category)
+                  .Where(c => !string.IsNullOrWhiteSpace(c))
+                  .Distinct(StringComparer.OrdinalIgnoreCase)
+                  .Prepend("(kaikki)")
+                  .ToList();
 
     private System.Timers.Timer? _perfTimer;
 
@@ -102,6 +150,32 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
         : "--:--:--";
 
+    // ── Kaistaseuranta ────────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _netIn          = "—";
+    [ObservableProperty] private string _netOut         = "—";
+    [ObservableProperty] private int    _connectionCount = 0;
+    [ObservableProperty] private IReadOnlyList<double> _netInHistory  = [];
+    [ObservableProperty] private IReadOnlyList<double> _netOutHistory = [];
+
+    public bool HasNetworkStats => _network.GetServerStats(Server.Id) != null;
+
+    private void OnServerStatsUpdated(string serverId)
+    {
+        if (serverId != Server.Id) return;
+        var stats = _network.GetServerStats(serverId);
+        if (stats == null) return;
+
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            NetIn           = NetworkMonitorService.FormatSpeed(stats.BytesInPerSec);
+            NetOut          = NetworkMonitorService.FormatSpeed(stats.BytesOutPerSec);
+            ConnectionCount = stats.ConnectionCount;
+            NetInHistory    = stats.HistoryIn.ToList();
+            NetOutHistory   = stats.HistoryOut.ToList();
+        });
+    }
+
     public ObservableCollection<ConsoleMessage> FilteredLog
     {
         get
@@ -117,8 +191,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         ConfigService config, ModManagerService mods,
         ConfigEditorService configEditor, PlayerStatsService playerStats,
-        PerfHistoryService perfHistory, SteamWorkshopService workshop,
-        ScheduledTaskService scheduler)
+        PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
+        TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -133,7 +207,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _playerStats   = playerStats;
         _perfHistory   = perfHistory;
         _workshop      = workshop;
+        _workshopDb    = workshopDb;
+        _templates     = templates;
         _scheduler     = scheduler;
+        _network       = network;
+
+        _network.ServerStatsUpdated += OnServerStatsUpdated;
+        FileBrowser.Initialize(server.InstallPath);
 
         _manager.LogReceived      += OnLogReceived;
         _manager.StatusChanged    += OnStatusChanged;
@@ -175,6 +255,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             if (Server.AutoUpdate && Plugin?.SteamAppId > 0)
                 await InstallAsync();
+
+            // Inject active Workshop mod IDs so plugins can build correct launch args
+            if (Plugin is Games.IWorkshopPlugin && HasWorkshop)
+            {
+                var ids = _workshopDb.GetModsForServer(Server.Id)
+                    .Where(m => m.IsEnabled)
+                    .Select(m => $"@{m.ModId}")
+                    .ToList();
+                Server.GameSpecificSettings["__wgsWorkshopMods"] = string.Join(";", ids);
+            }
+
             await _manager.StartAsync(Server);
             // StartPerfMonitoring() and StartUpdateTimer() are called from OnStatusChanged(Running)
         }
@@ -651,23 +742,66 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Players ──────────────────────────────────────────────────────────────
 
+    private void StartPlayerRefresh()
+    {
+        _playerRefreshTimer?.Dispose();
+        _playerRefreshTimer = new System.Timers.Timer(15_000);
+        _playerRefreshTimer.Elapsed  += (_, _) => _ = FetchOnlinePlayersAsync();
+        _playerRefreshTimer.AutoReset = true;
+        _playerRefreshTimer.Start();
+        _ = FetchOnlinePlayersAsync(); // ensimmäinen heti
+    }
+
+    private void StopPlayerRefresh()
+    {
+        _playerRefreshTimer?.Stop();
+        _playerRefreshTimer?.Dispose();
+        _playerRefreshTimer = null;
+    }
+
     [RelayCommand]
     private async Task RefreshPlayersAsync()
     {
-        // Fetch live player list via RCON
+        await FetchOnlinePlayersAsync();
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
+            PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+        });
+    }
+
+    private async Task FetchOnlinePlayersAsync()
+    {
+        if (Plugin == null) return;
+        var cmd = Plugin.GetPlayersCommand();
+        if (cmd == null) return;
+
+        string response;
         if (RconConnected && _rcon != null)
         {
             await _rconLock.WaitAsync();
-            try
-            {
-                var resp = await _rcon.SendCommandAsync("status");
-                AppendLog("[Players] " + resp, ConsoleMessageType.System);
-            }
+            try   { response = await _rcon.SendCommandAsync(cmd); }
+            catch { return; }
             finally { _rconLock.Release(); }
         }
-        // Load history from SQLite
-        WpfApplication.Current?.Dispatcher?.Invoke(() =>
-            PlayerHistory = _playerStats.GetSessions(Server.Id, 50));
+        else return; // Ei RCON-yhteyttä → ei voi parsita
+
+        if (string.IsNullOrWhiteSpace(response)) return;
+
+        var parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+
+        // Vertaa edelliseen listaan → session logging
+        var prev = OnlinePlayers.ToList();
+        var currNames  = parsed.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
+        var prevNames  = prev.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
+
+        foreach (var p in parsed.Where(p => !prevNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)))
+            _playerStats.RecordJoin(Server.Id, p.Name, p.SteamId);
+
+        foreach (var p in prev.Where(p => !currNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)))
+            _playerStats.RecordLeave(Server.Id, p.Name, p.SteamId);
+
+        WpfApplication.Current?.Dispatcher?.Invoke(() => OnlinePlayers = parsed);
     }
 
     // ── Performance history ──────────────────────────────────────────────────
@@ -741,13 +875,41 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task RefreshWorkshopAsync()
     {
         if (Plugin == null || !HasWorkshop) return;
-        WorkshopItems = await _workshop.GetInstalledItemsAsync(Server, Plugin);
+        WorkshopItems  = await _workshop.GetInstalledItemsAsync(Server, Plugin);
+        WorkshopDbMods = _workshopDb.GetModsForServer(Server.Id);
+    }
+
+    [RelayCommand]
+    private async Task SearchWorkshopAsync()
+    {
+        if (Plugin == null || !HasWorkshop || string.IsNullOrWhiteSpace(WorkshopSearchQuery)) return;
+        WorkshopBusy = true;
+        try
+        {
+            WorkshopSearchResults = await _workshop.SearchWorkshopAsync(Plugin, WorkshopSearchQuery);
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] Search failed: {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
     }
 
     [RelayCommand]
     private async Task InstallWorkshopItemAsync()
     {
         if (!ulong.TryParse(WorkshopItemId, out var id)) { AppendLog("[Workshop] Invalid item ID.", ConsoleMessageType.Warning); return; }
+        if (Plugin == null || !HasWorkshop) return;
+        await InstallWorkshopByIdAsync(id);
+        WorkshopItemId = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task InstallWorkshopFromSearchAsync(WorkshopItem? item)
+    {
+        if (item == null || Plugin == null) return;
+        await InstallWorkshopByIdAsync(item.PublishedFileId);
+    }
+
+    private async Task InstallWorkshopByIdAsync(ulong id)
+    {
         if (Plugin == null || !HasWorkshop) return;
         WorkshopBusy = true;
         try
@@ -756,7 +918,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
             await _workshop.InstallItemAsync(Server, Plugin, id, progress);
             AppendLog($"[Workshop] ✅ Item {id} installed.", ConsoleMessageType.System);
-            WorkshopItemId = string.Empty;
             await RefreshWorkshopAsync();
         }
         catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
@@ -764,12 +925,268 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private async Task UninstallWorkshopItemAsync(WorkshopItem? item)
+    private async Task UninstallWorkshopItemAsync(WorkshopMod? mod)
     {
-        if (item == null || Plugin == null) return;
-        _workshop.UninstallItem(Server, Plugin, item.PublishedFileId);
-        AppendLog($"[Workshop] Removed item {item.PublishedFileId}.", ConsoleMessageType.System);
-        await RefreshWorkshopAsync();
+        if (mod == null || Plugin == null) return;
+        WorkshopBusy = true;
+        try
+        {
+            await _workshop.UninstallItemAsync(Server, Plugin, mod.ModId);
+            AppendLog($"[Workshop] Removed {mod.ModName}.", ConsoleMessageType.System);
+            await RefreshWorkshopAsync();
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
+    }
+
+    [RelayCommand]
+    private void ToggleModEnabled(WorkshopMod? mod)
+    {
+        if (mod == null) return;
+        // WorkshopMod doesn't implement INPC so the CheckBox two-way binding
+        // doesn't update mod.IsEnabled before this fires — toggle it manually.
+        mod.IsEnabled = !mod.IsEnabled;
+        _workshopDb.SetEnabled(Server.Id, mod.ModId, mod.IsEnabled);
+    }
+
+    [RelayCommand]
+    private async Task UpdateAllModsAsync()
+    {
+        if (Plugin == null || !HasWorkshop) return;
+        WorkshopBusy = true;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
+            await _workshop.UpdateAllModsAsync(Server, Plugin, progress);
+            AppendLog("[Workshop] ✅ All mods updated.", ConsoleMessageType.System);
+            await RefreshWorkshopAsync();
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
+    }
+
+    // ── Direct Connect ────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void JoinServer()
+    {
+        var ip   = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
+        var port = Server.QueryPort > 0 ? Server.QueryPort : Server.ServerPort;
+        var uri  = $"steam://connect/{ip}:{port}";
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri) { UseShellExecute = true });
+        }
+        catch (Exception ex) { AppendLog($"[Connect] {ex.Message}", ConsoleMessageType.Error); }
+    }
+
+    [RelayCommand]
+    private void CopyConnectionLink()
+    {
+        var ip   = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
+        var port = Server.QueryPort > 0 ? Server.QueryPort : Server.ServerPort;
+        var link = $"steam://connect/{ip}:{port}";
+        try
+        {
+            System.Windows.Clipboard.SetText(link);
+            AppendLog($"[Connect] Copied: {link}", ConsoleMessageType.System);
+        }
+        catch (Exception ex) { AppendLog($"[Connect] {ex.Message}", ConsoleMessageType.Error); }
+    }
+
+    // ── Player Management ─────────────────────────────────────────────────────
+
+    // Vanhanmallinen tekstisyöttö (yhteensopivuus)
+    [ObservableProperty] private string _playerInput = string.Empty;
+
+    [RelayCommand]
+    private async Task KickPlayerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PlayerInput) || Plugin == null) return;
+        var cmd = Plugin.GetKickCommand(PlayerInput,
+            string.IsNullOrWhiteSpace(KickReason) ? "Kicked by admin" : KickReason);
+        if (cmd == null) { AppendLog("[Players] Kick not supported.", ConsoleMessageType.Warning); return; }
+        await SendRconOrConsole(cmd);
+        AppendLog($"[Players] Kicked: {PlayerInput}", ConsoleMessageType.System);
+        KickReason = string.Empty;
+        _ = FetchOnlinePlayersAsync();
+    }
+
+    [RelayCommand]
+    private async Task BanPlayerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PlayerInput) || Plugin == null) return;
+        var cmd = Plugin.GetBanCommand(PlayerInput,
+            string.IsNullOrWhiteSpace(BanReason) ? "Banned by admin" : BanReason);
+        if (cmd == null) { AppendLog("[Players] Ban not supported.", ConsoleMessageType.Warning); return; }
+        await SendRconOrConsole(cmd);
+        AppendLog($"[Players] Banned: {PlayerInput}", ConsoleMessageType.System);
+        BanReason = string.Empty;
+        _ = FetchOnlinePlayersAsync();
+    }
+
+    // Kick/Ban suoraan pelaajan kortista
+    [RelayCommand]
+    private async Task KickOnlinePlayerAsync(Models.OnlinePlayer? player)
+    {
+        if (player == null || Plugin == null) return;
+        var target = player.SteamId.Length > 0 ? player.SteamId : player.Name;
+        var reason  = string.IsNullOrWhiteSpace(KickReason) ? "Kicked by admin" : KickReason;
+        var cmd     = Plugin.GetKickCommand(target, reason);
+        if (cmd == null) { AppendLog("[Players] Kick not supported.", ConsoleMessageType.Warning); return; }
+        await SendRconOrConsole(cmd);
+        AppendLog($"[Players] Kicked {player.Name} ({reason})", ConsoleMessageType.System);
+        KickReason = string.Empty;
+        _ = FetchOnlinePlayersAsync();
+    }
+
+    [RelayCommand]
+    private async Task BanOnlinePlayerAsync(Models.OnlinePlayer? player)
+    {
+        if (player == null || Plugin == null) return;
+        var target = player.SteamId.Length > 0 ? player.SteamId : player.Name;
+        var reason  = string.IsNullOrWhiteSpace(BanReason) ? "Banned by admin" : BanReason;
+        var cmd     = Plugin.GetBanCommand(target, reason);
+        if (cmd == null) { AppendLog("[Players] Ban not supported.", ConsoleMessageType.Warning); return; }
+        await SendRconOrConsole(cmd);
+        AppendLog($"[Players] Banned {player.Name} ({reason})", ConsoleMessageType.System);
+        BanReason = string.Empty;
+        _ = FetchOnlinePlayersAsync();
+    }
+
+    [RelayCommand]
+    private async Task ListPlayersAsync()
+    {
+        if (Plugin == null) return;
+        var cmd = Plugin.GetPlayersCommand();
+        if (cmd == null) { AppendLog("[Players] Player list not supported.", ConsoleMessageType.Warning); return; }
+        await SendRconOrConsole(cmd);
+    }
+
+    private async Task SendRconOrConsole(string cmd)
+    {
+        if (RconConnected && _rcon != null)
+        {
+            await _rconLock.WaitAsync();
+            try { var r = await _rcon.SendCommandAsync(cmd); if (!string.IsNullOrEmpty(r)) AppendLog(r); }
+            finally { _rconLock.Release(); }
+        }
+        else
+            _manager.SendCommand(Server.Id, cmd);
+    }
+
+    // ── Templates ─────────────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _templateName        = string.Empty;
+    [ObservableProperty] private string _templateCategory    = string.Empty;
+    [ObservableProperty] private string _templateTagsInput   = string.Empty;  // pilkkueroteltu
+    [ObservableProperty] private string _templateDescription = string.Empty;
+
+    [RelayCommand]
+    private void SaveAsTemplate()
+    {
+        if (string.IsNullOrWhiteSpace(TemplateName)) return;
+        var tags = TemplateTagsInput
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        _templates.SaveFromServer(Server, TemplateName, TemplateDescription, TemplateCategory, tags);
+        var saved = TemplateName;
+        TemplateName        = string.Empty;
+        TemplateCategory    = string.Empty;
+        TemplateTagsInput   = string.Empty;
+        TemplateDescription = string.Empty;
+        RefreshTemplates();
+        AppendLog($"[Template] Tallennettu mallina \"{saved}\".", ConsoleMessageType.System);
+    }
+
+    [RelayCommand]
+    private void ApplyTemplate(Models.ServerTemplate? template)
+    {
+        if (template == null) return;
+        _templates.ApplyToServer(template, Server);
+        AppendLog($"[Template] Sovellettu \"{template.Name}\".", ConsoleMessageType.System);
+    }
+
+    [RelayCommand]
+    private void CloneTemplate(Models.ServerTemplate? template)
+    {
+        if (template == null) return;
+        var clone = _templates.Clone(template.Id);
+        RefreshTemplates();
+        AppendLog($"[Template] Kloonattu \"{clone.Name}\".", ConsoleMessageType.System);
+    }
+
+    [RelayCommand]
+    private void DeleteTemplate(Models.ServerTemplate? template)
+    {
+        if (template == null) return;
+        _templates.Delete(template.Id);
+        RefreshTemplates();
+    }
+
+    [RelayCommand]
+    private void ExportTemplate(Models.ServerTemplate? template)
+    {
+        if (template == null) return;
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title      = "Vie malli",
+            Filter     = "JSON-tiedosto|*.json",
+            FileName   = SanitizeFileName(template.Name) + ".json",
+            DefaultExt = ".json",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            _templates.ExportSingle(template.Id, dlg.FileName);
+            AppendLog($"[Template] Viety: {dlg.FileName}", ConsoleMessageType.System);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Template] Vienti epäonnistui: {ex.Message}", ConsoleMessageType.Error);
+        }
+    }
+
+    [RelayCommand]
+    private void ImportTemplates()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title     = "Tuo malleja",
+            Filter    = "JSON-tiedosto|*.json",
+            Multiselect = true,
+        };
+        if (dlg.ShowDialog() != true) return;
+        int total = 0;
+        foreach (var file in dlg.FileNames)
+        {
+            try   { total += _templates.Import(file); }
+            catch (Exception ex)
+            {
+                AppendLog($"[Template] Tuonti epäonnistui ({Path.GetFileName(file)}): {ex.Message}",
+                    ConsoleMessageType.Error);
+            }
+        }
+        if (total > 0)
+        {
+            RefreshTemplates();
+            AppendLog($"[Template] Tuotu {total} mallia.", ConsoleMessageType.System);
+        }
+    }
+
+    private void RefreshTemplates()
+    {
+        OnPropertyChanged(nameof(GameTemplates));
+        OnPropertyChanged(nameof(FilteredTemplates));
+        OnPropertyChanged(nameof(AvailableCategories));
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return name;
     }
 
     // ── Scheduled tasks ──────────────────────────────────────────────────────
@@ -872,6 +1289,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             WpfApplication.Current?.Dispatcher?.Invoke(() =>
             {
                 StartPerfMonitoring();
+                StartPlayerRefresh();
                 if (_updateTimer == null) StartUpdateTimer();
             });
         }
@@ -880,7 +1298,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             WpfApplication.Current?.Dispatcher?.Invoke(() =>
             {
                 StopPerfMonitoring();
-                // Only stop timer if not auto-restarting (AutoRestart handles re-start itself)
+                StopPlayerRefresh();
+                OnlinePlayers = [];
                 if (!Server.AutoRestart)
                     StopUpdateTimer();
             });

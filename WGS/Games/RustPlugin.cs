@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class RustPlugin : GamePluginBase
+public class RustPlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId        => "rust";
     public override string GameName      => "Rust";
@@ -10,6 +10,17 @@ public class RustPlugin : GamePluginBase
     public override string Category      => "Survival";
     public override int    SteamAppId    => 258550;
     public override int    GameStoreAppId => 252490;
+    public override int    WorkshopAppId   => 252490;
+
+    public string ModTargetDirectory => "maps";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string serverInstallPath)
+    {
+        if (ids.Count == 0) return string.Empty;
+        var mapPath = System.IO.Path.Combine(serverInstallPath, "maps", ids[ids.Count - 1].ToString());
+        return $"+server.levelurl \"" + mapPath + "\"";
+    }
     public override string Executable    => "RustDedicated.exe";
     public override int    DefaultPort   => 28015;
     public override int    DefaultQueryPort => 28016;
@@ -23,6 +34,14 @@ public class RustPlugin : GamePluginBase
         base.IsNoiseLine(line) ||
         line.StartsWith("Setting breakpad minidump") ||
         line.StartsWith("SteamInternal_SetMinidumpSteamID");
+
+        public override string  EngineFamily                                     => RustRcon.Family;
+    public override string? GetKickCommand(string p)                         => RustRcon.Kick(p);
+    public override string? GetKickCommand(string p, string reason)          => RustRcon.Kick(p, reason);
+    public override string? GetBanCommand(string p)                          => RustRcon.Ban(p);
+    public override string? GetBanCommand(string p, string reason)           => RustRcon.Ban(p, reason);
+    public override string? GetUnbanCommand(string p)                        => RustRcon.Unban(p);
+    public override string? GetPlayersCommand()                              => RustRcon.Players();
 
     public override string BuildStartArguments(GameServer s)
     {

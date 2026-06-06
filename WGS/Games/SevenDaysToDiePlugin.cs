@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SevenDaysToDiePlugin : GamePluginBase
+public class SevenDaysToDiePlugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId        => "7daystodie";
     public override string GameName      => "7 Days to Die";
@@ -10,6 +10,7 @@ public class SevenDaysToDiePlugin : GamePluginBase
     public override string Category      => "Survival";
     public override int    SteamAppId    => 294420;
     public override int    GameStoreAppId => 251570;
+    public override int    WorkshopAppId  => 251570;
     public override string Executable    => "7DaysToDieServer.exe";
     public override int    DefaultPort   => 26900;
     public override int    DefaultQueryPort => 26901;
@@ -17,6 +18,11 @@ public class SevenDaysToDiePlugin : GamePluginBase
     public override bool   HasRcon        => true;
     public override bool   SupportsOxide  => true;
     protected override bool FilterUnityShaderNoise => true;
+
+    public string ModTargetDirectory => "Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
 
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -dedicated -configfile=\"{s.InstallPath}\\serverconfig.xml\"";

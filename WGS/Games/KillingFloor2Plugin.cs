@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class KillingFloor2Plugin : GamePluginBase
+public class KillingFloor2Plugin : GamePluginBase, IWorkshopPlugin
 {
     public override string GameId          => "kf2";
     public override string GameName        => "Killing Floor 2";
@@ -10,6 +10,12 @@ public class KillingFloor2Plugin : GamePluginBase
     public override string Category        => "FPS";
     public override int    SteamAppId      => 232130;
     public override int    GameStoreAppId  => 232090;
+    public override int    WorkshopAppId   => 232090;
+
+    public string ModTargetDirectory => @"KFGame/BrewedPC/Mods";
+    public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
+    public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
+    public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override string Executable      => @"Binaries\Win64\KFServer.exe";
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 27015;
@@ -17,6 +23,14 @@ public class KillingFloor2Plugin : GamePluginBase
     public override int    DefaultMaxPlayers => 6;
     public override bool   RequiresSteamLogin => true;
     public override bool   HasRcon         => true;
+
+        public override string  EngineFamily                                     => UnrealRcon.Family;
+    public override string? GetKickCommand(string p)                         => UnrealRcon.Kick(p);
+    public override string? GetKickCommand(string p, string reason)          => UnrealRcon.Kick(p, reason);
+    public override string? GetBanCommand(string p)                          => UnrealRcon.Ban(p);
+    public override string? GetBanCommand(string p, string reason)           => UnrealRcon.Ban(p, reason);
+    public override string? GetUnbanCommand(string p)                        => UnrealRcon.Unban(p);
+    public override string? GetPlayersCommand()                              => UnrealRcon.Players();
 
     public override string BuildStartArguments(GameServer s)
     {

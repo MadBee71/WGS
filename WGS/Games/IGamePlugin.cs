@@ -36,6 +36,20 @@ public interface IGamePlugin
     List<ConfigField> GetConfigFields();
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
+
+    // Player management via RCON (optional — return null if not supported)
+    string? GetKickCommand(string playerName);
+    string? GetKickCommand(string playerName, string reason);
+    string? GetBanCommand(string playerName);
+    string? GetBanCommand(string playerName, string reason);
+    string? GetUnbanCommand(string playerName);
+    string? GetPlayersCommand();
+
+    /// <summary>
+    /// Tunniste RCON-vastauksen parserille.
+    /// Arvot: "source" | "rust" | "minecraft" | "ark" | "unreal" | ""
+    /// </summary>
+    string EngineFamily { get; }
 }
 
 public class ConfigField

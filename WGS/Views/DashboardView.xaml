@@ -12,6 +12,12 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
         <StackPanel>
 
+            <!-- Debug header - poistetaan kun toimii -->
+            <Border Background="#1A3A2A" CornerRadius="6" Padding="16,10" Margin="0,0,0,16">
+                <TextBlock Text="📊 DASHBOARD — näkymä toimii!" FontSize="14" FontWeight="Bold"
+                           Foreground="#3FB950"/>
+            </Border>
+
             <!-- ── Section: System ── -->
             <TextBlock Text="SYSTEM" FontSize="10" FontWeight="Bold" Margin="0,0,0,12"
                        Foreground="{StaticResource TextMutedBrush}"/>
