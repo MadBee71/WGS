@@ -37,7 +37,7 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
                         <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
                                Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="v1.0.4" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="v1.1.0" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                         <!-- stats -->
@@ -235,9 +235,9 @@
 
                 <!-- Dashboard — DataContext asetettu erikseen, joten Visibility käyttää RelativeSourcea -->
                 <views:DashboardView DataContext="{Binding Dashboard}"
-                                     Visibility="{Binding ShowDashboard,
-                                         RelativeSource={RelativeSource AncestorType=Window},
-                                         Converter={StaticResource BoolToVis}}"/>
+                                     Visibility="{Binding DataContext.ShowDashboard,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource BoolToVis}}"/>
 
                 <!-- Support -->
                 <views:SupportView Visibility="{Binding ShowSupport, Converter={StaticResource BoolToVis}}"/>
@@ -246,58 +246,17 @@
                 <views:MachinesView DataContext="{Binding}"
                                     Visibility="{Binding ShowMachines, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Remote server detail — näkyy vain kun mikään sivu ei ole auki JA remote-palvelin valittu -->
-                <views:RemoteServerDetailView DataContext="{Binding SelectedRemoteServer}">
-                    <views:RemoteServerDetailView.Style>
-                        <Style TargetType="views:RemoteServerDetailView">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <!-- Näytä kun remote-palvelin on valittu -->
-                                <DataTrigger Binding="{Binding SelectedRemoteServer,
-                                    RelativeSource={RelativeSource AncestorType=Window},
-                                    Converter={StaticResource NullToVis}}" Value="Visible">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                                <!-- Peruutetaan sivunäkymien ajaksi (jälkimmäinen voittaa) -->
-                                <DataTrigger Binding="{Binding ShowDashboard,
-                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ShowSupport,
-                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ShowMachines,
-                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </views:RemoteServerDetailView.Style>
-                </views:RemoteServerDetailView>
+                <!-- Remote server detail — näkyy vain kun ShowRemoteDetail=true (computed property MainViewModelissa) -->
+                <views:RemoteServerDetailView DataContext="{Binding SelectedRemoteServer}"
+                    Visibility="{Binding DataContext.ShowRemoteDetail,
+                        RelativeSource={RelativeSource AncestorType=Window},
+                        Converter={StaticResource BoolToVis}}"/>
 
                 <!-- Palvelinruudukko — näkyy vain kun mikään sivu ei ole auki -->
                 <Grid>
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Setter Property="Visibility" Value="Visible"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ShowDashboard}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ShowSupport}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ShowMachines}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding SelectedRemoteServer,
-                                    Converter={StaticResource NullToVis}}" Value="Visible">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
+                    <Grid.Visibility>
+                        <Binding Path="ShowServerGrid" Converter="{StaticResource BoolToVis}"/>
+                    </Grid.Visibility>
 
                     <!-- Ei palvelinta valittu -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
