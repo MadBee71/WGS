@@ -6,7 +6,7 @@
         Title="Windows Game Server" Height="800" Width="1280"
         MinHeight="600" MinWidth="900"
         Background="{StaticResource BgDeepBrush}"
-        WindowStyle="None" AllowsTransparency="True"
+        WindowStyle="None" AllowsTransparency="False"
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
@@ -16,7 +16,7 @@
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0" CornerRadius="0">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="48"/>
@@ -31,13 +31,13 @@
             <Border Grid.Row="0" Grid.ColumnSpan="2"
                     Background="{StaticResource BgSurfaceBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
-                    CornerRadius="10,10,0,0"
+                    CornerRadius="0"
                     MouseLeftButtonDown="TitleBar_MouseDown">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
                         <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
                                Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="v1.0.2" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="v1.0.4" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                         <!-- stats -->
@@ -82,12 +82,17 @@
                             <Button Content="{Binding Loc.AddServer}" Style="{StaticResource PrimaryButton}"
                                     HorizontalAlignment="Stretch" Margin="0,0,0,8"
                                     Command="{Binding OpenAddDialogCommand}"/>
-                            <!-- Icon row: 7 secondary actions -->
-                            <UniformGrid Rows="1" Columns="7">
+                            <!-- Icon row: 8 secondary actions -->
+                            <UniformGrid Rows="1" Columns="8">
                                 <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
                                         Command="{Binding OpenDashboardCommand}">
                                     <Button.ToolTip><ToolTip Content="Dashboard"/></Button.ToolTip>
                                     <TextBlock Text="📊" FontSize="15"/>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
+                                        Command="{Binding OpenMachinesCommand}">
+                                    <Button.ToolTip><ToolTip Content="Remote Machines (Master/Slave)"/></Button.ToolTip>
+                                    <TextBlock Text="🖥" FontSize="15"/>
                                 </Button>
                                 <Button Style="{StaticResource GhostButton}" FontSize="15" Height="32" Padding="0"
                                         Command="{Binding BackupAllCommand}">
@@ -126,6 +131,43 @@
                     <!-- Server list -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
+                            <!-- Remote servers section -->
+                            <StackPanel Visibility="{Binding RemoteServers.Count, Converter={StaticResource ZeroToInvVis}}">
+                                <TextBlock Text="REMOTE" FontSize="10" FontWeight="Bold" Margin="16,12,8,4"
+                                           Foreground="{StaticResource AccentBlueBrush}"/>
+                                <ListBox ItemsSource="{Binding RemoteServers}"
+                                         SelectedItem="{Binding SelectedRemoteServer}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ItemContainerStyle="{StaticResource ServerListItem}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Width="64" Height="24" CornerRadius="3"
+                                                        Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
+                                                        ClipToBounds="True">
+                                                    <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding MachineName}" FontSize="11"
+                                                               Foreground="{StaticResource AccentBlueBrush}"/>
+                                                </StackPanel>
+                                                <Ellipse Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center"
+                                                         Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Separator Background="{StaticResource BorderBrush}" Margin="12,4"/>
+                            </StackPanel>
+
                             <Grid Margin="16,16,8,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -190,14 +232,51 @@
 
             <!-- ══ MAIN CONTENT ══ -->
             <Grid Grid.Row="1" Grid.Column="1">
-                <!-- Dashboard page -->
-                <views:DashboardView DataContext="{Binding Dashboard}"
-                                     Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Support / Info page -->
+                <!-- Dashboard — DataContext asetettu erikseen, joten Visibility käyttää RelativeSourcea -->
+                <views:DashboardView DataContext="{Binding Dashboard}"
+                                     Visibility="{Binding ShowDashboard,
+                                         RelativeSource={RelativeSource AncestorType=Window},
+                                         Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Support -->
                 <views:SupportView Visibility="{Binding ShowSupport, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Server views (shown when not in dashboard and not in support) -->
+                <!-- Machines -->
+                <views:MachinesView DataContext="{Binding}"
+                                    Visibility="{Binding ShowMachines, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Remote server detail — näkyy vain kun mikään sivu ei ole auki JA remote-palvelin valittu -->
+                <views:RemoteServerDetailView DataContext="{Binding SelectedRemoteServer}">
+                    <views:RemoteServerDetailView.Style>
+                        <Style TargetType="views:RemoteServerDetailView">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <!-- Näytä kun remote-palvelin on valittu -->
+                                <DataTrigger Binding="{Binding SelectedRemoteServer,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource NullToVis}}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <!-- Peruutetaan sivunäkymien ajaksi (jälkimmäinen voittaa) -->
+                                <DataTrigger Binding="{Binding ShowDashboard,
+                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowSupport,
+                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowMachines,
+                                    RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </views:RemoteServerDetailView.Style>
+                </views:RemoteServerDetailView>
+
+                <!-- Palvelinruudukko — näkyy vain kun mikään sivu ei ole auki -->
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -209,10 +288,18 @@
                                 <DataTrigger Binding="{Binding ShowSupport}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowMachines}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SelectedRemoteServer,
+                                    Converter={StaticResource NullToVis}}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    <!-- No server selected -->
+
+                    <!-- Ei palvelinta valittu -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding SelectedServer, Converter={StaticResource NullToInvVis}}">
                         <TextBlock Text="&#x1F3AE;" FontSize="48" HorizontalAlignment="Center"/>
@@ -224,7 +311,7 @@
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
                     </StackPanel>
 
-                    <!-- Server detail view -->
+                    <!-- Palvelimen yksityiskohtanäkymä -->
                     <ContentControl Content="{Binding SelectedServer}"
                                     Visibility="{Binding SelectedServer, Converter={StaticResource NullToVis}}">
                         <ContentControl.ContentTemplate>
