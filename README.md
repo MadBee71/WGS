@@ -7,7 +7,7 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-54+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -41,15 +41,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ## 📷 Screenshots
 
 <p align="center">
-  <img src="1.png" width="400">
-  <img src="2.png" width="400">
-</p>
-<p align="center">
-  <img src="3.png" width="400">
-  <img src="5.png" width="400">
-</p>
-<p align="center">
-  <img src="4.png" width="400">
+  <img src="screenshot.png" width="800">
 </p>
 
 ---
@@ -135,10 +127,12 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Conan Exiles | 443030 | 40 | 7777 | |
 | Core Keeper | 1963720 | 8 | 27015 | |
 | DayZ | 223350 | 60 | 2302 | 🔑 |
+| Enshrouded | 2278520 | 16 | 15636 | |
 | Don't Starve Together | 343050 | 10 | 10999 | |
 | Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
 | Longvinter | 1639880 | 32 | 7777 | |
 | Necesse | 1169370 | 32 | 14159 | |
+| Icarus | 2089300 | 8 | 17777 | |
 | No One Survived | 2329680 | 50 | 7777 | |
 | Palworld | 2394010 | 32 | 8211 | |
 | Project Zomboid | 380870 | 32 | 16261 | |
@@ -147,6 +141,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Rust | 258550 | 100 | 28015 | |
 | SCUM | 3792580 | 32 | 10000 | |
 | Sons of the Forest | 2465200 | 8 | 8766 | |
+| Soulmask | 3017310 | 20 | 8777 | |
 | Sunkenland | 2667530 | 8 | 27015 | |
 | Survive the Nights | 1502300 | 16 | 7777 | |
 | The Forest | 556450 | 64 | 27017 | 🔑 |
@@ -155,6 +150,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | V Rising | 1829350 | 40 | 9876 | |
 | Valheim | 896660 | 10 | 2456 | |
 | Vein | 2131400 | 16 | 7777 | |
+| Wind Rose | 4129620 | 16 | 7777 | |
 
 ### FPS
 | Game | Steam AppID | Max Players | Port | |
