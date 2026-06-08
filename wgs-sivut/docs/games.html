@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supported Games - WGS Documentation</title>
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top, #1a2333 0%, #0d1117 60%);
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --accent-color: #00adff;
+            --text-color: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --border-color: #30363d;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg-color); background-image: var(--bg-gradient); background-repeat: no-repeat; background-attachment: fixed; color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px 20px 60px 20px; }
+        nav { display: flex; justify-content: center; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(48, 54, 61, 0.4); flex-wrap: wrap; gap: 16px; }
+        .nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
+        nav a { color: #8b949e; text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+        nav a:hover, nav a.active { color: var(--accent-color); }
+        .back-home { font-weight: bold; color: var(--text-bright) !important; }
+        header { padding: 50px 0 30px 0; text-align: center; }
+        h1 { color: var(--text-bright); font-size: 2.5rem; margin: 0 0 10px 0; }
+        .subtitle { color: #8b949e; font-size: 1.2rem; max-width: 600px; margin: 0 auto; }
+        
+        #gameSearch { width: 100%; max-width: 500px; padding: 12px 20px; margin: 30px auto; display: block; border-radius: 8px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-bright); font-size: 1rem; }
+        
+        .games-section { margin-top: 20px; }
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 40px; }
+        .game-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; text-align: center; }
+        .game-card h3 { color: var(--text-bright); margin: 0 0 5px 0; font-size: 1rem; }
+        .game-meta { font-size: 0.75rem; color: #8b949e; }
+        
+        .custom-plugin-notice { background: rgba(0, 173, 255, 0.05); border: 1px solid var(--accent-color); border-radius: 8px; padding: 30px; text-align: center; margin-top: 40px; }
+        .btn-action { display: inline-block; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 15px; }
+        footer { text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--border-color); color: #8b949e; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="../index.html" class="back-home" style="display:flex;align-items:center;gap:6px;"><img src="../logo.png" alt="WGS" style="height:22px;"></a>
+                <a href="installation.html">Installation</a>
+                <a href="features.html">Features</a>
+                <a href="games.html" class="active">50+ Games</a>
+                <a href="discord.html">Discord Bot</a>
+                <a href="web-api.html">REST API</a>
+                <a href="troubleshooting.html">Troubleshooting</a>
+            <a href="manual.html">Manual</a>
+            </div>
+        </nav>
+        
+        <header>
+            <h1>Supported Dedicated Servers</h1>
+            <p class="subtitle">WGS natively supports 50+ major titles out of the box. More can be added with the Plugin Creator.</p>
+            <input type="text" id="gameSearch" placeholder="Search for a game..." onkeyup="filterGames()">
+        </header>
+
+        <section class="games-section">
+            <div class="games-grid" id="gamesGrid">
+                <div class="game-card"><h3>7 Days to Die</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>American Truck Simulator</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>ARK: Survival Ascended</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Arma 2</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Arma 3</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Arma Reforger</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>ASKA</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Assetto Corsa</h3><span class="game-meta">Custom</span></div>
+                <div class="game-card"><h3>Assetto Corsa Competizione</h3><span class="game-meta">Custom</span></div>
+                <div class="game-card"><h3>Astroneer</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Barotrauma</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Black Mesa</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Conan Exiles</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Core Keeper</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Counter-Strike 2</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>DayZ</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Don't Starve Together</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Empyrion</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Euro Truck Simulator 2</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Garry's Mod</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Insurgency: Sandstorm</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Killing Floor 2</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Longvinter</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Minecraft</h3><span class="game-meta">Java/Bedrock</span></div>
+                <div class="game-card"><h3>Mordhau</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Necesse</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>No One Survived</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Palworld</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Project Zomboid</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>RedM</h3><span class="game-meta">Custom</span></div>
+                <div class="game-card"><h3>Return to Moria</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Rising World</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Rust</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Satisfactory</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>SCUM</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Sons of the Forest</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Space Engineers</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Squad</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>STN</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Sunkenland</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Team Fortress 2</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Terraria</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>The Forest</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>The Isle</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Unturned</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>V Rising</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Valheim</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Vein</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Windrose</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Wreckfest</h3><span class="game-meta">SteamCMD</span></div>
+                <div class="game-card"><h3>Wreckfest 2</h3><span class="game-meta">SteamCMD</span></div>
+            </div>
+        </section>
+
+        <script>
+            function filterGames() {
+                let input = document.getElementById('gameSearch').value.toLowerCase();
+                let cards = document.getElementsByClassName('game-card');
+                for (let i = 0; i < cards.length; i++) {
+                    let title = cards[i].getElementsByTagName("h3")[0].innerText.toLowerCase();
+                    cards[i].style.display = title.includes(input) ? "" : "none";
+                }
+            }
+        </script>
+        
+        <section class="custom-plugin-notice">
+            <h2>Your favorite game missing?</h2>
+            <p>WGS features a graphical <strong>Plugin Creator wizard</strong>. Map out ports, execution paths, and query protocols for any dedicated server — no coding required.</p>
+            <a href="features.html#plugin-creator" class="btn-action">Read about Plugin Creator</a>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 MadBee71 / Windows Game Server &mdash; <a href="https://wgsserver.com" style="color:#8b949e;text-decoration:none;">wgsserver.com</a> &mdash; Released under the MIT License.</p>
+        </footer>
+    </div>
+</body>
+</html>
