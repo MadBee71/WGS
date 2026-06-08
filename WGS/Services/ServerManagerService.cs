@@ -27,7 +27,6 @@ public class ServerInstance
 
 public class ServerManagerService
 {
-    private readonly ConfigService         _config;
     private readonly NetworkMonitorService _network;
     private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
 
@@ -38,7 +37,6 @@ public class ServerManagerService
 
     public ServerManagerService(ConfigService config, NetworkMonitorService network)
     {
-        _config  = config;
         _network = network;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => KillAll();
     }

@@ -67,26 +67,16 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["IpAddress"]            = "0.0.0.0",
-        ["GamePort"]             = "8766",
-        ["QueryPort"]            = "27016",
-        ["BlobSyncPort"]         = "9700",
-        ["MaxPlayers"]           = "8",
-        ["GameDifficulty"]       = "Normal",
-        ["EnemyDifficulty"]      = "Normal",
-        ["ServerPassword"]       = "",
-        ["SkipIntro"]            = "true",
-        ["RegenerationEnabled"]  = "true",
+        ["GameDifficulty"]      = "Normal",
+        ["RegenerationEnabled"] = "true",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "GameDifficulty",  Label = "Pelitaso",   FieldType = ConfigFieldType.Dropdown, DefaultValue = "Normal", Options = ["Peaceful","Normal","Hard","HardSurvival"] },
-            new() { Key = "EnemyDifficulty", Label = "Vihollistaso",FieldType = ConfigFieldType.Dropdown, DefaultValue = "Normal", Options = ["Peaceful","Normal","Hard","HardSurvival"] },
-            new() { Key = "SkipIntro",       Label = "Ohita intro", FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
-            new() { Key = "RegenerationEnabled", Label = "Regeneraatio", FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
+            new() { Key = "GameDifficulty",      Label = "Pelitaso",    FieldType = ConfigFieldType.Dropdown, DefaultValue = "Normal", Options = ["Peaceful","Normal","Hard","HardSurvival"] },
+            new() { Key = "RegenerationEnabled", Label = "Regeneraatio", FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
         ]);
         return fields;
     }
