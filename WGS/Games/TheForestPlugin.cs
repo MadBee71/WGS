@@ -51,7 +51,7 @@ public class TheForestPlugin : GamePluginBase, IWorkshopPlugin
             new() { Key = "difficulty",   Label = "Vaikeustaso",   FieldType = ConfigFieldType.Dropdown, DefaultValue = "Normal", Options = ["Peaceful","Normal","Hard","HardSurvival"] },
             new() { Key = "caves",        Label = "Luolat",        FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
             new() { Key = "enemies",      Label = "Viholliset",    FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
-            new() { Key = "vegan",        Label = "Vegan-tila",    FieldType = ConfigFieldType.Toggle,   DefaultValue = "false" },
+            new() { Key = "vegan",        Label = "Vegan mode",    FieldType = ConfigFieldType.Toggle,   DefaultValue = "false" },
         ]);
         return fields;
     }

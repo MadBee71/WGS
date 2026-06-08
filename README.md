@@ -3,7 +3,7 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-1.0.2-blue)
+  ![Version](https://img.shields.io/badge/version-1.1.0-blue)
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
@@ -78,8 +78,9 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 |---|---|
 | 📊 **System dashboard** | Global CPU, RAM and disk usage across all running servers |
 | 📈 **Per-server performance charts** | CPU and RAM history graphs (last 6 minutes) per server |
-| 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
+| 👥 **Player management** | Session tracking, total playtime per player and player list — stored in SQLite |
 | 🔮 **Crash prediction** | Detects rapid RAM growth, sustained CPU load and memory leaks — warns before a crash happens |
+| 🌐 **Bandwidth monitoring** | Real-time per-server and global network I/O (bytes in/out per second, active connections) |
 
 ### Automation
 | Feature | Description |
@@ -92,15 +93,17 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 |---|---|
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
 | 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
-| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics endpoints |
+| 🌐 **REST API + Web dashboard** | Built-in HTTP server with a browser-accessible dashboard — start/stop/status/metrics/log viewer |
 | 🖥️ **Multi-machine management** | Run WGS as a slave agent on any PC or VPS — master sees and controls all machines in one window |
 
 ### Configuration & mods
 | Feature | Description |
 |---|---|
 | 📝 **Config editor** | Browse and edit any server config file directly inside WGS |
+| 📁 **File browser** | Full in-app file manager — browse, rename, delete and download server files without leaving WGS |
 | 🔩 **Mod manager** | Install and update Oxide/uMod for Rust; manage plugins for Minecraft |
 | 🗂️ **Steam Workshop** | Install Workshop items for supported games via SteamCMD |
+| 📋 **Server templates** | Save any server configuration as a reusable template — deploy identical servers in seconds |
 
 ### System & extensibility
 | Feature | Description |
@@ -111,6 +114,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |
 | 🔔 **System tray** | Runs minimised in the background with tray notifications |
 | 🔒 **Encrypted credentials** | Steam login and Discord bot token encrypted with Windows DPAPI |
+| 👤 **User management** | Admin and Viewer roles with per-user API tokens, enable/disable accounts and full audit log |
 | ⬇️ **Console auto-scroll** | Console scrolls to latest output automatically; disables when you scroll up manually |
 | 🚀 **Start with Windows** | Optional registry entry to launch WGS automatically on login |
 
@@ -316,10 +320,12 @@ Register(new MyGamePlugin());
 │  ScheduledTaskService               │  ← Recurring automation tasks
 │  NotificationService                │  ← Discord webhooks
 │  DiscordBotService                  │  ← Discord bot (long-poll)
-│  WebApiService                      │  ← REST API (HttpListener)
+│  WebApiService                      │  ← REST API + web dashboard (HttpListener)
 │  RemoteMachineService               │  ← Multi-machine polling & control
 │  CrashPredictionService             │  ← RAM/CPU trend analysis
 │  ServerGroupService                 │  ← Server grouping
+│  TemplateService                    │  ← Server configuration templates
+│  UserService                        │  ← User accounts, roles, audit log
 └─────────────────────────────────────┘
          │
          ▼

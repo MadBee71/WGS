@@ -34,7 +34,7 @@ public class ASTRONEERPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "saveName", Label = "Save-nimi", FieldType = ConfigFieldType.Text, DefaultValue = "ASTRONEER" },
+            new() { Key = "saveName", Label = "Save name", FieldType = ConfigFieldType.Text, DefaultValue = "ASTRONEER" },
         ]);
         return fields;
     }

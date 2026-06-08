@@ -38,7 +38,7 @@ public class AmericanTruckSimulatorPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "configFile", Label = "Config-tiedosto", FieldType = ConfigFieldType.Text, DefaultValue = "server_config.sii" },
+            new() { Key = "configFile", Label = "Config file", FieldType = ConfigFieldType.Text, DefaultValue = "server_config.sii" },
         ]);
         return fields;
     }

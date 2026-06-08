@@ -37,7 +37,7 @@ public class SunkenlandPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "worldName", Label = "Maailman nimi", FieldType = ConfigFieldType.Text, DefaultValue = "SunkenWorld" },
+            new() { Key = "worldName", Label = "World name", FieldType = ConfigFieldType.Text, DefaultValue = "SunkenWorld" },
         ]);
         return fields;
     }

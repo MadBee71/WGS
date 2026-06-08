@@ -34,7 +34,7 @@ public class TerrariaPlugin : GamePluginBase
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "worldName", Label = "Maailman nimi", FieldType = ConfigFieldType.Text, DefaultValue = "World" },
+            new() { Key = "worldName", Label = "World name", FieldType = ConfigFieldType.Text, DefaultValue = "World" },
         ]);
         return fields;
     }

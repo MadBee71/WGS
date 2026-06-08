@@ -218,9 +218,9 @@ public class DiscordBotService : IDisposable
             var icon = s.Status switch
             {
                 ServerStatus.Running    => "🟢",
-                ServerStatus.Stopped    => "🔴",
-                ServerStatus.Starting   => "🟡",
-                ServerStatus.Stopping   => "🟡",
+                ServerStatus.Stopped    => "⚫",
+                ServerStatus.Starting   => "🔵",
+                ServerStatus.Stopping   => "🔵",
                 ServerStatus.Installing => "🔵",
                 ServerStatus.Updating   => "🔵",
                 ServerStatus.Error      => "💥",

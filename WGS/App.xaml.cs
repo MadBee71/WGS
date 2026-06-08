@@ -50,15 +50,15 @@ public partial class App : System.Windows.Application
             catch { }
         }
 
-        WriteLog("=== WGS käynnistyy ===");
+        WriteLog("=== WGS starting ===");
 
         // UI-säikeen poikkeukset
         DispatcherUnhandledException += (_, ex) =>
         {
             WriteLog($"DISPATCHER: {ex.Exception}");
             System.Windows.MessageBox.Show(
-                $"Virhe:\n{ex.Exception.Message}\n\nLoki: {logPath}",
-                "WGS — virhe", System.Windows.MessageBoxButton.OK,
+                $"Error:\n{ex.Exception.Message}\n\nLog: {logPath}",
+                "WGS — Error", System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Error);
             ex.Handled = true;
         };

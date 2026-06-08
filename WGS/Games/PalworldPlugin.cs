@@ -34,8 +34,8 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "serverDescription", Label = "Kuvaus",          FieldType = ConfigFieldType.Text,     DefaultValue = "Palworld Server" },
-            new() { Key = "adminPassword",      Label = "Admin-salasana",  FieldType = ConfigFieldType.Password, DefaultValue = "" },
+            new() { Key = "serverDescription", Label = "Description",          FieldType = ConfigFieldType.Text,     DefaultValue = "Palworld Server" },
+            new() { Key = "adminPassword",      Label = "Admin password",  FieldType = ConfigFieldType.Password, DefaultValue = "" },
         ]);
         return fields;
     }

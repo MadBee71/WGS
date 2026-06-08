@@ -6,7 +6,8 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-17+-orange)
+  ![Version](https://img.shields.io/badge/version-1.1.0-blue)
+  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 </div>
 
@@ -16,15 +17,20 @@
 
 | Feature | Description |
 |---|---|
-| 🎮 **17+ games** | Ready-made plugins for the most popular game servers |
+| 🎮 **50+ games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update with one click |
-| 🔄 **Auto Restart** | Automatic restart after crash |
+| 🔄 **Auto Restart** | Automatic restart after crash with crash-loop detection |
 | 💾 **Automatic backups** | Scheduled backups with configurable retention |
 | 🛡️ **Firewall management** | Windows Firewall rules managed automatically |
 | 📟 **RCON console** | Remote commands directly from the UI |
 | 📊 **System metrics** | CPU, RAM and drives in real time on the dashboard |
+| 🌐 **Bandwidth monitoring** | Per-server and global real-time network I/O |
 | ⚙️ **CPU Affinity** | Per-server core selection and process priority |
 | 🔧 **Custom Plugin Creator** | Add any game server without writing code |
+| 📁 **File browser** | In-app file manager for server directories |
+| 📋 **Server templates** | Save and redeploy server configurations instantly |
+| 👤 **User management** | Admin/Viewer roles, API tokens and audit log |
+| 🌐 **Web dashboard** | Browser-accessible server control panel and log viewer |
 | 🔔 **System tray** | Runs in background, notifications from tray icon |
 | 🔒 **Encrypted credentials** | Steam password and Discord webhook encrypted via DPAPI |
 
@@ -169,8 +175,12 @@ Register(new MyGamePlugin());
 │  FirewallService                    │  ← netsh / COM
 │  RconService                        │  ← Source RCON protocol
 │  SystemMetricsService               │  ← CPU / RAM / disk
+│  NetworkMonitorService              │  ← Per-server bandwidth & connections
 │  ScheduledTaskService               │  ← Task scheduler
 │  NotificationService                │  ← Discord webhooks
+│  WebApiService                      │  ← REST API + web dashboard
+│  TemplateService                    │  ← Server configuration templates
+│  UserService                        │  ← User accounts, roles, audit log
 └─────────────────────────────────────┘
          │
          ▼

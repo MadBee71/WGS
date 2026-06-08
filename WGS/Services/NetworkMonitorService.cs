@@ -95,7 +95,7 @@ public class NetworkMonitorService : IDisposable
             if (!_serverPids.IsEmpty)
                 UpdateServerStats(totalIn, totalOut);
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"[NetworkMonitor] Sample() error: {ex.Message}"); } // #6
     }
 
     private void UpdateServerStats(double totalIn, double totalOut)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,10 +18,10 @@ public class WgsUser
     public DateTime? LastLogin  { get; set; }
 
     public string RoleLabel    => Role == UserRole.Admin ? "Admin" : "Viewer";
-    public string StatusLabel  => IsEnabled ? "Aktiivinen" : "Poistettu käytöstä";
+    public string StatusLabel  => IsEnabled ? "Active" : "Disabled";
     public string LastLoginText => LastLogin.HasValue
         ? LastLogin.Value.ToString("dd.MM.yyyy HH:mm")
-        : "Ei koskaan";
+        : "Never";
 }
 
 public class AuditEntry
@@ -43,7 +44,7 @@ public class UserService
         var path = Path.Combine(config.AppDataPath, "users.db");
         _connectionString = $"Data Source={path}";
         try { EnsureSchema(); }
-        catch { _available = false; }
+        catch (Exception ex) { _available = false; Debug.WriteLine($"[UserService] DB init failed: {ex.Message}"); } // #5
     }
 
     private SqliteConnection OpenDb()
@@ -172,7 +173,7 @@ public class UserService
             RecordLogin(user.Id, user.Username, "password");
             return true;
         }
-        catch { return false; }
+        catch (Exception ex) { Debug.WriteLine($"[UserService] ValidatePassword error for '{username}': {ex.Message}"); return false; } // #5
     }
 
     private void RecordLogin(int userId, string username, string method)
@@ -203,6 +204,7 @@ public class UserService
             cmd.Parameters.AddWithValue("$r", role.ToString());
             cmd.Parameters.AddWithValue("$t", Guid.NewGuid().ToString("N"));
             cmd.ExecuteNonQuery();
+            WriteAudit("system", "create_user", $"user={username} role={role}", db); // #4: auditointi metodin sisään
         }
         catch { }
     }

@@ -37,7 +37,7 @@ public class ASKAPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "worldName", Label = "Maailman nimi", FieldType = ConfigFieldType.Text, DefaultValue = "ASKAWorld" },
+            new() { Key = "worldName", Label = "World name", FieldType = ConfigFieldType.Text, DefaultValue = "ASKAWorld" },
         ]);
         return fields;
     }

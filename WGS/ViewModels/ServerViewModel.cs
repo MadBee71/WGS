@@ -124,11 +124,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public List<CpuCoreItem> CpuCores { get; }
     public string[] PriorityOptions { get; } = ["Normal", "AboveNormal", "High", "BelowNormal", "RealTime"];
 
+    // ── Batch selection ───────────────────────────────────────────────────────
+    [ObservableProperty] private bool _isBatchSelected;
+    internal Action? BatchSelectionChanged { get; set; }
+    partial void OnIsBatchSelectedChanged(bool _) => BatchSelectionChanged?.Invoke();
+
     public string StatusColor => Server.Status switch
     {
         ServerStatus.Running      => "#3FB950",
-        ServerStatus.Starting     => "#D29922",
-        ServerStatus.Stopping     => "#D29922",
+        ServerStatus.Starting     => "#58A6FF",
+        ServerStatus.Stopping     => "#58A6FF",
+        ServerStatus.Stopped      => "#8B949E",
         ServerStatus.Installing   => "#58A6FF",
         ServerStatus.Updating     => "#58A6FF",
         ServerStatus.Error        => "#F85149",
@@ -1097,7 +1103,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         TemplateTagsInput   = string.Empty;
         TemplateDescription = string.Empty;
         RefreshTemplates();
-        AppendLog($"[Template] Tallennettu mallina \"{saved}\".", ConsoleMessageType.System);
+        AppendLog($"[Template] Saved as template \"{saved}\".", ConsoleMessageType.System);
     }
 
     [RelayCommand]
@@ -1132,7 +1138,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
             Title      = "Vie malli",
-            Filter     = "JSON-tiedosto|*.json",
+            Filter     = "JSON file|*.json",
             FileName   = SanitizeFileName(template.Name) + ".json",
             DefaultExt = ".json",
         };
@@ -1144,7 +1150,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         catch (Exception ex)
         {
-            AppendLog($"[Template] Vienti epäonnistui: {ex.Message}", ConsoleMessageType.Error);
+            AppendLog($"[Template] Export failed: {ex.Message}", ConsoleMessageType.Error);
         }
     }
 
@@ -1154,7 +1160,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
             Title     = "Tuo malleja",
-            Filter    = "JSON-tiedosto|*.json",
+            Filter    = "JSON file|*.json",
             Multiselect = true,
         };
         if (dlg.ShowDialog() != true) return;
@@ -1164,7 +1170,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             try   { total += _templates.Import(file); }
             catch (Exception ex)
             {
-                AppendLog($"[Template] Tuonti epäonnistui ({Path.GetFileName(file)}): {ex.Message}",
+                AppendLog($"[Template] Import failed ({Path.GetFileName(file)}): {ex.Message}",
                     ConsoleMessageType.Error);
             }
         }
@@ -1357,6 +1363,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _manager.CrashLimitReached -= OnCrashLimitReached;
         _steamCmd.OutputReceived   -= OnSteamOutput;
         _steamCmd.ProgressChanged  -= OnSteamProgress;
+        _network.ServerStatsUpdated -= OnServerStatsUpdated; // #1: estää muistivuodon poistetuille palvelimille
 
         StopUpdateTimer();
         StopPerfMonitoring();

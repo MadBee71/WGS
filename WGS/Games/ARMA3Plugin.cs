@@ -46,8 +46,8 @@ public class ARMA3Plugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "configFile",  Label = "Config-tiedosto", FieldType = ConfigFieldType.Text, DefaultValue = "server.cfg" },
-            new() { Key = "profileName", Label = "Profiilinimi",    FieldType = ConfigFieldType.Text, DefaultValue = "MyArmaServer" },
+            new() { Key = "configFile",  Label = "Config file", FieldType = ConfigFieldType.Text, DefaultValue = "server.cfg" },
+            new() { Key = "profileName", Label = "Profile name",    FieldType = ConfigFieldType.Text, DefaultValue = "MyArmaServer" },
             new() { Key = "mods",        Label = "Modit (-mod=)",   FieldType = ConfigFieldType.Text, DefaultValue = "" },
         ]);
         return fields;

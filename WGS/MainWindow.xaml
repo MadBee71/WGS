@@ -38,6 +38,17 @@
                         <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
                                Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <TextBlock Text="v1.1.0" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                        <!-- Update available badge -->
+                        <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}"
+                                Background="#1a3a1a" BorderBrush="{StaticResource AccentGreenBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="8,0,0,0"
+                                VerticalAlignment="Center" Cursor="Hand"
+                                ToolTip="{Binding LatestVersion, StringFormat='Version {0} available — click to download'}"
+                                MouseLeftButtonUp="UpdateBadge_Click">
+                            <TextBlock Text="{Binding LatestVersion, StringFormat='⬆ {0} available'}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentGreenBrush}"/>
+                        </Border>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                         <!-- stats -->
@@ -172,6 +183,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Loc.Servers}" FontSize="10" FontWeight="Bold"
                                            Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
@@ -186,7 +198,50 @@
                                     <ComboBoxItem Content="Game"   Tag="game-asc"/>
                                     <ComboBoxItem Content="Status" Tag="status"/>
                                 </ComboBox>
+                                <!-- Batch mode toggle -->
+                                <Button Grid.Column="2" Style="{StaticResource GhostButton}"
+                                        Width="24" Height="22" Padding="0" Margin="4,0,0,0"
+                                        Command="{Binding ToggleBatchModeCommand}"
+                                        ToolTip="Toggle batch selection mode">
+                                    <TextBlock FontSize="13" Text="☑"/>
+                                </Button>
                             </Grid>
+
+                            <!-- Batch toolbar — visible only in batch mode -->
+                            <Border Visibility="{Binding BatchMode, Converter={StaticResource BoolToVis}}"
+                                    Background="{StaticResource BgSurface2Brush}"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,1"
+                                    Padding="8,6">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock FontSize="11" Foreground="{StaticResource AccentBlueBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,6,0">
+                                            <Run Text="{Binding BatchSelectedCount, Mode=OneWay}"/>
+                                            <Run Text=" selected"/>
+                                        </TextBlock>
+                                        <Button Style="{StaticResource GhostButton}" FontSize="10" Height="20" Padding="5,1"
+                                                Content="All" Command="{Binding BatchSelectAllCommand}"
+                                                ToolTip="Select all servers"/>
+                                        <Button Style="{StaticResource GhostButton}" FontSize="10" Height="20" Padding="5,1"
+                                                Content="None" Command="{Binding BatchClearSelectionCommand}"
+                                                ToolTip="Clear selection"/>
+                                    </StackPanel>
+                                    <UniformGrid Rows="1" Columns="4">
+                                        <Button Style="{StaticResource PrimaryButton}" FontSize="10" Height="24" Margin="1"
+                                                Content="▶ Start" Command="{Binding BatchStartCommand}"
+                                                ToolTip="Start selected servers"/>
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                                Content="■ Stop" Command="{Binding BatchStopCommand}"
+                                                ToolTip="Stop selected servers"/>
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                                Content="↺ Restart" Command="{Binding BatchRestartCommand}"
+                                                ToolTip="Restart selected servers"/>
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                                Content="💾 Backup" Command="{Binding BatchBackupCommand}"
+                                                ToolTip="Backup selected servers"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
                             <ListBox ItemsSource="{Binding SortedServers}"
                                      SelectedItem="{Binding SelectedServer}"
                                      Background="Transparent" BorderThickness="0"
@@ -200,25 +255,33 @@
                                             </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
+                                            <!-- Batch checkbox — visible only in batch mode -->
+                                            <CheckBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                                      IsChecked="{Binding IsBatchSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,6,0"
+                                                      Visibility="{Binding DataContext.BatchMode,
+                                                          RelativeSource={RelativeSource AncestorType=ListBox},
+                                                          Converter={StaticResource BoolToVis}}"/>
                                             <!-- Game capsule image -->
-                                            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                                                     Width="64" Height="24" CornerRadius="3"
                                                     Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
                                                     ClipToBounds="True">
                                                 <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
                                                        RenderOptions.BitmapScalingMode="HighQuality"/>
                                             </Border>
-                                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" VerticalAlignment="Center">
+                                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Server.DisplayName}"
                                                            FontSize="13" FontWeight="SemiBold"
                                                            Foreground="{StaticResource TextPrimaryBrush}"/>
                                                 <TextBlock Text="{Binding Plugin.GameName}"
                                                            FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                             </StackPanel>
-                                            <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
+                                            <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="3"
                                                      Width="8" Height="8" VerticalAlignment="Center"
                                                      Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
                                         </Grid>

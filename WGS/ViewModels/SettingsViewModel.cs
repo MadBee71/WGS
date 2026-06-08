@@ -15,6 +15,7 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly SteamCmdService     _steamCmd;
     private readonly DiscordBotService   _bot;
     private readonly WebApiService       _webApi;
+    private readonly UPnPService         _upnp;
 
     // ── Webhook notifications ─────────────────────────────────────────────────
     [ObservableProperty] private bool   _discordEnabled;
@@ -47,6 +48,10 @@ public partial class SettingsViewModel : BaseViewModel
 
     // ── Crash Prediction ──────────────────────────────────────────────────────
     [ObservableProperty] private bool   _crashPredictionDiscord;
+
+    // ── UPnP ─────────────────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _enableUPnP;
+    [ObservableProperty] private string _upnpStatus = string.Empty;
 
     // ── General / paths ───────────────────────────────────────────────────────
     [ObservableProperty] private string _defaultInstallRoot  = string.Empty;
@@ -81,13 +86,15 @@ public partial class SettingsViewModel : BaseViewModel
     }
 
     public SettingsViewModel(NotificationService notifications, ConfigService config,
-                             SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi)
+                             SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi,
+                             UPnPService upnp)
     {
         _notifications = notifications;
         _config        = config;
         _steamCmd      = steamCmd;
         _bot           = bot;
         _webApi        = webApi;
+        _upnp          = upnp;
         _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => BotStatus = msg);
         Load();
     }
@@ -119,6 +126,7 @@ public partial class SettingsViewModel : BaseViewModel
         SlaveMode                = _config.SlaveMode;
         SlaveName                = _config.SlaveName;
         CrashPredictionDiscord   = _config.CrashPredictionDiscord;
+        EnableUPnP               = _config.EnableUPnP;
         StartWithWindows         = GetStartWithWindows();
     }
 
@@ -150,6 +158,7 @@ public partial class SettingsViewModel : BaseViewModel
         _config.SlaveMode              = SlaveMode;
         _config.SlaveName              = SlaveName;
         _config.CrashPredictionDiscord = CrashPredictionDiscord;
+        _config.EnableUPnP             = EnableUPnP;
         _config.Save(); // single save — all settings written atomically
 
         System.IO.Directory.CreateDirectory(BackupPath);
@@ -250,5 +259,13 @@ public partial class SettingsViewModel : BaseViewModel
         WpfMsgBox.Show(ok ? "Bot test message sent! Check your Discord channel." : "Test failed. Check Token and Channel ID.",
             "Discord Bot", WpfMsgBoxButton.OK,
             ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
+    }
+
+    [RelayCommand]
+    private async Task TestUPnPAsync()
+    {
+        UpnpStatus = "⏳ Discovering router...";
+        var ok = await _upnp.DiscoverAsync();
+        UpnpStatus = ok ? "🟢 Router found — UPnP is available" : "🔴 Router not found or UPnP is disabled";
     }
 }

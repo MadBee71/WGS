@@ -43,8 +43,8 @@ public class ARMA2Plugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "configFile",  Label = "Config-tiedosto", FieldType = ConfigFieldType.Text, DefaultValue = "server.cfg" },
-            new() { Key = "profileName", Label = "Profiilinimi",    FieldType = ConfigFieldType.Text, DefaultValue = "MyArma2Server" },
+            new() { Key = "configFile",  Label = "Config file", FieldType = ConfigFieldType.Text, DefaultValue = "server.cfg" },
+            new() { Key = "profileName", Label = "Profile name",    FieldType = ConfigFieldType.Text, DefaultValue = "MyArma2Server" },
         ]);
         return fields;
     }

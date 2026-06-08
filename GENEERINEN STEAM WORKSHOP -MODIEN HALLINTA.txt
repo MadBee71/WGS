@@ -1,0 +1,177 @@
+Toteuta tämä WGS-arkkitehtuuria noudattaen:
+
+SPEKSIT: GENEERINEN STEAM WORKSHOP -MODIEN HALLINTA KAIKILLE TUETUILLE PELEILLE
+KOHTA 1: TAVOITE JA LAAJUUS
+Tavoitteena on toteuttaa geneerinen ja helposti laajennettava Steam Workshop -modien hallintajärjestelmä osaksi Windows Game Server (WGS) -arkkitehtuuria. Sen sijaan, että modilogiikka kovakoodattaisiin erikseen jokaiselle pelille, luodaan joustava rakenne. Siinä ydintoiminnot kuten modien lataaminen ja päivittäminen keskitetään yhdelle taustapalvelulle, kun taas pelikohtaiset liitännäiset (pluginat) hoitavat omat asennuserikoisuutensa, kuten symlinkkien luonnit, suojausavaimien siirrot, asetustiedostojen muokkaukset ja palvelimen käynnistysargumenttien muotoilut. Järjestelmän tulee kattaa kaikki WGS:n tukemat pelit, joissa on Steam AppID ja jotka sallivat modien lataamisen Steam Workshopista.
+
+KOHTA 2: ARKKITEHTUURI JA TIETOKANTA
+Laajennetaan olemassa olevaa IGamePlugin-rajapintaa luomalla uusi IWorkshopSupportedPlugin-rajapinta. Tämä rajapinta kertoo järjestelmälle, tukeeko peli Workshop-modeja, ja määrittää seuraavat vaatimukset:
+
+WorkshopAppId: Kokonaisluku, joka määrittää modien lataukseen käytettävän Steam AppID:n (yleensä sama kuin pelin oma AppID, mutta joissain peleissä eri).
+
+ModTargetDirectory: Merkkijono, joka kertoo polun, jonne peli odottaa modien asettuvan suhteessa palvelimen juurikansioon.
+
+OnModDownloadedAsync: Asynkroninen metodi, jota kutsutaan automaattisesti, kun modi on ladattu tai päivitetty.
+
+OnModRemovedAsync: Asynkroninen metodi, jota kutsutaan, kun modi poistetaan käytöstä tai järjestelmästä.
+
+BuildModArguments: Metodi, joka ottaa vastaan listan aktiivisista moditunnuksista ja palauttaa palvelimen tarvitsemat käynnistysargumenttilisäykset.
+
+Tietokantaan (SQLite) luodaan uusi taulu nimeltään ServerMods, jolla pidetään kirjaa palvelinkohtaisesti asennetuista modeista ja niiden tiloista. Taulun sarakkeet ovat:
+
+ServerId (Teksti): Viiteavain palvelininstanssiin.
+
+ModId (Teksti): Steam Workshop -modin yksilöllinen tunniste (Item ID).
+
+ModName (Teksti): Modin välimuistiin tallennettu nimi.
+
+IsEnabled (Kokonaisluku): Arvo 1 tarkoittaa, että modi on käytössä, ja arvo 0 tarkoittaa, että se on poistettu käytöstä.
+
+LastUpdated (Teksti): Aikaleima siitä, milloin modi on viimeksi päivitetty paikallisesti.
+
+KOHTA 3: YDINLOGIIKKA (SteamWorkshopService)
+Luodaan uusi taustapalvelu nimeltään SteamWorkshopService, joka ohjaa koko prosessia ja kommunikoi olemassa olevan SteamCmdServicen kanssa. Kun käyttäjä haluaa asentaa tai päivittää modin, palvelu toimii seuraavasti:
+
+Se tarkistaa ensin, tukeeko palvelimen plugina IWorkshopSupportedPlugin-rajapintaa. Jos ei tue, heitetään virheilmoitus.
+
+Palvelu kutsuu SteamCmdServiceä ja ajaa taustalla SteamCMD-komennon: +workshop_download_item [WorkshopAppId] [ModId] validate +quit
+
+Kun lataus on valmis, palvelu selvittää ladatun kansion sijainnin ja siirtää vastuun pelikohtaiselle pluginille kutsumalla sen OnModDownloadedAsync-metodia. Tämä hoitaa pelikohtaiset tiedostojärjestelyt.
+
+Lopuksi tallennetaan modin tiedot ja aktiivinen tila ServerMods-tietokantatauluun.
+
+KOHTA 4: PELIKOHTAISET ASENNUSVAATIMUKSET KAIKILLE LISTAN PELEILLE
+Jotta kaikki listasi pelit saavat tuen samalla logiikalla, jaetaan ne pelityypin ja asennusmekanismin mukaan neljään eri pääkategoriaan. Clauden tulee toteuttaa pelikohtaiset pluginat näiden sääntöjen mukaisesti:
+
+RYHMÄ A: SYMLINK- JA REUNA-AVAINPÄIVITYSTÄ VAATIVAT PELIT (Kuten DayZ ja Arma-sarja)
+Tähän ryhmään kuuluvat pelit, jotka vaativat modikansion linkittämisen palvelimen juureen tietyllä nimimerkillä sekä suojausavainten (.bikey) kopioinnin erilliseen avainkansioon, jotta palvelin hyväksyy pelaajat.
+
+DayZ (AppID: 221100)
+
+Arma 2: Operation Arrowhead (AppID: 33905)
+
+Arma 3 (AppID: 233780)
+
+Arma Reforger (AppID: 1874900)
+Asennuslogiikka: Modit latautuvat polkuun steamapps/workshop/content/[AppID]/[ModId]. OnModDownloadedAsync-metodin on luotava tästä kansiosta symbolinen linkki (symlink) palvelimen juurikansioon nimellä @[ModId] (tai @[ModinNimi]). Seuraavaksi pluginin täytyy skannata ladatun modikansion sisältä "keys" tai "key" -niminen alikansio ja kopioida kaikki sieltä löytyvät .bikey-tiedostot suoraan palvelimen juuren omaan "keys"-kansioon. OnModRemovedAsync poistaa symlinkin ja kyseisen modin .bikey-tiedostot. BuildModArguments palauttaa argumentit muodossa -mod=@mod1;@mod2;@mod3 (tai pelikohtaisen syntaksin mukaan).
+
+RYHMÄ B: ERITELTYYN MODS- TAI LISÄOSAKANSIOON ASENTUVAT PELIT
+Tähän ryhmään kuuluvat pelit, joissa palvelin tunnistaa modit automaattisesti, kunhan ne linkitetään tai sijoitetaan oikeaan alihakemistoon palvelimen juuressa.
+
+7 Days to Die (AppID: 294420)
+
+Conan Exiles (AppID: 443030)
+
+Project Zomboid (AppID: 380870)
+
+Garry's Mod (AppID: 4020)
+
+Counter-Strike 2 (AppID: 730)
+
+Black Mesa (AppID: 346680)
+
+Insurgency: Sandstorm (AppID: 581330)
+
+Team Fortress 2 (AppID: 232250)
+
+Core Keeper (AppID: 1963720)
+
+Barotrauma (AppID: 1026340)
+
+Necesse (AppID: 1169370)
+
+Unturned (AppID: 1110390)
+
+V Rising (AppID: 1829350)
+
+Valheim (AppID: 896660)
+
+Space Engineers (AppID: 298740)
+Asennuslogiikka: OnModDownloadedAsync-metodin on varmistettava, että pelin vaatima modikansio (esim. 7 Days to Die: "Mods", Conan Exiles: "Mods", Project Zomboid: "mods") on olemassa palvelimen juuressa. Sinne luodaan symlinkki tai hakemistoliitos (junction) suoraan ladatusta Workshop-kansiosta. Monissa Source-moottorin peleissä (CS2, GMod, TF2, Black Mesa, Insurgency) plugin linkittää .vpk- tai addon-tiedostot pelikansion "addons"- tai "maps"-kansioon. OnModRemovedAsync siivoaa luodut linkit tästä kansiosta. BuildModArguments ei useimmiten vaadi mitään, sillä pelit skannaavat nämä kansiot automaattisesti käynnistyksessä.
+
+RYHMÄ C: KARTTA- JA ASSET-LATAUKSET SEKÄ LIITÄNNÄISLAUTAAJAT (Kuten Rust ja simulaattorit)
+Tähän ryhmään kuuluvat pelit, joissa Workshop-latauksia käytetään custom-karttojen lataamiseen tai taustatyökaluna erilliselle modijärjestelmälle (kuten WGS:n olemassa olevalle Oxide/uMod-tuelle).
+
+Rust (AppID: 258550)
+
+ARK: Survival Evolved (AppID: 376030)
+
+ASKA (AppID: 3246670)
+
+ASTRONEER (AppID: 728470)
+
+Don't Starve Together (AppID: 343050)
+
+Empyrion - Galactic Survival (AppID: 530870)
+
+Longvinter (AppID: 1639880)
+
+No One Survived (AppID: 2329680)
+
+Palworld (AppID: 2394010)
+
+Return to Moria (AppID: 3349480)
+
+Rising World (AppID: 339010)
+
+Sons of the Forest (AppID: 2465200)
+
+Sunkenland (AppID: 2667530)
+
+Survive the Nights (AppID: 1502300)
+
+The Forest (AppID: 556450)
+
+The Isle (AppID: 412680)
+
+Vein (AppID: 2131400)
+
+Killing Floor 2 (AppID: 232130)
+
+MORDHAU (AppID: 629800)
+
+Satisfactory (AppID: 1690800)
+Asennuslogiikka: Plugin tarkistaa ladatun moditiedoston tyypin. Jos kyseessä on karttatiedosto (esim. Rustin .map tai Arkin karttapaketti), se linkitetään pelin karttakansioon (kuten server/[identity]/maps/). Pluginin BuildModArguments-metodi palauttaa peliä vastaavan käynnistysrivin argumentin (esim. Rustissa +server.levelurl "polku" tai ARK:issa kartan nimen argumenttina). Jos kyseessä on pelinsisäinen asset-modi, se sijoitetaan pelin Content-rakenteeseen pluginin määrittämään alikansioon.
+
+RYHMÄ D: CONFIG- TAI INI-TIEDOSTOJA PÄIVITTÄVÄT PELIT (Kuten simulaattorit ja SCUM)
+Tähän ryhmään kuuluvat pelit, joissa modeja ei syötetä käynnistysrivillä, vaan ne pitää kirjata palvelimen asetustiedostoihin (.ini, .cfg, .json).
+
+SCUM (AppID: 3792580)
+
+Assetto Corsa (AppID: 302550)
+
+Assetto Corsa Competizione (AppID: 1430110)
+
+Wreckfest (AppID: 361580)
+
+Wreckfest 2 (AppID: 3519390)
+
+Squad (AppID: 403240)
+
+American Truck Simulator (AppID: 2239530)
+
+Euro Truck Simulator 2 (AppID: 1948160)
+Asennuslogiikka: OnModDownloadedAsync luo tarvittavat linkitykset pelin Content- tai Asset-kansioon. Tämän jälkeen plugin avaa ohjelmallisesti palvelimen asetustiedoston (esimerkiksi SCUM_ServerSettings.ini tai Wreckfestin server_config.cfg) ja kirjoittaa/päivittää ladatun modin ID:n ja polun suoraan sille varatun modiosion (kuten [Mods]) alle. OnModRemovedAsync poistaa kyseisen modirivin asetustiedostosta ja siivoaa linkitykset. BuildModArguments ei tee muutoksia runtime-käynnistysriville, koska peli lukee modit suoraan muokatusta konfiguraatiotiedostosta.
+
+KOHTA 5: KÄYTTÖLIITTYMÄVAATIMUKSET (WPF / MVVM)
+Uusi toiminnallisuus sidotaan osaksi WGS:n nykyistä käyttöliittymää lisäämällä ServerDetailView-näkymään (ja vastaavaan ServerViewModeliin) uusi välilehti nimeltään "Mods". Välilehdelle toteutetaan seuraavat visuaaliset komponentit:
+
+Syötekenttä (TextBox) ja asennuspainike, johon käyttäjä voi liittää joko suoran Steam Workshop -sivun osoitteen tai pelkän modin ID-numeron. Painike käynnistää asennusprosessin taustalla.
+
+Lista- tai taulukkonäkymä (DataGrid / ListView), joka hakee ja näyttää kaikki kyseiselle palvelimelle asennetut modit ServerMods-tietokantataulusta.
+
+Valintaruutu (Checkbox / Toggle Switch) jokaisen modin kohdalla, josta modin voi napsauttaa nopeasti käyttöön tai pois käytöstä (muuttaa IsEnabled-arvoa tietokannassa). Jos modi on poistettu käytöstä, se jätetään pois palvelimen käynnistysargumenteista tai asetustiedostoista.
+
+Poistopainike, joka ajaa pluginin OnModRemovedAsync-metodin tiedostojen ja asetusten siivoamiseksi ja poistaa rivin tietokannasta.
+
+"Päivitä kaikki" -painike, joka käy läpi kaikki palvelimen aktiiviset modit ja ajaa niille SteamCMD-päivitystarkistuksen tiedostojen eheyden varmistamiseksi.
+
+Huomioi seuraavat asiat:
+
+SteamCMD:n kirjautumisvaatimukset (Anonymous vs Autentikoitu): Osa peleistä sallii Workshop-modien lataamisen nimettömänä (anonymous), mutta jotkut pelit vaativat voimassa olevan Steam-tilin kirjautumisen myös modien lataamiseen. WGS:ssä on jo DPAPI-salattu Steam-kirjautuminen, joten varmista, että SteamCmdService käyttää sitä aina tarvittaessa.
+
+Levytila ja Symlinkit (Oikosulut): Suunnitelmassa käytetyt symboliset linkit (symlink / junction) ovat paras tapa, koska silloin modi ladataan vain kerran SteamCMD:n kautta, ja sitä vain peilataan palvelimen kansioon. Tämä säästää jättimäisesti levytilaa (esim. Ark- ja DayZ-modit voivat viedä satoja gigatavuja). Varmista kuitenkin, että WGS ajaa prosessin järjestelmänvalvojana (Administrator), sillä Windows vaatii sen symlinkkien luomiseen.
+
+Modien päivitykset lennosta: Jos peli on käynnissä ja WGS yrittää päivittää modia taustalla, Windows lukitsee tiedostot ja päivitys epäonnistuu. Koodiin täytyy siis rakentaa esto: modeja voi päivittää vain silloin, kun kyseinen palvelin on sammutettu.
+
+Itse nykyisessä WGS:ssä jos poistat palvelimen ohjelmasta, serverin kansio jää edelleen kovalevylle, sille olisi hyvä olla valintaoptio että se poistetaan kokonaan samalla jos käyttäjä näin haluaa.

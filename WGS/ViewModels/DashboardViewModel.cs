@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WGS.Models;
 using WGS.Services;
 
 namespace WGS.ViewModels;
 
-public partial class DashboardViewModel : BaseViewModel
+public partial class DashboardViewModel : BaseViewModel, IDisposable // #2: IDisposable
 {
     private readonly SystemMetricsService  _metrics;
     private readonly NetworkMonitorService _network;
@@ -32,13 +33,24 @@ public partial class DashboardViewModel : BaseViewModel
         _network = network;
         _servers = servers;
 
-        _metrics.MetricsUpdated += OnMetricsUpdated;
-        _network.Updated        += OnNetworkUpdated;
-        _servers.CollectionChanged += (_, _) => UpdateServerCounts();
+        _metrics.MetricsUpdated    += OnMetricsUpdated;
+        _network.Updated           += OnNetworkUpdated;
+        _servers.CollectionChanged += OnServersChanged; // #2: nimetty — voidaan derekisteröidä
 
         OnMetricsUpdated();
         UpdateServerCounts();
     }
+
+    // #2: Derekisteröi kaikki event-handlerit
+    public void Dispose()
+    {
+        _metrics.MetricsUpdated    -= OnMetricsUpdated;
+        _network.Updated           -= OnNetworkUpdated;
+        _servers.CollectionChanged -= OnServersChanged;
+    }
+
+    private void OnServersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => UpdateServerCounts();
 
     private void OnMetricsUpdated()
     {
