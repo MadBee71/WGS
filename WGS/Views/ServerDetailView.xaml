@@ -91,18 +91,18 @@
                     <ProgressBar Value="{Binding MemoryMb}" Maximum="16384" Width="120"
                                  Style="{StaticResource DarkProgressBar}" Foreground="{StaticResource AccentGreenBrush}"/>
                 </StackPanel>
-                <!-- Kaistanseuranta -->
+                <!-- Bandwidth -->
                 <StackPanel Margin="0,0,32,0" VerticalAlignment="Center">
-                    <TextBlock Text="Kaista ↓" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="Bandwidth ↓" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                     <TextBlock Text="{Binding NetIn}" FontSize="15" FontWeight="Bold"
                                Foreground="{StaticResource AccentGreenBrush}"/>
-                    <TextBlock Text="Kaista ↑" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="Bandwidth ↑" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
                     <TextBlock Text="{Binding NetOut}" FontSize="15" FontWeight="Bold"
                                Foreground="{StaticResource AccentBlueBrush}"/>
                 </StackPanel>
-                <!-- Yhteydet -->
+                <!-- Connections -->
                 <StackPanel Margin="0,0,32,0" VerticalAlignment="Center">
-                    <TextBlock Text="Yhteydet" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="Connections" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                     <TextBlock Text="{Binding ConnectionCount}" FontSize="22" FontWeight="Bold"/>
                 </StackPanel>
                 <!-- RCON status -->
