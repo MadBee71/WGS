@@ -1,4 +1,4 @@
-<UserControl x:Class="WGS.Views.SettingsView"
+﻿<UserControl x:Class="WGS.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource BgDeepBrush}">
@@ -328,6 +328,42 @@
                 </StackPanel>
             </Border>
 
+            <!-- UPnP -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="UPnP Port Forwarding" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
+                        Automatically opens and closes port mappings on your router when a server starts or stops.
+                        Requires UPnP to be enabled in your router settings.
+                    </TextBlock>
+                    <!-- Warning box -->
+                    <Border Background="#1A F85149" BorderBrush="#F85149" BorderThickness="1"
+                            CornerRadius="4" Padding="10,8" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="⚠  Use at your own risk" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="#F85149" Margin="0,0,0,4"/>
+                            <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                                UPnP automatically modifies your router's firewall rules without further confirmation.
+                                This can expose your network to unintended access if your router or game server is misconfigured.
+                                Only enable this if you understand the risks and fully trust your network environment.
+                                WGS takes no responsibility for security issues arising from UPnP usage.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox IsChecked="{Binding EnableUPnP}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable UPnP automatic port forwarding" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Test UPnP" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                                Command="{Binding TestUPnPCommand}"/>
+                        <TextBlock Text="{Binding UpnpStatus}" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
             <!-- General -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
@@ -388,7 +424,7 @@
                     <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.0.4" FontWeight="SemiBold"
+                        <Run Text="Windows Game Server (WGS) v1.1.0" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
                         <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>
@@ -492,18 +528,18 @@
                                             </StackPanel>
                                             <!-- Päänapit -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <Button Content="↕ Rooli" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                                <Button Content="↕ Role" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                                                         Command="{Binding DataContext.ChangeUserRoleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" ToolTip="Vaihda rooli Admin ↔ Viewer"/>
+                                                        CommandParameter="{Binding}" ToolTip="Toggle role Admin ↔ Viewer"/>
                                                 <Button Margin="0,0,4,0"
                                                         Command="{Binding DataContext.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" ToolTip="Ota käyttöön / poista käytöstä">
+                                                        CommandParameter="{Binding}" ToolTip="Enable / disable">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
-                                                            <Setter Property="Content" Value="⏸ Poista"/>
+                                                            <Setter Property="Content" Value="⏸ Disable"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsEnabled}" Value="False">
-                                                                    <Setter Property="Content" Value="▶ Aktivoi"/>
+                                                                    <Setter Property="Content" Value="▶ Activate"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -531,8 +567,8 @@
                                             <TextBox x:Name="PwChangeBox"
                                                      Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
                                                      Text="{Binding DataContext.UserChangePassword, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="Uusi salasana"/>
-                                            <Button Content="🔑 Vaihda salasana" Style="{StaticResource GhostButton}"
+                                                     ToolTip="New password"/>
+                                            <Button Content="🔑 Change password" Style="{StaticResource GhostButton}"
                                                     Command="{Binding DataContext.ChangeUserPasswordCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
@@ -545,7 +581,7 @@
                     <!-- Audit log -->
                     <StackPanel Margin="0,16,0,0">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="Tapahtumaloki" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock Text="Audit Log" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{StaticResource TextSecondaryBrush}"/>
                             <Button Content="↻" Style="{StaticResource GhostButton}" Width="28" Padding="0" Margin="8,0,0,0"
                                     Command="{Binding DataContext.RefreshAuditLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>

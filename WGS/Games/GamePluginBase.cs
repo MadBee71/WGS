@@ -61,8 +61,8 @@ public abstract class GamePluginBase : IGamePlugin
 
     protected List<ConfigField> BaseFields() =>
     [
-        new() { Key = "serverName",  Label = "Palvelimen nimi",   FieldType = ConfigFieldType.Text,     DefaultValue = GameName + " Server" },
+        new() { Key = "serverName",  Label = "Server name",   FieldType = ConfigFieldType.Text,     DefaultValue = GameName + " Server" },
         new() { Key = "maxPlayers",  Label = "Max pelaajat",      FieldType = ConfigFieldType.Number,   DefaultValue = DefaultMaxPlayers.ToString(), Min = 1, Max = 256 },
-        new() { Key = "serverPass",  Label = "Salasana",          FieldType = ConfigFieldType.Password, DefaultValue = "" },
+        new() { Key = "serverPass",  Label = "Password",          FieldType = ConfigFieldType.Password, DefaultValue = "" },
     ];
 }

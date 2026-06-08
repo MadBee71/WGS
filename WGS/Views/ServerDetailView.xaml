@@ -494,13 +494,13 @@
                         <!-- Templates -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,8">
                             <StackPanel>
-                                <TextBlock Text="Palvelinmallit" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="Server Templates" Style="{StaticResource SectionHeader}"/>
 
                                 <!-- Tallennuslomake -->
                                 <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
                                         Padding="10,8" Margin="0,4,0,10">
                                     <StackPanel>
-                                        <TextBlock Text="Tallenna nykyiset asetukset mallina"
+                                        <TextBlock Text="Save current settings as template"
                                                    FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -510,7 +510,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBox Style="{StaticResource DarkTextBox}"
                                                      Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="Mallin nimi (pakollinen)"/>
+                                                     ToolTip="Template name (required)"/>
                                             <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
                                                      Text="{Binding TemplateCategory, UpdateSourceTrigger=PropertyChanged}"
                                                      ToolTip="Kategoria (valinnainen)"/>
@@ -520,11 +520,11 @@
                                                  ToolTip="Tagit pilkulla eroteltuina, esim. pvp,hardcore,competitive"/>
                                         <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,6"
                                                  Text="{Binding TemplateDescription, UpdateSourceTrigger=PropertyChanged}"
-                                                 ToolTip="Kuvaus (valinnainen)"/>
+                                                 ToolTip="Description (optional)"/>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="💾 Tallenna mallina" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            <Button Content="💾 Save as template" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
                                                     Command="{Binding SaveAsTemplateCommand}"/>
-                                            <Button Content="📥 Tuo tiedostosta" Style="{StaticResource GhostButton}"
+                                            <Button Content="📥 Import from file" Style="{StaticResource GhostButton}"
                                                     Command="{Binding ImportTemplatesCommand}"/>
                                         </StackPanel>
                                     </StackPanel>
@@ -532,19 +532,19 @@
 
                                 <!-- Suodatuspalkki -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                    <TextBlock Text="Suodata:" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                    <TextBlock Text="Filter:" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
                                                VerticalAlignment="Center" Margin="0,0,6,0"/>
                                     <ComboBox Style="{StaticResource DarkComboBox}" Width="130" Margin="0,0,6,0"
                                               ItemsSource="{Binding AvailableCategories}"
                                               SelectedItem="{Binding TemplateFilterCategory}"
-                                              ToolTip="Suodata kategorian mukaan"/>
+                                              ToolTip="Filter by category"/>
                                     <TextBox Style="{StaticResource DarkTextBox}" Width="130"
                                              Text="{Binding TemplateFilterTag, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Suodata tagin mukaan"/>
+                                             ToolTip="Filter by tag"/>
                                 </StackPanel>
 
                                 <!-- Mallilista -->
-                                <TextBlock Text="Ei malleja tälle pelille." FontSize="12"
+                                <TextBlock Text="No templates for this game." FontSize="12"
                                            Foreground="{StaticResource TextMutedBrush}"
                                            Visibility="{Binding FilteredTemplates.Count, Converter={StaticResource ZeroToVis}}"/>
                                 <ItemsControl ItemsSource="{Binding FilteredTemplates}">
@@ -593,7 +593,7 @@
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <Button Content="↺" Style="{StaticResource GhostButton}"
                                                                 Width="32" Padding="0" Margin="0,0,2,0"
-                                                                ToolTip="Sovella tämä malli"
+                                                                ToolTip="Apply this template"
                                                                 Command="{Binding DataContext.ApplyTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"/>
                                                         <Button Content="⎘" Style="{StaticResource GhostButton}"
@@ -608,7 +608,7 @@
                                                                 CommandParameter="{Binding}"/>
                                                         <Button Content="🗑" Style="{StaticResource DangerButton}"
                                                                 Width="32" Padding="0"
-                                                                ToolTip="Poista malli"
+                                                                ToolTip="Delete template"
                                                                 Command="{Binding DataContext.DeleteTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"/>
                                                     </StackPanel>
@@ -992,7 +992,7 @@
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Button Content="↻ Päivitä" Style="{StaticResource GhostButton}"
+                                <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
                                         Command="{Binding RefreshPlayersCommand}"/>
                             </StackPanel>
                             <!-- Manuaalinen kick/ban (fallback jos RCON ei tue playerlistia) -->
@@ -1002,7 +1002,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBox Style="{StaticResource DarkTextBox}" Width="160" Margin="0,0,6,0"
                                              Text="{Binding PlayerInput, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Nimi tai SteamID"/>
+                                             ToolTip="Name or SteamID"/>
                                     <TextBox Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
                                              Text="{Binding KickReason, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="Kick-perustelu"/>
@@ -1023,7 +1023,7 @@
                                 BorderThickness="0">
 
                         <!-- ── Pelaa nyt ── -->
-                        <TabItem Header="🟢 Pelaa nyt">
+                        <TabItem Header="🟢 Playing now">
                             <Grid Background="{StaticResource BgDeepBrush}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1034,15 +1034,15 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center">
                                             <Run Text="{Binding OnlinePlayers.Count, Mode=OneWay}"/>
-                                            <Run Text=" pelaajaa paikalla"/>
+                                            <Run Text=" players online"/>
                                         </TextBlock>
-                                        <TextBlock Text="  • päivittyy 15 s välein" FontSize="11"
+                                        <TextBlock Text="  • updates every 15 s" FontSize="11"
                                                    Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,8">
                                     <StackPanel>
-                                        <TextBlock Text="Ei pelaajia tai RCON ei ole yhdistetty."
+                                        <TextBlock Text="No players or RCON is not connected."
                                                    FontSize="12" Foreground="{StaticResource TextMutedBrush}"
                                                    Visibility="{Binding OnlinePlayers.Count,
                                                        Converter={StaticResource ZeroToVis}}"/>
@@ -1120,10 +1120,10 @@
                         </TabItem>
 
                         <!-- ── Sessiohistoria ── -->
-                        <TabItem Header="📋 Historia">
+                        <TabItem Header="📋 History">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
                                 <StackPanel>
-                                    <TextBlock Text="Viimeisimmät sessiot" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock Text="Recent sessions" Style="{StaticResource SectionHeader}"/>
                                     <ItemsControl ItemsSource="{Binding PlayerHistory}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -1155,7 +1155,7 @@
                                                         <Border Grid.Column="3" VerticalAlignment="Center"
                                                                 Background="#1A3A2A" CornerRadius="4" Padding="6,2"
                                                                 Visibility="{Binding IsOnline, Converter={StaticResource BoolToVis}}">
-                                                            <TextBlock Text="● Paikalla" FontSize="10"
+                                                            <TextBlock Text="● Online" FontSize="10"
                                                                        Foreground="{StaticResource AccentGreenBrush}"/>
                                                         </Border>
                                                     </Grid>
@@ -1168,10 +1168,10 @@
                         </TabItem>
 
                         <!-- ── Tilastot ── -->
-                        <TabItem Header="📊 Tilastot">
+                        <TabItem Header="📊 Statistics">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
                                 <StackPanel>
-                                    <TextBlock Text="Pelaajatilastot (top 50)" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock Text="Player statistics (top 50)" Style="{StaticResource SectionHeader}"/>
                                     <ItemsControl ItemsSource="{Binding PlayerStatsList}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -1207,7 +1207,7 @@
                                                                        Foreground="{StaticResource AccentGreenBrush}"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="3" VerticalAlignment="Center">
-                                                            <TextBlock Text="Viimeksi nähty" FontSize="10"
+                                                            <TextBlock Text="Last seen" FontSize="10"
                                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                                             <TextBlock Text="{Binding LastSeen, StringFormat='dd.MM.yyyy HH:mm'}"
                                                                        FontSize="11"/>
@@ -1401,11 +1401,11 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="↑" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
-                                        ToolTip="Ylös" Command="{Binding FileBrowser.GoUpCommand}"
+                                        ToolTip="Up" Command="{Binding FileBrowser.GoUpCommand}"
                                         IsEnabled="{Binding FileBrowser.CanGoUp}"/>
                                 <Button Content="↻" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
-                                        ToolTip="Päivitä" Command="{Binding FileBrowser.RefreshCommand}"/>
-                                <Button Content="📁 Uusi kansio" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                        ToolTip="Refresh" Command="{Binding FileBrowser.RefreshCommand}"/>
+                                <Button Content="📁 New folder" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                                         Command="{Binding FileBrowser.CreateFolderCommand}"/>
                                 <Button Content="🗔 Explorer" Style="{StaticResource GhostButton}" Margin="0,0,12,0"
                                         Command="{Binding FileBrowser.OpenInExplorerCommand}"/>
@@ -1415,7 +1415,7 @@
                             <!-- Hakukenttä -->
                             <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Width="200"
                                      Text="{Binding FileBrowser.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Hae tiedostoa nimellä"/>
+                                     ToolTip="Search by filename"/>
                         </Grid>
                     </Border>
 
@@ -1447,7 +1447,7 @@
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,1" Padding="12,6"
                                 Visibility="{Binding FileBrowser.ShowRenameBox, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Uusi nimi:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                                <TextBlock Text="New name:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
                                            Foreground="{StaticResource TextMutedBrush}"/>
                                 <TextBox Style="{StaticResource DarkTextBox}" Width="300"
                                          Text="{Binding FileBrowser.NewName, UpdateSourceTrigger=PropertyChanged}">
@@ -1478,7 +1478,7 @@
                                       Background="{StaticResource BgDeepBrush}" BorderThickness="0">
                                 <ListView.View>
                                     <GridView>
-                                        <GridViewColumn Header="Nimi" Width="260">
+                                        <GridViewColumn Header="Name" Width="260">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Orientation="Horizontal">
@@ -1488,9 +1488,9 @@
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
-                                        <GridViewColumn Header="Koko" Width="80"
+                                        <GridViewColumn Header="Size" Width="80"
                                                         DisplayMemberBinding="{Binding SizeText}"/>
-                                        <GridViewColumn Header="Muokattu" Width="130"
+                                        <GridViewColumn Header="Modified" Width="130"
                                                         DisplayMemberBinding="{Binding Modified}"/>
                                     </GridView>
                                 </ListView.View>
@@ -1502,20 +1502,20 @@
                                 </ListView.InputBindings>
                                 <ListView.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Avaa / Navigoi"
+                                        <MenuItem Header="Open / Navigate"
                                                   Command="{Binding FileBrowser.OpenCommand}"
                                                   CommandParameter="{Binding FileBrowser.SelectedItem}"/>
-                                        <MenuItem Header="✏ Muokkaa tekstinä"
+                                        <MenuItem Header="✏ Edit as text"
                                                   Command="{Binding FileBrowser.EditSelectedItemCommand}"/>
-                                        <MenuItem Header="📥 Lataa tiedostoon"
+                                        <MenuItem Header="📥 Download"
                                                   Command="{Binding FileBrowser.DownloadFileCommand}"
                                                   CommandParameter="{Binding FileBrowser.SelectedItem}"/>
                                         <Separator/>
-                                        <MenuItem Header="Nimeä uudelleen"
+                                        <MenuItem Header="Rename"
                                                   Command="{Binding FileBrowser.RenameItemCommand}"
                                                   CommandParameter="{Binding FileBrowser.SelectedItem}"/>
                                         <Separator/>
-                                        <MenuItem Header="🗑 Poista"
+                                        <MenuItem Header="🗑 Delete"
                                                   Command="{Binding FileBrowser.DeleteItemCommand}"
                                                   CommandParameter="{Binding FileBrowser.SelectedItem}"/>
                                     </ContextMenu>
@@ -1575,10 +1575,10 @@
                                             Padding="10,6" BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="0,1,0,0">
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="💾 Tallenna" Style="{StaticResource SuccessButton}"
+                                            <Button Content="💾 Save" Style="{StaticResource SuccessButton}"
                                                     Margin="0,0,8,0"
                                                     Command="{Binding FileBrowser.SaveEditCommand}"/>
-                                            <Button Content="Sulje" Style="{StaticResource GhostButton}"
+                                            <Button Content="Close" Style="{StaticResource GhostButton}"
                                                     Command="{Binding FileBrowser.CloseEditorCommand}"/>
                                             <TextBlock Margin="12,0,0,0" FontSize="11"
                                                        Foreground="{StaticResource TextMutedBrush}"

@@ -128,7 +128,7 @@ public class NotificationService
         var (title, color) = status switch
         {
             ServerStatus.Running  when _settings.NotifyOnStart  => ($"✅ {server.DisplayName} started", "#3FB950"),
-            ServerStatus.Stopped  when _settings.NotifyOnStop   => ($"⛔ {server.DisplayName} stopped", "#F85149"),
+            ServerStatus.Stopped  when _settings.NotifyOnStop   => ($"⛔ {server.DisplayName} stopped", "#8B949E"),
             ServerStatus.Error    when _settings.NotifyOnCrash  => ($"💥 {server.DisplayName} crashed!", "#F85149"),
             ServerStatus.Updating when _settings.NotifyOnUpdate => ($"🔄 {server.DisplayName} updating", "#58A6FF"),
             _ => (null, null)

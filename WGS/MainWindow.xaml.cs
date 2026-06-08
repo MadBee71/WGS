@@ -32,6 +32,13 @@ public partial class MainWindow : Window
     private void MaximizeClick(object sender, RoutedEventArgs e)
         => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
+    private void UpdateBadge_Click(object sender, MouseButtonEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+            WGS.Services.UpdateCheckerService.ReleasesUrl) { UseShellExecute = true }); }
+        catch { }
+    }
+
     private void CloseClick(object sender, RoutedEventArgs e)
     {
         var dlg = new WGS.Views.CloseDialog { Owner = this };

@@ -102,12 +102,12 @@ public partial class FileBrowserViewModel : ObservableObject
     {
         if (!IsPathSafe(path))
         {
-            StatusText = "Virhe: Polku ei kuulu palvelimen juurikansioon.";
+            StatusText = "Error: Path is outside the server root folder.";
             return;
         }
         if (!Directory.Exists(path))
         {
-            StatusText = "Virhe: Kansiota ei löydy.";
+            StatusText = "Error: Folder not found.";
             return;
         }
         CurrentPath = path;
@@ -149,7 +149,7 @@ public partial class FileBrowserViewModel : ObservableObject
             StatusText = $"{Items.Count} kohdetta  —  {CurrentPath}";
             ApplySearch();
         }
-        catch (Exception ex) { StatusText = $"Virhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
     }
 
     private void ApplySearch()
@@ -177,7 +177,7 @@ public partial class FileBrowserViewModel : ObservableObject
         if (item == null) return;
         if (!IsPathSafe(item.FullPath))
         {
-            StatusText = "Virhe: Polku ei kuulu palvelimen juurikansioon.";
+            StatusText = "Error: Path is outside the server root folder.";
             return;
         }
         if (item.IsDir)
@@ -189,7 +189,7 @@ public partial class FileBrowserViewModel : ObservableObject
             // Ei-muokattavat tiedostot avataan järjestelmällä
             try { System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo(item.FullPath) { UseShellExecute = true }); }
-            catch (Exception ex) { StatusText = $"Virhe avattaessa: {ex.Message}"; }
+            catch (Exception ex) { StatusText = $"Error opening: {ex.Message}"; }
         }
     }
 
@@ -207,13 +207,13 @@ public partial class FileBrowserViewModel : ObservableObject
 
     public void OpenForEdit(FileItem item)
     {
-        if (!IsPathSafe(item.FullPath)) { StatusText = "Tietoturvavirhe: polku hylätty."; return; }
+        if (!IsPathSafe(item.FullPath)) { StatusText = "Security error: path rejected."; return; }
         if (item.IsDir) return;
 
         var info = new FileInfo(item.FullPath);
         if (info.Length > MaxEditableBytes)
         {
-            StatusText = $"Tiedosto on liian suuri muokattavaksi ({FormatSize(info.Length)} > 2 MB).";
+            StatusText = $"File is too large to edit ({FormatSize(info.Length)} > 2 MB).";
             return;
         }
         try
@@ -224,7 +224,7 @@ public partial class FileBrowserViewModel : ObservableObject
             EditorDirty      = false;
             IsEditing        = true;
         }
-        catch (Exception ex) { StatusText = $"Virhe avattaessa: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error opening: {ex.Message}"; }
     }
 
     [RelayCommand]
@@ -238,15 +238,15 @@ public partial class FileBrowserViewModel : ObservableObject
     private void SaveEdit()
     {
         if (!IsEditing || string.IsNullOrEmpty(_editingFullPath)) return;
-        if (!IsPathSafe(_editingFullPath)) { StatusText = "Tietoturvavirhe: tallennus hylätty."; return; }
+        if (!IsPathSafe(_editingFullPath)) { StatusText = "Security error: save rejected."; return; }
         try
         {
             File.WriteAllText(_editingFullPath, EditorContent);
             EditorDirty = false;
-            StatusText  = $"Tallennettu: {EditingFileName}";
+            StatusText  = $"Saved: {EditingFileName}";
             Refresh();
         }
-        catch (Exception ex) { StatusText = $"Tallennusvirhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Save error: {ex.Message}"; }
     }
 
     [RelayCommand]
@@ -255,7 +255,7 @@ public partial class FileBrowserViewModel : ObservableObject
         if (EditorDirty)
         {
             var r = System.Windows.MessageBox.Show(
-                "Tallentamattomat muutokset — suljetaanko silti?", "Vahvista",
+                "Unsaved changes — close anyway?", "Confirm",
                 System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
             if (r != System.Windows.MessageBoxResult.Yes) return;
         }
@@ -275,11 +275,11 @@ public partial class FileBrowserViewModel : ObservableObject
     private void DownloadFile(FileItem? item)
     {
         if (item == null || item.IsDir) return;
-        if (!IsPathSafe(item.FullPath)) { StatusText = "Tietoturvavirhe: lataus hylätty."; return; }
+        if (!IsPathSafe(item.FullPath)) { StatusText = "Security error: load rejected."; return; }
 
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Title      = "Lataa tiedosto",
+            Title      = "Upload file",
             FileName   = item.Name,
             Filter     = "Kaikki tiedostot|*.*",
             DefaultExt = Path.GetExtension(item.Name),
@@ -288,9 +288,9 @@ public partial class FileBrowserViewModel : ObservableObject
         try
         {
             File.Copy(item.FullPath, dlg.FileName, overwrite: true);
-            StatusText = $"Ladattu: {dlg.FileName}";
+            StatusText = $"Uploaded: {dlg.FileName}";
         }
-        catch (Exception ex) { StatusText = $"Latausvirhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Upload error: {ex.Message}"; }
     }
 
     // ── Kansion luonti ────────────────────────────────────────────────────────
@@ -298,11 +298,11 @@ public partial class FileBrowserViewModel : ObservableObject
     [RelayCommand]
     private void CreateFolder()
     {
-        var name = $"Uusi kansio {DateTime.Now:HHmmss}";
+        var name = $"New folder {DateTime.Now:HHmmss}";
         var path = Path.Combine(CurrentPath, name);
-        if (!IsPathSafe(path)) { StatusText = "Tietoturvavirhe: kansion luonti hylätty."; return; }
+        if (!IsPathSafe(path)) { StatusText = "Security error: folder creation rejected."; return; }
         try { Directory.CreateDirectory(path); Refresh(); }
-        catch (Exception ex) { StatusText = $"Virhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
     }
 
     // ── Poisto ────────────────────────────────────────────────────────────────
@@ -311,10 +311,10 @@ public partial class FileBrowserViewModel : ObservableObject
     private void DeleteItem(FileItem? item)
     {
         if (item == null) return;
-        if (!IsPathSafe(item.FullPath)) { StatusText = "Tietoturvavirhe: poisto hylätty."; return; }
+        if (!IsPathSafe(item.FullPath)) { StatusText = "Security error: delete rejected."; return; }
 
         var result = System.Windows.MessageBox.Show(
-            $"Poistetaanko \"{item.Name}\"?", "Vahvista",
+            $"Delete \"{item.Name}\"?", "Confirm",
             System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (result != System.Windows.MessageBoxResult.Yes) return;
         try
@@ -323,7 +323,7 @@ public partial class FileBrowserViewModel : ObservableObject
             else            File.Delete(item.FullPath);
             Refresh();
         }
-        catch (Exception ex) { StatusText = $"Virhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
     }
 
     // ── Nimeäminen ────────────────────────────────────────────────────────────
@@ -332,7 +332,7 @@ public partial class FileBrowserViewModel : ObservableObject
     private void RenameItem(FileItem? item)
     {
         if (item == null) return;
-        if (!IsPathSafe(item.FullPath)) { StatusText = "Tietoturvavirhe."; return; }
+        if (!IsPathSafe(item.FullPath)) { StatusText = "Security error."; return; }
         NewName       = item.Name;
         ShowRenameBox = true;
         SelectedItem  = item;
@@ -349,12 +349,12 @@ public partial class FileBrowserViewModel : ObservableObject
         // Estä polkusegmentit uudessa nimessä
         if (NewName.Contains('/') || NewName.Contains('\\') || NewName.Contains(".."))
         {
-            StatusText    = "Virhe: Nimi ei saa sisältää polkuerottimia.";
+            StatusText    = "Error: Name must not contain path separators.";
             ShowRenameBox = false;
             return;
         }
         var dest = Path.Combine(CurrentPath, NewName);
-        if (!IsPathSafe(dest)) { StatusText = "Tietoturvavirhe: kohde hylätty."; ShowRenameBox = false; return; }
+        if (!IsPathSafe(dest)) { StatusText = "Security error: destination rejected."; ShowRenameBox = false; return; }
         try
         {
             if (SelectedItem.IsDir) Directory.Move(SelectedItem.FullPath, dest);
@@ -362,7 +362,7 @@ public partial class FileBrowserViewModel : ObservableObject
             ShowRenameBox = false;
             Refresh();
         }
-        catch (Exception ex) { StatusText = $"Virhe: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
     }
 
     [RelayCommand]

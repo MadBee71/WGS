@@ -33,6 +33,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly ScheduledTaskService      _scheduler;
     private readonly RemoteMachineService      _remoteMachines;
     private readonly CrashPredictionService    _crashPrediction;
+    private readonly UPnPService               _upnp;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -59,11 +60,46 @@ public partial class MainViewModel : BaseViewModel
     public bool ShowServerGrid =>
         !ShowDashboard && !ShowSupport && !ShowMachines && SelectedRemoteServer == null;
 
-    partial void OnShowDashboardChanged(bool _)      => OnPropertyChanged(nameof(ShowServerGrid));
-    partial void OnShowSupportChanged(bool _)        => OnPropertyChanged(nameof(ShowServerGrid));
-    partial void OnShowMachinesChanged(bool _)       => OnPropertyChanged(nameof(ShowServerGrid));
-    partial void OnSelectedRemoteServerChanged(RemoteServerViewModel? _) => OnPropertyChanged(nameof(ShowServerGrid));
+    // Laskettu: näytä etäpalvelimen hallintanäkymä
+    public bool ShowRemoteDetail =>
+        SelectedRemoteServer != null && !ShowDashboard && !ShowSupport && !ShowMachines;
+
+    partial void OnShowDashboardChanged(bool _)
+    {
+        OnPropertyChanged(nameof(ShowServerGrid));
+        OnPropertyChanged(nameof(ShowRemoteDetail));
+    }
+    partial void OnShowSupportChanged(bool _)
+    {
+        OnPropertyChanged(nameof(ShowServerGrid));
+        OnPropertyChanged(nameof(ShowRemoteDetail));
+    }
+    partial void OnShowMachinesChanged(bool _)
+    {
+        OnPropertyChanged(nameof(ShowServerGrid));
+        OnPropertyChanged(nameof(ShowRemoteDetail));
+    }
+    partial void OnSelectedRemoteServerChanged(RemoteServerViewModel? _)
+    {
+        OnPropertyChanged(nameof(ShowServerGrid));
+        OnPropertyChanged(nameof(ShowRemoteDetail));
+    }
     [ObservableProperty] private string _sortMode = "name-asc";
+
+    // ── Update checker ────────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _updateAvailable;
+    [ObservableProperty] private string _latestVersion = string.Empty;
+
+    // ── Batch operations ──────────────────────────────────────────────────────
+    [ObservableProperty] private bool _batchMode;
+    public int BatchSelectedCount => Servers.Count(s => s.IsBatchSelected);
+
+    partial void OnBatchModeChanged(bool value)
+    {
+        if (!value)
+            foreach (var s in Servers) s.IsBatchSelected = false;
+        OnPropertyChanged(nameof(BatchSelectedCount));
+    }
 
     // ── Add Machine dialog fields ─────────────────────────────────────────────
     [ObservableProperty] private string _newMachineName  = string.Empty;
@@ -99,7 +135,8 @@ public partial class MainViewModel : BaseViewModel
         SteamWorkshopService workshop, WorkshopDbService workshopDb,
         NetworkMonitorService network, TemplateService templates, UserService users,
         ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
-        RemoteMachineService remoteMachines, CrashPredictionService crashPrediction)
+        RemoteMachineService remoteMachines, CrashPredictionService crashPrediction,
+        UPnPService upnp)
     {
         _config          = config;
         _manager         = manager;
@@ -124,10 +161,12 @@ public partial class MainViewModel : BaseViewModel
         _scheduler       = scheduler;
         _remoteMachines  = remoteMachines;
         _crashPrediction = crashPrediction;
+        _upnp            = upnp;
         Settings         = settings;
         Dashboard        = new DashboardViewModel(metrics, network, Servers);
 
-        manager.StatusChanged += (_, _) =>
+        manager.StatusChanged += (id, status) =>
+        {
             WpfApplication.Current.Dispatcher.Invoke(() =>
             {
                 OnPropertyChanged(nameof(RunningCount));
@@ -135,8 +174,23 @@ public partial class MainViewModel : BaseViewModel
                 _tray.SetStatus(RunningCount, TotalServers);
             });
 
+            // UPnP — add port mappings when server starts, remove when stopped/error
+            if (_config.EnableUPnP)
+            {
+                var server = Servers.FirstOrDefault(v => v.Server.Id == id)?.Server;
+                if (server != null)
+                {
+                    if (status == ServerStatus.Running)
+                        _ = _upnp.AddPortsForServerAsync(server);
+                    else if (status is ServerStatus.Stopped or ServerStatus.Error)
+                        _ = _upnp.RemovePortsForServerAsync(server);
+                }
+            }
+        };
+
         Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedServers));
         LoadServers();
+        _ = CheckForUpdateAsync();
 
         // Wire up Discord bot callbacks
         _bot.GetServers    = () => Servers.Select(v => v.Server);
@@ -293,9 +347,72 @@ public partial class MainViewModel : BaseViewModel
 
     private ServerViewModel? FindServer(string id) => Servers.FirstOrDefault(v => v.Server.Id == id);
 
+    [RelayCommand]
+    private void ToggleBatchMode() => BatchMode = !BatchMode;
+
+    [RelayCommand]
+    private void BatchSelectAll()
+    {
+        foreach (var s in Servers) s.IsBatchSelected = true;
+        OnPropertyChanged(nameof(BatchSelectedCount));
+    }
+
+    [RelayCommand]
+    private void BatchClearSelection()
+    {
+        foreach (var s in Servers) s.IsBatchSelected = false;
+        OnPropertyChanged(nameof(BatchSelectedCount));
+    }
+
+    [RelayCommand]
+    private async Task BatchStartAsync()
+    {
+        var targets = Servers.Where(s => s.IsBatchSelected && s.CanStart).ToList();
+        foreach (var vm in targets)
+            await vm.StartCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private async Task BatchStopAsync()
+    {
+        var targets = Servers.Where(s => s.IsBatchSelected && s.CanStop).ToList();
+        foreach (var vm in targets)
+            await vm.StopCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private async Task BatchRestartAsync()
+    {
+        var targets = Servers.Where(s => s.IsBatchSelected && s.IsRunning).ToList();
+        foreach (var vm in targets)
+            await vm.RestartCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private async Task BatchBackupAsync()
+    {
+        var targets = Servers.Where(s => s.IsBatchSelected).ToList();
+        foreach (var vm in targets)
+            await vm.CreateBackupCommand.ExecuteAsync(null);
+    }
+
+    private async Task CheckForUpdateAsync()
+    {
+        var (hasUpdate, latest) = await Services.UpdateCheckerService.CheckAsync();
+        if (hasUpdate)
+        {
+            UpdateAvailable = true;
+            LatestVersion   = latest;
+        }
+    }
+
     private ServerViewModel MakeVm(GameServer srv)
-        => new(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
+    {
+        var vm = new ServerViewModel(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
                _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler, _network);
+        vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));
+        return vm;
+    }
 
     [RelayCommand]
     private void OpenAddDialog()
@@ -422,8 +539,8 @@ public partial class MainViewModel : BaseViewModel
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(
-                    $"Tiedostojen poisto epäonnistui:\n{ex.Message}",
-                    "Virhe", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    $"File deletion failed:\n{ex.Message}",
+                    "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
 
@@ -529,7 +646,7 @@ public partial class MainViewModel : BaseViewModel
     {
         if (user == null) return;
         var result = System.Windows.MessageBox.Show(
-            $"Poistetaanko käyttäjä \"{user.Username}\"?", "Vahvista",
+            $"Delete user \"{user.Username}\"?", "Confirm",
             System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (result != System.Windows.MessageBoxResult.Yes) return;
         _users.DeleteUser(user.Id, "admin");

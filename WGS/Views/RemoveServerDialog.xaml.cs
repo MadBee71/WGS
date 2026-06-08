@@ -9,7 +9,7 @@ public partial class RemoveServerDialog : System.Windows.Window
     public RemoveServerDialog(string serverName)
     {
         InitializeComponent();
-        TitleText.Text = $"Poista \"{serverName}\"?";
+        TitleText.Text = $"Remove \"{serverName}\"?";
     }
 
     private void CancelClick(object s, System.Windows.RoutedEventArgs e)

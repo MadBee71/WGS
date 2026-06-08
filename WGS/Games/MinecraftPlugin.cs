@@ -47,8 +47,8 @@ public class MinecraftPlugin : GamePluginBase
             new() { Key = "ramGb",      Label = "RAM (GB)",        FieldType = ConfigFieldType.Slider,   DefaultValue = "4",  Min = 1, Max = 32 },
             new() { Key = "jarFile",    Label = "Server JAR",      FieldType = ConfigFieldType.Text,     DefaultValue = "server.jar" },
             new() { Key = "difficulty", Label = "Vaikeustaso",     FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
-            new() { Key = "gamemode",   Label = "Pelitila",        FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
-            new() { Key = "onlineMode", Label = "Online-tila",     FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
+            new() { Key = "gamemode",   Label = "Game mode",        FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
+            new() { Key = "onlineMode", Label = "Online mode",     FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
         ]);
         return fields;
     }

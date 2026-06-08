@@ -44,7 +44,7 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "worldName",  Label = "Maailman nimi",  FieldType = ConfigFieldType.Text,   DefaultValue = "Dedicated" },
+            new() { Key = "worldName",  Label = "World name",  FieldType = ConfigFieldType.Text,   DefaultValue = "Dedicated" },
             new() { Key = "crossplay",  Label = "Crossplay",      FieldType = ConfigFieldType.Toggle, DefaultValue = "false" },
             new() { Key = "public",     Label = "Julkinen lista",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
         ]);

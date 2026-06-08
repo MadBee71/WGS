@@ -39,7 +39,7 @@ public class NecessePlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "worldName", Label = "Maailman nimi", FieldType = ConfigFieldType.Text, DefaultValue = "MyWorld" },
+            new() { Key = "worldName", Label = "World name", FieldType = ConfigFieldType.Text, DefaultValue = "MyWorld" },
         ]);
         return fields;
     }

@@ -41,9 +41,9 @@ public partial class PluginCreatorViewModel : BaseViewModel
     {
         ErrorMessage = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(GameName))   { ErrorMessage = "Pelin nimi on pakollinen."; return; }
+        if (string.IsNullOrWhiteSpace(GameName))   { ErrorMessage = "Game name is required."; return; }
         if (string.IsNullOrWhiteSpace(GameId))     { ErrorMessage = "Pelin ID on pakollinen."; return; }
-        if (string.IsNullOrWhiteSpace(Executable)) { ErrorMessage = "Suoritettava tiedosto on pakollinen."; return; }
+        if (string.IsNullOrWhiteSpace(Executable)) { ErrorMessage = "Executable is required."; return; }
 
         var def = new CustomGameDefinition
         {

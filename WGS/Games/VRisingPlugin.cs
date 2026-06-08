@@ -36,8 +36,8 @@ public class VRisingPlugin : GamePluginBase
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "saveName",    Label = "Save-nimi", FieldType = ConfigFieldType.Text, DefaultValue = "world1" },
-            new() { Key = "description", Label = "Kuvaus",    FieldType = ConfigFieldType.Text, DefaultValue = "V Rising Dedicated Server" },
+            new() { Key = "saveName",    Label = "Save name", FieldType = ConfigFieldType.Text, DefaultValue = "world1" },
+            new() { Key = "description", Label = "Description",    FieldType = ConfigFieldType.Text, DefaultValue = "V Rising Dedicated Server" },
         ]);
         return fields;
     }

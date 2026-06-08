@@ -252,8 +252,8 @@ public class WebApiService : IDisposable
                 var id     = parts[2];
                 var action = parts.Length >= 4 ? parts[3] : string.Empty;
 
-                // Viewer ei saa käynnistää, pysäyttää eikä lähettää komentoja
-                var writeActions = new[] { "start", "stop", "restart", "update", "cmd" };
+                // Viewer ei saa käynnistää, pysäyttää, varmuuskopioida eikä lähettää komentoja
+                var writeActions = new[] { "start", "stop", "restart", "update", "cmd", "backup" }; // #3: backup lisätty
                 if (isViewer && Array.IndexOf(writeActions, action) >= 0)
                 {
                     resp.StatusCode = 403;
@@ -373,7 +373,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .dot.Running{color:#3fb950;background:#3fb950}
 .dot.Stopped,.dot.NotInstalled{color:#8b949e;background:#8b949e}
 .dot.Error{color:#f85149;background:#f85149}
-.dot.Starting,.dot.Stopping,.dot.Installing,.dot.Updating{color:#d29922;background:#d29922}
+.dot.Starting,.dot.Stopping,.dot.Installing,.dot.Updating{color:#58a6ff;background:#58a6ff}
 .srv-name{font-weight:600;font-size:14px}
 .srv-meta{font-size:11px;color:#8b949e;margin-top:2px}
 .srv-uptime{font-size:11px;color:#3fb950;font-family:Consolas,monospace;margin-top:2px}
@@ -434,10 +434,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
   <div class="auth-card">
     <h2>WGS Dashboard</h2>
     <div class="field"><label>Access Token</label>
-      <input type="password" id="tokInp" placeholder="Syötä token…"
+      <input type="password" id="tokInp" placeholder="Enter token…"
              onkeydown="if(event.key==='Enter')connect()">
     </div>
-    <button class="btn-full" onclick="connect()">Yhdistä</button>
+    <button class="btn-full" onclick="connect()">Connect</button>
   </div>
 </div>
 
@@ -447,14 +447,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
     <!-- System metrics -->
     <div class="sysbar">
       <div class="sysc"><div class="lbl">CPU</div><div class="val" id="sCpu">—</div></div>
-      <div class="sysc"><div class="lbl">Muisti</div><div class="val" id="sMem">—</div><div class="sub" id="sMemSub"></div></div>
-      <div class="sysc"><div class="lbl">Käynnissä</div><div class="val" id="sRun">—</div><div class="sub" id="sTotal"></div></div>
-      <div class="sysc"><div class="lbl">Kaista ↓</div><div class="val" id="sNetIn">—</div></div>
-      <div class="sysc"><div class="lbl">Kaista ↑</div><div class="val" id="sNetOut">—</div></div>
+      <div class="sysc"><div class="lbl">Memory</div><div class="val" id="sMem">—</div><div class="sub" id="sMemSub"></div></div>
+      <div class="sysc"><div class="lbl">Running</div><div class="val" id="sRun">—</div><div class="sub" id="sTotal"></div></div>
+      <div class="sysc"><div class="lbl">BW ↓</div><div class="val" id="sNetIn">—</div></div>
+      <div class="sysc"><div class="lbl">BW ↑</div><div class="val" id="sNetOut">—</div></div>
     </div>
     <!-- Servers -->
     <div class="sec-hdr">
-      <h2>Palvelimet</h2>
+      <h2>Servers</h2>
     </div>
     <div class="srv-grid" id="srvGrid"></div>
   </div>
@@ -496,10 +496,10 @@ async function loadAll(){
     document.getElementById('appWrap').style.display='';
     renderSys(sys,sv);
     renderServers(sv);
-    document.getElementById('refreshTxt').textContent='Päivitetty '+new Date().toLocaleTimeString('fi');
+    document.getElementById('refreshTxt').textContent='Updated '+new Date().toLocaleTimeString('en');
     if(!refreshIv)refreshIv=setInterval(loadAll,5000);
   }catch(e){
-    document.getElementById('conBadge').textContent='Ei yhteyttä';
+    document.getElementById('conBadge').textContent='No connection';
     document.getElementById('conBadge').className='badge err';
   }
 }
@@ -522,9 +522,9 @@ function sc(s){return{Running:'Running',Stopped:'Stopped',NotInstalled:'Stopped'
   Error:'Error',Starting:'Starting',Stopping:'Stopping',
   Installing:'Installing',Updating:'Updating'}[s]||'Stopped';}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function statusLabel(s){return{Running:'Käynnissä',Stopped:'Pysäytetty',NotInstalled:'Ei asennettu',
-  Error:'Virhe',Starting:'Käynnistyy…',Stopping:'Pysähtyy…',
-  Installing:'Asentuu…',Updating:'Päivittyy…'}[s]||s;}
+function statusLabel(s){return{Running:'Running',Stopped:'Stopped',NotInstalled:'Not installed',
+  Error:'Error',Starting:'Starting…',Stopping:'Stopping…',
+  Installing:'Installing…',Updating:'Updating…'}[s]||s;}
 
 function renderServers(list){
   const grid=document.getElementById('srvGrid');
@@ -568,10 +568,10 @@ function upsertCard(s){
   <button class="btn bo" onclick="act('${s.Id}','backup')">💾 Backup</button>
 </div>
 <div class="con-row">
-  <input id="c_${s.Id}" placeholder="Konsolikomento…">
-  <button class="btn bo" onclick="sendCmd('${s.Id}')">Lähetä</button>
+  <input id="c_${s.Id}" placeholder="Console command…">
+  <button class="btn bo" onclick="sendCmd('${s.Id}')">Send</button>
 </div>
-<button class="log-toggle" onclick="toggleLog('${s.Id}')">▼ Konsoliloki</button>
+<button class="log-toggle" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
 <div class="log-box" id="log_${s.Id}"></div>
 `;
   // Fetch detail (uptime + players) async
@@ -636,13 +636,13 @@ async function pollLog(id){
 // ── Actions ───────────────────────────────────────────────────────────────
 async function act(id,a){
   try{await api('servers/'+id+'/'+a,'POST');toast(a);setTimeout(loadAll,1500);}
-  catch(e){toast('Virhe: '+e,true);}
+  catch(e){toast('Error: '+e,true);}
 }
 async function sendCmd(id){
   const el=document.getElementById('c_'+id);
   if(!el||!el.value.trim())return;
-  try{await api('servers/'+id+'/cmd','POST',{command:el.value});el.value='';toast('Lähetetty');}
-  catch(e){toast('Virhe',true);}
+  try{await api('servers/'+id+'/cmd','POST',{command:el.value});el.value='';toast('Sent');}
+  catch(e){toast('Error',true);}
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────

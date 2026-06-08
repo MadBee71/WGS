@@ -39,7 +39,7 @@ public class DSTPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "cluster", Label = "Cluster-nimi", FieldType = ConfigFieldType.Text, DefaultValue = "MyDediServer" },
+            new() { Key = "cluster", Label = "Cluster name", FieldType = ConfigFieldType.Text, DefaultValue = "MyDediServer" },
             new() { Key = "shard",   Label = "Shard",        FieldType = ConfigFieldType.Dropdown, DefaultValue = "Master",
                     Options = ["Master","Caves"] },
         ]);
