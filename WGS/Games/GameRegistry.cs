@@ -34,6 +34,7 @@ public static class GameRegistry
         Register(new NecessePlugin());
         Register(new RisingWorldPlugin());
         Register(new SunkenlandPlugin());
+        Register(new WindRosePlugin());
         // FPS
         Register(new CS2Plugin());
         Register(new BlackMesaPlugin());
