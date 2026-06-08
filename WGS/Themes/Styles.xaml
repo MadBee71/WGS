@@ -9,8 +9,6 @@
     <conv:NullToVisibilityConverter        x:Key="NullToVis"/>
     <conv:NullToInverseVisibilityConverter x:Key="NullToInvVis"/>
     <conv:StringToColorBrushConverter      x:Key="StrToColor"/>
-    <conv:StatusToEmojiConverter           x:Key="StatusEmoji"/>
-    <conv:TimeSpanToStringConverter        x:Key="TimeSpanStr"/>
     <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
     <conv:ZeroToInverseVisibilityConverter x:Key="ZeroToInvVis"/>
     <conv:BoolToGridLengthConverter        x:Key="BoolToGridLength"/>

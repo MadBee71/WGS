@@ -60,23 +60,6 @@ public class StringToColorBrushConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
-public class StatusToEmojiConverter : IValueConverter
-{
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v?.ToString() switch
-        {
-            "Running"      => "●",
-            "Starting"     => "◌",
-            "Stopping"     => "◌",
-            "Installing"   => "↓",
-            "Updating"     => "↑",
-            "Error"        => "✕",
-            "NotInstalled" => "○",
-            _              => "○",
-        };
-    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
-}
-
 public class ZeroToVisibilityConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)
@@ -88,19 +71,6 @@ public class ZeroToInverseVisibilityConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)
         => v is int i && i > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
-}
-
-public class TimeSpanToStringConverter : IValueConverter
-{
-    public object Convert(object v, Type t, object p, CultureInfo c)
-    {
-        if (v is TimeSpan ts)
-            return ts.TotalSeconds < 60 ? $"{(int)ts.TotalSeconds}s"
-                 : ts.TotalMinutes < 60 ? $"{(int)ts.TotalMinutes}m {ts.Seconds}s"
-                 : $"{(int)ts.TotalHours}h {ts.Minutes}m";
-        return "0s";
-    }
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
