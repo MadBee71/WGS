@@ -266,7 +266,7 @@
                     <!-- Machine list -->
                     <TextBlock Text="No machines added yet." FontSize="12" Foreground="{StaticResource TextMutedBrush}"
                                Margin="0,8,0,0"
-                               Visibility="{Binding DataContext.RemoteMachines.Count, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ZeroToVis}}"/>
+                               Visibility="{Binding DataContext.RemoteMachines.Count, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                     <ItemsControl ItemsSource="{Binding DataContext.RemoteMachines, RelativeSource={RelativeSource AncestorType=Window}}"
                                   Margin="0,4,0,0">
                         <ItemsControl.ItemTemplate>
@@ -338,12 +338,13 @@
                         Requires UPnP to be enabled in your router settings.
                     </TextBlock>
                     <!-- Warning box -->
-                    <Border Background="#1A F85149" BorderBrush="#F85149" BorderThickness="1"
-                            CornerRadius="4" Padding="10,8" Margin="0,0,0,12">
+                    <Border Background="#14F85149" BorderBrush="#F85149" BorderThickness="3,0,0,0"
+                            Padding="12,10" Margin="0,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="⚠  Use at your own risk" FontWeight="SemiBold" FontSize="12"
-                                       Foreground="#F85149" Margin="0,0,0,4"/>
-                            <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                            <TextBlock Text="WARNING" FontWeight="Bold" FontSize="11"
+                                       Foreground="#F85149" Margin="0,0,0,5"
+                                       FontFamily="Segoe UI"/>
+                            <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
                                 UPnP automatically modifies your router's firewall rules without further confirmation.
                                 This can expose your network to unintended access if your router or game server is misconfigured.
                                 Only enable this if you understand the risks and fully trust your network environment.

@@ -14,6 +14,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- CS8826: partial method parameter name mismatch with CommunityToolkit.Mvvm source generator (cosmetic only) -->
+    <NoWarn>CS8826</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <Optimize>true</Optimize>

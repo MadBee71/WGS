@@ -4,9 +4,10 @@ namespace WGS.Views;
 
 public partial class SettingsWindow : System.Windows.Window
 {
-    public SettingsWindow(SettingsViewModel vm)
+    public SettingsWindow(SettingsViewModel vm, object mainViewModel)
     {
         InitializeComponent();
+        DataContext = mainViewModel;
         SettingsViewControl.DataContext = vm;
     }
 

@@ -546,7 +546,7 @@
                                 <!-- Mallilista -->
                                 <TextBlock Text="No templates for this game." FontSize="12"
                                            Foreground="{StaticResource TextMutedBrush}"
-                                           Visibility="{Binding FilteredTemplates.Count, Converter={StaticResource ZeroToVis}}"/>
+                                           Visibility="{Binding FilteredTemplates.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                                 <ItemsControl ItemsSource="{Binding FilteredTemplates}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -570,7 +570,7 @@
                                                                        Text=" · " Margin="0"
                                                                        Visibility="{Binding Category.Length, Converter={StaticResource ZeroToVis}}"/>
                                                             <ItemsControl ItemsSource="{Binding Tags}"
-                                                                          Visibility="{Binding Tags.Count, Converter={StaticResource ZeroToVis}}">
+                                                                          Visibility="{Binding Tags.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}">
                                                                 <ItemsControl.ItemsPanel>
                                                                     <ItemsPanelTemplate>
                                                                         <WrapPanel Orientation="Horizontal"/>
@@ -903,7 +903,7 @@
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
                         <StackPanel>
                             <TextBlock Text="No scheduled tasks." FontSize="13" Foreground="{StaticResource TextMutedBrush}" Margin="0,12,0,0"
-                                       Visibility="{Binding ScheduledTasks.Count, Converter={StaticResource ZeroToVis}}"/>
+                                       Visibility="{Binding ScheduledTasks.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                             <ItemsControl ItemsSource="{Binding ScheduledTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1045,7 +1045,7 @@
                                         <TextBlock Text="No players or RCON is not connected."
                                                    FontSize="12" Foreground="{StaticResource TextMutedBrush}"
                                                    Visibility="{Binding OnlinePlayers.Count,
-                                                       Converter={StaticResource ZeroToVis}}"/>
+                                                       Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                                         <ItemsControl ItemsSource="{Binding OnlinePlayers}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
@@ -1304,7 +1304,7 @@
                                 <TextBlock Text="Installed Mods" Style="{StaticResource SectionHeader}"/>
                                 <TextBlock Text="No mods installed." FontSize="13"
                                            Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
-                                           Visibility="{Binding WorkshopDbMods.Count, Converter={StaticResource ZeroToVis}}"/>
+                                           Visibility="{Binding WorkshopDbMods.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                                 <ItemsControl ItemsSource="{Binding WorkshopDbMods}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -1349,7 +1349,7 @@
                                 <TextBlock Text="Search Results" Style="{StaticResource SectionHeader}"/>
                                 <TextBlock Text="Search above to find Workshop mods." FontSize="13"
                                            Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
-                                           Visibility="{Binding WorkshopSearchResults.Count, Converter={StaticResource ZeroToVis}}"/>
+                                           Visibility="{Binding WorkshopSearchResults.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
                                 <ItemsControl ItemsSource="{Binding WorkshopSearchResults}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

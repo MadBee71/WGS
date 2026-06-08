@@ -65,7 +65,7 @@
                 <!-- No machines placeholder -->
                 <TextBlock Text="No machines added yet." FontSize="13"
                            Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
-                           Visibility="{Binding RemoteMachines.Count, Converter={StaticResource ZeroToVis}}"/>
+                           Visibility="{Binding RemoteMachines.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
 
                 <!-- Machine cards -->
                 <ItemsControl ItemsSource="{Binding RemoteMachines}">
@@ -112,7 +112,7 @@
                                     <!-- Server list -->
                                     <TextBlock Text="No servers visible — slave offline or no servers installed."
                                                FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,0"
-                                               Visibility="{Binding Servers.Count, Converter={StaticResource ZeroToVis}}"/>
+                                               Visibility="{Binding Servers.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
 
                                     <ItemsControl ItemsSource="{Binding Servers}" Margin="0,4,0,0">
                                         <ItemsControl.ItemTemplate>
