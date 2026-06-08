@@ -769,7 +769,7 @@ public partial class MainViewModel : BaseViewModel
     [RelayCommand]
     private void OpenSettings()
     {
-        var win = new WGS.Views.SettingsWindow(Settings);
+        var win = new WGS.Views.SettingsWindow(Settings, this);
         win.Owner = WpfApplication.Current.MainWindow;
         win.ShowDialog();
     }

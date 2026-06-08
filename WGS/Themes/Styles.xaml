@@ -72,6 +72,11 @@
         <Setter Property="Background" Value="{StaticResource BgSurface3Brush}"/>
     </Style>
 
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+        <Setter Property="Background" Value="{StaticResource BgSurface3Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+    </Style>
+
     <Style x:Key="GhostToggleButton" TargetType="ToggleButton">
         <Setter Property="Background"   Value="{StaticResource BgSurface3Brush}"/>
         <Setter Property="Foreground"   Value="{StaticResource TextSecondaryBrush}"/>
