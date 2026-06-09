@@ -43,6 +43,9 @@ public class WebApiService : IDisposable
     /// <summary>True when listener bound to all interfaces (reachable from network); false = localhost only.</summary>
     public bool BoundToAllInterfaces { get; private set; }
 
+    /// <summary>True when the web dashboard and full REST API are enabled. False = slave-only mode (master/slave comms still work).</summary>
+    public bool DashboardEnabled { get; set; } = false;
+
     public void Start(int port, string token)
     {
         Stop();
@@ -157,9 +160,15 @@ public class WebApiService : IDisposable
 
         var path = req.Url?.AbsolutePath.TrimEnd('/') ?? "/";
 
-        // Serve UI page
+        // Serve UI page — only when dashboard is explicitly enabled
         if (path == "" || path == "/" || path == "/ui")
         {
+            if (!DashboardEnabled)
+            {
+                resp.StatusCode = 403;
+                await SendHtml(resp, "<html><body style='font-family:sans-serif;background:#0d1117;color:#8b949e;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><p>Web dashboard is disabled. Enable it in WGS Settings → Web Remote Control.</p></body></html>");
+                return;
+            }
             await SendHtml(resp, BuildUiHtml());
             return;
         }
@@ -555,8 +564,8 @@ function upsertCard(s){
     </div>
   </div>
   <div class="srv-stats">
-    <div class="stat"><span id="pl_${s.Id}">${s.CurrentPlayers}/${s.MaxPlayers}</span>Pelaajat</div>
-    <div class="stat"><span>${s.ServerPort}</span>Portti</div>
+    <div class="stat"><span id="pl_${s.Id}">${s.CurrentPlayers}/${s.MaxPlayers}</span>Players</div>
+    <div class="stat"><span>${s.ServerPort}</span>Port</div>
   </div>
   <div class="players-row" id="plrow_${s.Id}"></div>
 </div>
