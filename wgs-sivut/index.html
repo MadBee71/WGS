@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Game Server (WGS) - Free Game Server Management Panel</title>
+    <meta name="description" content="Windows Game Server (WGS) is a free, open-source game server management panel for Windows. Host and manage 50+ games including CS2, Valheim, Rust, Palworld and more.">
+    <meta name="keywords" content="Windows Game Server, WGS, game server manager, free game server panel, windows server host, cs2 server, valheim server, rust server, palworld server, open source game panel">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Windows Game Server (WGS) - Management Panel">
+    <meta property="og:description" content="A lightweight, fast, and completely free management panel designed to run and host game servers directly in a Windows environment.">
+    <meta property="og:image" content="https://wgsserver.com/logo.png">
+    <meta property="og:url" content="https://wgsserver.com">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top, #1a2333 0%, #0d1117 60%);
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --accent-color: #00adff;
+            --text-color: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --border-color: #30363d;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg-color); background-image: var(--bg-gradient); background-repeat: no-repeat; background-attachment: fixed; color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; }
+
+        nav { display: flex; justify-content: center; gap: 16px; padding: 24px 20px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; }
+        nav a { color: #8b949e; text-decoration: none; font-weight: 500; font-size: 0.95rem; white-space: nowrap; }
+        nav a:hover { color: var(--accent-color); }
+        .home-link { color: var(--text-bright) !important; font-weight:700; }
+
+        .hero { text-align: center; padding: 60px 20px 40px; }
+        .hero img { height: 110px; margin: 0 auto 12px; display: block; }
+        .hero h1 { color: var(--text-bright); font-size: 2.8rem; margin: 0 0 8px; }
+        .version-badge { display: inline-block; background: rgba(0,173,255,0.12); border: 1px solid var(--accent-color); color: var(--accent-color); font-size: 0.8rem; font-weight: 600; padding: 2px 10px; border-radius: 12px; margin-bottom: 16px; }
+        .hero p { font-size: 1.15rem; color: #8b949e; max-width: 680px; margin: 0 auto 36px; }
+
+        .cta-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 11px 24px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.95rem; }
+        .btn-primary { background-color: var(--accent-color); color: #000; }
+        .btn-primary:hover { background-color: #29bcff; }
+        .btn-secondary { border: 1px solid var(--border-color); color: var(--text-bright); }
+        .btn-secondary:hover { border-color: #8b949e; }
+
+        .section-label { text-align: center; color: #8b949e; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin: 56px 0 20px; }
+
+        .features { max-width: 1040px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 22px 24px; border-radius: 8px; }
+        .card h3 { color: var(--text-bright); margin: 0 0 8px; font-size: 1.05rem; }
+        .card p { margin: 0; font-size: 0.92rem; }
+        .card .new-tag { display: inline-block; background: rgba(0,173,255,0.15); color: var(--accent-color); font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+
+        .screenshot-wrap { max-width: 900px; margin: 40px auto 0; padding: 0 20px; }
+        .screenshot-wrap img { width: 100%; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 8px 40px rgba(0,0,0,0.5); display: block; }
+
+        .stats-bar { max-width: 700px; margin: 48px auto 0; display: flex; justify-content: center; gap: 0; flex-wrap: wrap; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .stat { flex: 1; min-width: 140px; text-align: center; padding: 20px 16px; border-right: 1px solid var(--border-color); }
+        .stat:last-child { border-right: none; }
+        .stat-num { color: var(--accent-color); font-size: 1.8rem; font-weight: 700; display: block; }
+        .stat-label { font-size: 0.8rem; color: #8b949e; }
+
+        footer { text-align: center; padding: 56px 20px; color: #8b949e; font-size: 0.88rem; border-top: 1px solid var(--border-color); margin-top: 60px; }
+        footer a { color: #8b949e; text-decoration: none; }
+        footer a:hover { color: var(--accent-color); }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            nav { gap: 12px; font-size: 0.88rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="home-link" style="display:flex;align-items:center;gap:6px;"><img src="logo.png" alt="WGS" style="height:22px;"></a>
+    <a href="docs/installation.html">Installation</a>
+    <a href="docs/games.html">50+ Games</a>
+    <a href="docs/features.html">Features</a>
+    <a href="docs/discord.html">Discord Bot</a>
+    <a href="docs/web-api.html">REST API</a>
+    <a href="docs/troubleshooting.html">Troubleshooting</a>
+    <a href="docs/manual.html">User Manual</a>
+</nav>
+
+<main>
+    <div class="hero">
+        <img src="wgsserver_logo.png" alt="WGS Logo" style="height:160px;">
+        <h1>Windows Game Server</h1>
+        <span class="version-badge">v1.1.0</span>
+        <p>A lightweight, fast, and completely free management panel designed to host dedicated game servers directly on Windows — no command line required.</p>
+        <div class="cta-buttons">
+            <a href="https://github.com/MadBee71/WGS/releases/latest" class="btn btn-primary" target="_blank">⬇ Download WGS</a>
+            <a href="docs/installation.html" class="btn btn-secondary">Installation Guide</a>
+            <a href="https://discord.gg/cUVf5Nw8n" class="btn btn-secondary" target="_blank">Join Discord</a>
+        </div>
+    </div>
+
+    <div class="screenshot-wrap">
+        <img src="screenshot.png?v=2" alt="WGS - Windows Game Server in action">
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat"><span class="stat-num">54+</span><span class="stat-label">Supported Games</span></div>
+        <div class="stat"><span class="stat-num">Free</span><span class="stat-label">Always Open Source</span></div>
+        <div class="stat"><span class="stat-num">.NET 8</span><span class="stat-label">Modern & Fast</span></div>
+    </div>
+
+    <p class="section-label">Everything you need to run a server</p>
+
+    <section class="features">
+        <div class="card">
+            <h3>🖥️ Easy Setup</h3>
+            <p>No complex Linux commands. Download, extract, and have your server running within minutes. WGS guides you through every step.</p>
+        </div>
+        <div class="card">
+            <h3>🎮 50+ Games Supported</h3>
+            <p>Native support for CS2, Valheim, Rust, Palworld, ARK, DayZ, V Rising, Satisfactory, and many more — all managed from one panel.</p>
+        </div>
+        <div class="card">
+            <h3>🔧 Plugin Creator</h3>
+            <p>Any game not listed? Use the graphical Plugin Creator wizard to add support for any dedicated server without writing code.</p>
+        </div>
+        <div class="card">
+            <h3>🌐 Web Dashboard &amp; REST API <span class="new-tag">v1.1.0</span></h3>
+            <p>Built-in HTTP server with a full browser dashboard. Monitor and control your servers remotely from any device — even your phone.</p>
+        </div>
+        <div class="card">
+            <h3>🤖 Discord Bot</h3>
+            <p>Start, stop, restart, update, backup, and send console commands directly from your Discord server using simple bot commands.</p>
+        </div>
+        <div class="card">
+            <h3>📦 Steam Workshop <span class="new-tag">v1.1.0</span></h3>
+            <p>Search, install, and manage Steam Workshop mods for your servers directly from within WGS. One-click update for all mods.</p>
+        </div>
+        <div class="card">
+            <h3>📊 Bandwidth Monitoring <span class="new-tag">v1.1.0</span></h3>
+            <p>Real-time network traffic graphs per server. Track upload and download usage over time to keep your hosting costs in check.</p>
+        </div>
+        <div class="card">
+            <h3>👥 User Management <span class="new-tag">v1.1.0</span></h3>
+            <p>Multi-user access control with Admin and Viewer roles, individual API tokens, and a full audit log of all actions taken.</p>
+        </div>
+        <div class="card">
+            <h3>🔗 Multi-Machine Management <span class="new-tag">v1.1.0</span></h3>
+            <p>Connect multiple WGS instances across your network. Monitor and control slave machines from a single master panel.</p>
+        </div>
+        <div class="card">
+            <h3>💾 Automatic Backups</h3>
+            <p>Scheduled, compressed world-save backups with configurable retention. Your data is safe before every major update.</p>
+        </div>
+        <div class="card">
+            <h3>☑ Batch Operations</h3>
+            <p>Select multiple servers and start, stop, restart or back them all up with one click. Ideal when running several servers simultaneously.</p>
+        </div>
+        <div class="card">
+            <h3>🛡️ Security Built-In</h3>
+            <p>Automatic Windows Firewall management. Credentials and tokens stored with Windows DPAPI encryption — never plain text.</p>
+        </div>
+        <div class="card">
+            <h3>📁 File Browser</h3>
+            <p>Browse, edit, upload, and manage server configuration files directly in WGS — no need to navigate Windows Explorer manually.</p>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2026 <a href="https://github.com/MadBee71" target="_blank">MadBee71</a> / Windows Game Server &mdash; <a href="https://wgsserver.com">wgsserver.com</a> &mdash; Released under the MIT License.</p>
+</footer>
+
+</body>
+</html>
