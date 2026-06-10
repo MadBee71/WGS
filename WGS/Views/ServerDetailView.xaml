@@ -394,6 +394,10 @@
                                 <TextBlock Text="Automation" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
 
+                                <!-- Auto Start -->
+                                <CheckBox IsChecked="{Binding Server.AutoStart}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Auto-start when WGS launches" Margin="0,0,0,12"/>
+
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-restart after crash" Margin="0,0,0,8"/>
