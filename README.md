@@ -356,12 +356,6 @@ MIT License — see the [LICENSE](LICENSE) file.
 
 ---
 
-## 🔏 Code Signing
-
-WGS releases are code-signed through the [SignPath Foundation](https://signpath.org), which provides free code signing for open-source projects.
-
----
-
 ## Support
 If you find WGS useful, you can support my work here:
 
