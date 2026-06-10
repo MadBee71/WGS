@@ -85,7 +85,19 @@
 
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding BotStatus}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,16,0"/>
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BotIsRunning}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding BotStatus}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,16,0"/>
                         <Button Content="🧪 Test connection" Style="{StaticResource GhostButton}"
                                 Margin="0,0,8,0" Command="{Binding TestBotCommand}"/>
                         <Button Content="Save" Style="{StaticResource PrimaryButton}"
@@ -124,7 +136,22 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
                         <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding WebApiStatus}" FontSize="12" VerticalAlignment="Center" Margin="4,0,16,0"
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiIsRunning}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Fill" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding WebApiStatus}" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"
                                    TextWrapping="Wrap" MaxWidth="480">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -206,19 +233,36 @@
                                 Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
 
-                    <TextBlock Text="{Binding WebApiStatus}" FontSize="11" Margin="0,8,0,0"
-                               TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
-                                        <Setter Property="Foreground" Value="#F0A500"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiIsRunning}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Fill" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding WebApiStatus}" FontSize="11"
+                                   TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Foreground" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -357,6 +401,18 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Test UPnP" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
                                 Command="{Binding TestUPnPCommand}"/>
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UpnpIsFound}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
                         <TextBlock Text="{Binding UpnpStatus}" VerticalAlignment="Center"
                                    FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </StackPanel>
@@ -425,7 +481,7 @@
                     <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.1.0" FontWeight="SemiBold"
+                        <Run Text="Windows Game Server (WGS) v1.1.1" FontWeight="SemiBold"
                              Foreground="{StaticResource TextPrimaryBrush}"/>
                         <LineBreak/>
                         <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>

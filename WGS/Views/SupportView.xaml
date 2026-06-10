@@ -15,7 +15,7 @@
                     <TextBlock Text="Windows Game Server"
                                FontSize="26" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"/>
-                    <TextBlock Text="v1.1.0  ·  2026 © MadBee71"
+                    <TextBlock Text="v1.1.1  ·  2026 © MadBee71"
                                FontSize="12"
                                Foreground="{StaticResource TextMutedBrush}"
                                Margin="0,4,0,0"/>
@@ -87,7 +87,7 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="1.1.0"
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="1.1.1"
                                    Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" Margin="0,0,0,8"/>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"
