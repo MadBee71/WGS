@@ -201,22 +201,33 @@ public class ServerManagerService
 
         var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
+        // Some engines (Unity/Rust) write the same line to both stdout and stderr.
+        // Suppress duplicates seen within a 200 ms window across both streams.
+        var _recentLines = new System.Collections.Concurrent.ConcurrentDictionary<string, long>();
+
+        void AddLog(string text, ConsoleMessageType type)
+        {
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var threshold = System.Diagnostics.Stopwatch.Frequency / 5; // 200 ms
+            if (_recentLines.TryGetValue(text, out var seen) && (now - seen) < threshold) return;
+            _recentLines[text] = now;
+            var msg = new ConsoleMessage { Text = text, Type = type };
+            inst.Log.Add(msg);
+            LogReceived?.Invoke(server.Id, msg);
+        }
+
         proc.OutputDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
             if (plugin.IsNoiseLine(e.Data)) return;
-            var msg = new ConsoleMessage { Text = e.Data, Type = DetectType(e.Data) };
-            inst.Log.Add(msg);
-            LogReceived?.Invoke(server.Id, msg);
+            AddLog(e.Data, DetectType(e.Data));
         };
 
         proc.ErrorDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
             if (plugin.IsNoiseLine(e.Data)) return;
-            var msg = new ConsoleMessage { Text = e.Data, Type = ConsoleMessageType.Error };
-            inst.Log.Add(msg);
-            LogReceived?.Invoke(server.Id, msg);
+            AddLog(e.Data, ConsoleMessageType.Error);
         };
 
         proc.Exited += async (_, _) =>

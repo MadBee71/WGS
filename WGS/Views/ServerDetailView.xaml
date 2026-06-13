@@ -555,16 +555,24 @@
                                                 <ColumnDefinition Width="8"/>
                                                 <ColumnDefinition Width="120"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Style="{StaticResource DarkTextBox}"
-                                                     Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="Template name (required)"/>
-                                            <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
-                                                     Text="{Binding TemplateCategory, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="Category (optional)"/>
+                                            <StackPanel>
+                                                <TextBlock Text="Name *" Style="{StaticResource FieldLabel}" Margin="0,0,0,2"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}"
+                                                         Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
+                                                         ToolTip="Template name (required)"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Category" Style="{StaticResource FieldLabel}" Margin="0,0,0,2"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}"
+                                                         Text="{Binding TemplateCategory, UpdateSourceTrigger=PropertyChanged}"
+                                                         ToolTip="Category (optional)"/>
+                                            </StackPanel>
                                         </Grid>
-                                        <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,4"
+                                        <TextBlock Text="Tags (comma-separated)" Style="{StaticResource FieldLabel}" Margin="0,6,0,2"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,4"
                                                  Text="{Binding TemplateTagsInput, UpdateSourceTrigger=PropertyChanged}"
                                                  ToolTip="Tags separated by commas, e.g. pvp,hardcore,competitive"/>
+                                        <TextBlock Text="Description" Style="{StaticResource FieldLabel}" Margin="0,0,0,2"/>
                                         <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,6"
                                                  Text="{Binding TemplateDescription, UpdateSourceTrigger=PropertyChanged}"
                                                  ToolTip="Description (optional)"/>
