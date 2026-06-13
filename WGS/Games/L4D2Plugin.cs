@@ -1,3 +1,4 @@
+using System.IO;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -25,12 +26,26 @@ public class L4D2Plugin : GamePluginBase
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
+    public override Task PreStartAsync(GameServer s)
+    {
+        var cfg = Path.Combine(s.InstallPath, "left4dead2", "cfg", "server.cfg");
+        WriteConfigIfMissing(cfg, SourceCfg(s));
+        return Task.CompletedTask;
+    }
+
     public override string BuildStartArguments(GameServer s)
     {
-        var map    = S(s, "map", "c1m1_hotel");
-        var mode   = S(s, "mode", "coop");
+        var map  = S(s, "map", "c1m1_hotel");
+        var mode = S(s, "mode", "coop");
         return $"-game left4dead2 -console -usercon +map {map} {mode} -port {s.ServerPort} +maxplayers {s.MaxPlayers}";
     }
+
+    private static string SourceCfg(GameServer s) =>
+        $"""
+        hostname "{s.ServerName}"
+        sv_password "{s.ServerPassword}"
+        rcon_password "{s.RconPassword}"
+        """;
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {

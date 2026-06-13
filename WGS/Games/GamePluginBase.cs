@@ -1,3 +1,4 @@
+using System.IO;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -55,6 +56,14 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual string  EngineFamily                                     => string.Empty;
 
     public override string ToString() => $"{GameName}  ({Category})";
+
+    /// <summary>Writes content to path only if the file does not yet exist.</summary>
+    protected static void WriteConfigIfMissing(string path, string content)
+    {
+        if (File.Exists(path)) return;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+    }
 
     protected string S(GameServer server, string key, string fallback = "")
         => server.GameSpecificSettings.TryGetValue(key, out var v) ? v : fallback;
