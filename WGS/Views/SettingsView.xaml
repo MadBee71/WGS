@@ -111,9 +111,9 @@
                                          Text="{Binding NewBotAdminId, UpdateSourceTrigger=PropertyChanged}"
                                          x:Name="BotAdminInput"
                                          Tag="Discord User ID"/>
-                                <Button Grid.Column="2" Content="Add" Style="{StaticResource DarkButton}"
+                                <Button Grid.Column="2" Content="Add" Style="{StaticResource GhostButton}"
                                         Command="{Binding AddBotAdminCommand}" Padding="12,4"/>
-                                <Button Grid.Column="4" Content="Remove" Style="{StaticResource DarkButton}"
+                                <Button Grid.Column="4" Content="Remove" Style="{StaticResource GhostButton}"
                                         Command="{Binding RemoveBotAdminCommand}" Padding="12,4"/>
                             </Grid>
                         </StackPanel>
