@@ -129,21 +129,21 @@ public partial class SettingsViewModel : BaseViewModel
         NotifyOnCrash      = s.NotifyOnCrash;
         NotifyOnUpdate     = s.NotifyOnUpdate;
         BotEnabled         = s.BotEnabled;
-        BotToken           = s.BotToken;
-        BotChannelId       = s.BotChannelId;
+        BotToken           = s.BotToken        ?? string.Empty;
+        BotChannelId       = s.BotChannelId    ?? string.Empty;
         BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
-        BotAllowedUsers    = s.BotAllowedUsers;
+        BotAllowedUsers    = s.BotAllowedUsers ?? string.Empty;
         BotAdminList.Clear();
-        foreach (var id in s.BotAllowedUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var id in (s.BotAllowedUsers ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             BotAdminList.Add(id);
         EmailEnabled       = s.EmailEnabled;
-        SmtpHost           = s.SmtpHost;
-        SmtpPort           = s.SmtpPort;
+        SmtpHost           = s.SmtpHost     ?? string.Empty;
+        SmtpPort           = s.SmtpPort == 0 ? 587 : s.SmtpPort;
         SmtpSsl            = s.SmtpSsl;
-        SmtpUser           = s.SmtpUser;
-        SmtpPassword       = s.SmtpPassword;
-        EmailFrom          = s.EmailFrom;
-        EmailTo            = s.EmailTo;
+        SmtpUser           = s.SmtpUser     ?? string.Empty;
+        SmtpPassword       = s.SmtpPassword ?? string.Empty;
+        EmailFrom          = s.EmailFrom    ?? string.Empty;
+        EmailTo            = s.EmailTo      ?? string.Empty;
         DefaultInstallRoot = _config.DefaultInstallRoot;
         BackupPath         = _config.BackupPath;
         SteamCmdPath       = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");

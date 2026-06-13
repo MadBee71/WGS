@@ -119,7 +119,8 @@ public class NotificationService
             var raw = System.IO.File.ReadAllText(_settingsFile);
 
             // Try new encrypted format first
-            var data = JsonConvert.DeserializeObject<NotificationSettingsData>(raw);
+            NotificationSettingsData? data = null;
+            try { data = JsonConvert.DeserializeObject<NotificationSettingsData>(raw); } catch { }
             if (data != null)
             {
                 _settings = new NotificationSettings
