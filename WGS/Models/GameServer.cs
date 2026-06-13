@@ -32,6 +32,7 @@ public class GameServer
     public string Gslt       { get; set; } = string.Empty;
     public long   CpuAffinityMask  { get; set; } = 0; // 0 = all cores
     public string ProcessPriority  { get; set; } = "Normal";
+    public long   MaxRamMb         { get; set; } = 0; // 0 = unlimited
     public bool BackupEnabled      { get; set; } = false;
     public int  BackupRetention    { get; set; } = 5;
     public bool FirewallAutoManage { get; set; } = true;

@@ -17,6 +17,7 @@ public class ServerInstance
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public int RestartCount { get; set; }
     public CancellationTokenSource DailyRestartCts { get; } = new();
+    public nint JobHandle { get; set; } = nint.Zero;
 
     /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
     public List<DateTime> CrashTimes { get; } = [];
@@ -374,6 +375,10 @@ public class ServerManagerService
         inst.StartTime = DateTime.Now;
         server.LastStarted = DateTime.Now;
 
+        // Apply RAM limit via Windows Job Object
+        if (server.MaxRamMb > 0)
+            inst.JobHandle = JobObjectService.ApplyRamLimit(proc, server.MaxRamMb);
+
         // Schedule daily restart if enabled
         if (server.DailyRestartEnabled)
             _ = RunDailyRestartAsync(server, inst);
@@ -435,6 +440,7 @@ public class ServerManagerService
         try { inst.Process?.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* process already dead — swallow */ }
         inst.DailyRestartCts.Cancel();
+        JobObjectService.ReleaseJob(inst.JobHandle);
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
