@@ -34,7 +34,7 @@ public class FabricPlugin : GamePluginBase
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
         ["ramGb"]      = "4",
-        ["jarFile"]    = "fabric-server-launch.jar",
+        ["jarFile"]    = "server.jar",
         ["difficulty"] = "normal",
         ["gamemode"]   = "survival",
         ["onlineMode"] = "true",
@@ -45,7 +45,7 @@ public class FabricPlugin : GamePluginBase
         var fields = BaseFields();
         fields.AddRange([
             new() { Key = "ramGb",      Label = "RAM (GB)",    FieldType = ConfigFieldType.Slider,   DefaultValue = "4", Min = 1, Max = 32 },
-            new() { Key = "jarFile",    Label = "Fabric JAR",  FieldType = ConfigFieldType.Text,     DefaultValue = "fabric-server-launch.jar" },
+            new() { Key = "jarFile",    Label = "Fabric JAR",  FieldType = ConfigFieldType.Text,     DefaultValue = "server.jar" },
             new() { Key = "difficulty", Label = "Difficulty",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",   FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode", FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
