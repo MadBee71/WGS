@@ -81,6 +81,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     // Scheduled tasks
     [ObservableProperty] private List<Services.ScheduledTask> _scheduledTasks = [];
 
+    // Resource limits
+    [ObservableProperty] private long _maxRamMb;
+    partial void OnMaxRamMbChanged(long value) => Server.MaxRamMb = value;
+
     public bool HasWorkshop => _workshop.SupportsWorkshop(Plugin);
     public bool HasPlayerCommands => Plugin?.GetPlayersCommand() != null
                                   || Plugin?.GetKickCommand("") != null;
@@ -261,6 +265,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 Server.CpuAffinityMask = mask == ((1L << coreCount) - 1) ? 0 : mask;
             };
         }
+
+        _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
 
         RefreshStatus();
         RefreshBackups();
