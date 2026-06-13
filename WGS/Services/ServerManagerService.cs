@@ -34,6 +34,8 @@ public class ServerManagerService
     public event Action<string, ServerStatus>?  StatusChanged;
     /// <summary>Fired when a server has crashed too many times and auto-restart gives up.</summary>
     public event Action<string>? CrashLimitReached;
+    /// <summary>Fired when a server's ports were automatically reassigned because they were in use.</summary>
+    public event Action<GameServer>? PortsReassigned;
 
     public ServerManagerService(ConfigService config, NetworkMonitorService network)
     {
@@ -79,12 +81,53 @@ public class ServerManagerService
                 await Task.Delay(1000); // brief pause so OS releases ports
         }
 
-        // Pre-flight: warn if ports are still in use after cleanup
-        foreach (var r in PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable))
+        // Pre-flight: auto-reassign ports if any are in use
+        var conflictingPorts = PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable).ToList();
+        if (conflictingPorts.Any())
         {
-            var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
-            inst0.Log.Add(w);
-            LogReceived?.Invoke(server.Id, w);
+            int oldGame  = server.ServerPort;
+            int oldQuery = server.QueryPort;
+            int oldRcon  = server.RconPort;
+
+            // Find a free offset (up to 1000) where all ports are available
+            int offset = 1;
+            while (offset < 1000)
+            {
+                bool ok = true;
+                if (!PortCheckerService.CheckPort(oldGame + offset, "UDP").IsAvailable)  { ok = false; }
+                if (ok && oldQuery > 0 && !PortCheckerService.CheckPort(oldQuery + offset, "UDP").IsAvailable) { ok = false; }
+                if (ok && oldRcon  > 0 && !PortCheckerService.CheckPort(oldRcon  + offset, "TCP").IsAvailable) { ok = false; }
+                if (ok) break;
+                offset++;
+            }
+
+            if (offset < 1000)
+            {
+                server.ServerPort = oldGame  + offset;
+                if (oldQuery > 0) server.QueryPort = oldQuery + offset;
+                if (oldRcon  > 0) server.RconPort  = oldRcon  + offset;
+
+                var msg = new ConsoleMessage
+                {
+                    Text = $"[WGS] Ports in use — automatically reassigned: game {oldGame}→{server.ServerPort}" +
+                           (oldQuery > 0 ? $", query {oldQuery}→{server.QueryPort}" : "") +
+                           (oldRcon  > 0 ? $", rcon {oldRcon}→{server.RconPort}"   : ""),
+                    Type = ConsoleMessageType.Warning
+                };
+                inst0.Log.Add(msg);
+                LogReceived?.Invoke(server.Id, msg);
+                PortsReassigned?.Invoke(server);
+            }
+            else
+            {
+                // Could not find free ports — warn and proceed anyway
+                foreach (var r in conflictingPorts)
+                {
+                    var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
+                    inst0.Log.Add(w);
+                    LogReceived?.Invoke(server.Id, w);
+                }
+            }
         }
 
         var args = plugin.BuildStartArguments(server);
