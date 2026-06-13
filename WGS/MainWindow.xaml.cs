@@ -34,9 +34,8 @@ public partial class MainWindow : Window
 
     private void UpdateBadge_Click(object sender, MouseButtonEventArgs e)
     {
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
-            WGS.Services.UpdateCheckerService.ReleasesUrl) { UseShellExecute = true }); }
-        catch { }
+        if (DataContext is ViewModels.MainViewModel vm)
+            vm.PerformUpdateCommand.Execute(null);
     }
 
     private void CloseClick(object sender, RoutedEventArgs e)

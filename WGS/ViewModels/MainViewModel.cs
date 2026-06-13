@@ -88,7 +88,10 @@ public partial class MainViewModel : BaseViewModel
 
     // ── Update checker ────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _updateAvailable;
-    [ObservableProperty] private string _latestVersion = string.Empty;
+    [ObservableProperty] private string _latestVersion  = string.Empty;
+    [ObservableProperty] private string _updateDownloadUrl = string.Empty;
+    [ObservableProperty] private bool   _updateDownloading;
+    [ObservableProperty] private string _updateStatusText = string.Empty;
 
     // ── Batch operations ──────────────────────────────────────────────────────
     [ObservableProperty] private bool _batchMode;
@@ -402,12 +405,72 @@ public partial class MainViewModel : BaseViewModel
 
     private async Task CheckForUpdateAsync()
     {
-        var (hasUpdate, latest) = await Services.UpdateCheckerService.CheckAsync();
+        var (hasUpdate, latest, url) = await Services.UpdateCheckerService.CheckAsync();
         if (hasUpdate)
         {
-            UpdateAvailable = true;
-            LatestVersion   = latest;
+            UpdateAvailable      = true;
+            LatestVersion        = latest;
+            UpdateDownloadUrl    = url;
         }
+    }
+
+    [RelayCommand]
+    private async Task PerformUpdateAsync()
+    {
+        // Count running servers
+        var running = Servers.Where(s => s.IsRunning).ToList();
+
+        // Build confirmation message
+        string msg = running.Count > 0
+            ? $"WGS will update to {LatestVersion}.\n\n" +
+              $"{running.Count} server{(running.Count == 1 ? "" : "s")} {(running.Count == 1 ? "is" : "are")} currently running and will be stopped before the update.\n\n" +
+              "WGS will restart automatically after the update."
+            : $"WGS will update to {LatestVersion} and restart automatically.";
+
+        var result = System.Windows.MessageBox.Show(
+            msg,
+            "Update WGS",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Information);
+
+        if (result != System.Windows.MessageBoxResult.OK) return;
+
+        UpdateDownloading = true;
+        UpdateStatusText  = "Stopping servers...";
+
+        // Stop all running servers gracefully
+        foreach (var vm in running)
+        {
+            try { await vm.StopCommand.ExecuteAsync(null); }
+            catch { }
+        }
+
+        // Download and prepare update
+        var progress = new Progress<(int pct, string msg)>(x =>
+        {
+            System.Windows.Application.Current?.Dispatcher?.Invoke(
+                () => UpdateStatusText = $"[{x.pct}%] {x.msg}");
+        });
+
+        var ok = await Services.SelfUpdateService.DownloadAndPrepareAsync(
+            UpdateDownloadUrl, progress);
+
+        if (!ok)
+        {
+            UpdateDownloading = false;
+            UpdateStatusText  = string.Empty;
+            System.Windows.MessageBox.Show(
+                "Download failed. Opening GitHub releases page instead.",
+                "Update failed",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                Services.UpdateCheckerService.ReleasesUrl) { UseShellExecute = true }); }
+            catch { }
+            return;
+        }
+
+        Services.SelfUpdateService.ApplyAndRestart();
     }
 
     private ServerViewModel MakeVm(GameServer srv)
