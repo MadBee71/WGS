@@ -332,10 +332,12 @@ public partial class MainViewModel : BaseViewModel
 
     private void LoadServers()
     {
+        int num = 1;
         foreach (var srv in _config.LoadServers())
         {
             srv.Status = ServerStatus.Stopped;
             var vm = MakeVm(srv);
+            vm.ServerNumber = num++;
             Servers.Add(vm);
             if (srv.AutoStart)
                 _ = WpfApplication.Current?.Dispatcher?.InvokeAsync(() => vm.StartCommand.ExecuteAsync(null))
@@ -501,6 +503,7 @@ public partial class MainViewModel : BaseViewModel
         };
 
         var vm = MakeVm(srv);
+        vm.ServerNumber = Servers.Count + 1;
         Servers.Add(vm);
         SelectedServer = vm;
         ShowAddDialog  = false;

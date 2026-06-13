@@ -34,6 +34,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public IGamePlugin? Plugin { get; }
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public ObservableCollection<BackupEntry> Backups { get; } = [];
+    public ObservableCollection<string> ActionLog { get; } = [];
+
+    [ObservableProperty] private int _serverNumber;
 
     [ObservableProperty] private string _consoleInput = string.Empty;
     [ObservableProperty] private int _installProgress;
@@ -270,8 +273,19 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         try
         {
-            if (Server.AutoUpdate && Plugin?.SteamAppId > 0)
+            if ((Server.UpdateOnStart || Server.AutoUpdate) && Plugin?.SteamAppId > 0)
                 await InstallAsync();
+
+            if (Server.BackupOnStart)
+            {
+                try
+                {
+                    AppendLog("[WGS] Creating backup before start...", ConsoleMessageType.System);
+                    await _backup.CreateBackupAsync(Server);
+                    AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
+                }
+                catch (Exception ex) { AppendLog($"[WGS] Backup before start failed: {ex.Message}", ConsoleMessageType.Warning); }
+            }
 
             // Inject active Workshop mod IDs so plugins can build correct launch args
             if (Plugin is Games.IWorkshopPlugin && HasWorkshop)
@@ -1299,6 +1313,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WpfApplication.Current?.Dispatcher?.Invoke(RefreshStatus);
         _ = _notifications.NotifyServerStatusAsync(Server, status);
 
+        var actionText = status switch
+        {
+            ServerStatus.Running  => "Server started",
+            ServerStatus.Stopped  => "Server stopped",
+            ServerStatus.Error    => "Server crashed",
+            ServerStatus.Updating => "Server updating",
+            ServerStatus.Stopping => "Server stopping",
+            _ => null
+        };
+        if (actionText != null) AddActionLog(actionText);
+
         // Restart the auto-update timer when the server comes back up (e.g. after crash-restart)
         // StartAsync relay command is NOT called on crash-restarts — ServerManagerService handles that.
         if (status == ServerStatus.Running)
@@ -1354,6 +1379,16 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public void AppendConsoleWarning(string text)
         => AppendLog(text, ConsoleMessageType.Warning);
+
+    private void AddActionLog(string action)
+    {
+        var entry = $"[{DateTime.Now:dd.MM HH:mm:ss}] {action}";
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            ActionLog.Insert(0, entry);
+            if (ActionLog.Count > 100) ActionLog.RemoveAt(ActionLog.Count - 1);
+        });
+    }
 
     private void RefreshStatus()
     {

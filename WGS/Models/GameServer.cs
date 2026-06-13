@@ -23,6 +23,9 @@ public class GameServer
     public bool AutoUpdate             { get; set; } = false;
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
     public bool AutoStart              { get; set; } = false;
+    public bool UpdateOnStart          { get; set; } = false;
+    public bool BackupOnStart          { get; set; } = false;
+    public bool DiscordAlertsEnabled   { get; set; } = true;
     public bool DailyRestartEnabled    { get; set; } = false;
     public TimeSpan DailyRestartTime   { get; set; } = TimeSpan.FromHours(4); // 04:00 default
     public string CustomArgs { get; set; } = string.Empty;
