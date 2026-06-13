@@ -459,7 +459,7 @@
                                             <TextBlock Text="Token: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                             <TextBlock Text="{Binding Token}" FontSize="10" FontFamily="Consolas"
                                                        Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text="  |  Kirjautui: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBlock Text="  |  Last login: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                             <TextBlock Text="{Binding LastLoginText}" FontSize="10"
                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                         </StackPanel>

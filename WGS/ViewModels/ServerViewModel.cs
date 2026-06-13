@@ -1165,7 +1165,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (template == null) return;
         _templates.ApplyToServer(template, Server);
-        AppendLog($"[Template] Sovellettu \"{template.Name}\".", ConsoleMessageType.System);
+        AppendLog($"[Template] Applied \"{template.Name}\".", ConsoleMessageType.System);
     }
 
     [RelayCommand]
@@ -1174,7 +1174,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (template == null) return;
         var clone = _templates.Clone(template.Id);
         RefreshTemplates();
-        AppendLog($"[Template] Kloonattu \"{clone.Name}\".", ConsoleMessageType.System);
+        AppendLog($"[Template] Cloned as \"{clone.Name}\".", ConsoleMessageType.System);
     }
 
     [RelayCommand]
