@@ -2,27 +2,15 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class DoDPlugin : GamePluginBase
+public class DoDPlugin : GoldSrcPluginBase
 {
     public override string GameId           => "dod";
     public override string GameName         => "Day of Defeat";
     public override string Description      => "Day of Defeat WWII GoldSrc dedicated server";
     public override string Category         => "FPS";
-    public override int    SteamAppId       => 90;
     public override int    GameStoreAppId   => 30;
-    public override string Executable       => "hlds.exe";
-    public override int    DefaultPort      => 27015;
-    public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 20;
-    public override bool   HasRcon          => true;
-
-    public override string  EngineFamily                                     => SourceRcon.Family;
-    public override string? GetKickCommand(string p)                         => SourceRcon.Kick(p);
-    public override string? GetKickCommand(string p, string reason)          => SourceRcon.Kick(p, reason);
-    public override string? GetBanCommand(string p)                          => SourceRcon.Ban(p);
-    public override string? GetBanCommand(string p, string reason)           => SourceRcon.Ban(p, reason);
-    public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
-    public override string? GetPlayersCommand()                              => SourceRcon.Players();
+    protected override string GameDir       => "dod";
 
     public override string BuildStartArguments(GameServer s)
     {
