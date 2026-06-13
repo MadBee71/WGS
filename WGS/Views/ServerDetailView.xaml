@@ -560,11 +560,11 @@
                                                      ToolTip="Template name (required)"/>
                                             <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
                                                      Text="{Binding TemplateCategory, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="Kategoria (valinnainen)"/>
+                                                     ToolTip="Category (optional)"/>
                                         </Grid>
                                         <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,4"
                                                  Text="{Binding TemplateTagsInput, UpdateSourceTrigger=PropertyChanged}"
-                                                 ToolTip="Tagit pilkulla eroteltuina, esim. pvp,hardcore,competitive"/>
+                                                 ToolTip="Tags separated by commas, e.g. pvp,hardcore,competitive"/>
                                         <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,6"
                                                  Text="{Binding TemplateDescription, UpdateSourceTrigger=PropertyChanged}"
                                                  ToolTip="Description (optional)"/>
@@ -1064,7 +1064,7 @@
                             </StackPanel>
                             <!-- Manuaalinen kick/ban (fallback jos RCON ei tue playerlistia) -->
                             <StackPanel Visibility="{Binding HasPlayerCommands, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Perustelu (valinnainen):" FontSize="11"
+                                <TextBlock Text="Reason (optional):" FontSize="11"
                                            Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBox Style="{StaticResource DarkTextBox}" Width="160" Margin="0,0,6,0"
@@ -1144,9 +1144,9 @@
                                                                 <TextBlock Text="{Binding PingText}"
                                                                            FontSize="13" FontFamily="Consolas"/>
                                                             </StackPanel>
-                                                            <!-- Peliaika -->
+                                                            <!-- Play time -->
                                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                                <TextBlock Text="Peliaika" FontSize="10"
+                                                                <TextBlock Text="Play time" FontSize="10"
                                                                            Foreground="{StaticResource TextMutedBrush}"/>
                                                                 <TextBlock Text="{Binding ConnectedText}"
                                                                            FontSize="13" FontFamily="Consolas"
@@ -1261,13 +1261,13 @@
                                                                            Converter={StaticResource ZeroToVis}}"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="Sessioita" FontSize="10"
+                                                            <TextBlock Text="Sessions" FontSize="10"
                                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                                             <TextBlock Text="{Binding SessionCount}"
                                                                        FontSize="13" FontWeight="SemiBold"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                            <TextBlock Text="Peliaika yht." FontSize="10"
+                                                            <TextBlock Text="Total play time" FontSize="10"
                                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                                             <TextBlock Text="{Binding TotalTimeText}"
                                                                        FontSize="13" FontFamily="Consolas"
