@@ -40,12 +40,23 @@ public static class GameRegistry
         Register(new SoulmaskPlugin());
         // FPS
         Register(new CS2Plugin());
+        Register(new CS16Plugin());
+        Register(new CSCZPlugin());
+        Register(new TF2Plugin());
+        Register(new TFCPlugin());
         Register(new BlackMesaPlugin());
         Register(new GarrysModPlugin());
-        Register(new TF2Plugin());
         Register(new KillingFloor2Plugin());
         Register(new InsurgencySandstormPlugin());
         Register(new MordhauPlugin());
+        Register(new L4D2Plugin());
+        Register(new DoDPlugin());
+        Register(new DoDSPlugin());
+        Register(new HLDMPlugin());
+        Register(new HL2DMPlugin());
+        Register(new HLOpForPlugin());
+        // Open World
+        Register(new FiveMPlugin());
         // Racing
         Register(new WreckfestPlugin());
         Register(new Wreckfest2Plugin());
@@ -69,6 +80,9 @@ public static class GameRegistry
         Register(new CoreKeeperPlugin());
         // Other
         Register(new MinecraftPlugin());
+        Register(new ForgePlugin());
+        Register(new SpigotPlugin());
+        Register(new FabricPlugin());
         Register(new TerrariaPlugin());
         Register(new RedMPlugin());
     }
