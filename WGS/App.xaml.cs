@@ -159,6 +159,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<WebApiService>();
         s.AddSingleton<RemoteMachineService>();
         s.AddSingleton<CrashPredictionService>();
+        s.AddSingleton<WakeOnDemandService>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<DashboardViewModel>(sp =>

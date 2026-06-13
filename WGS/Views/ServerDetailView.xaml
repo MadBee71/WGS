@@ -402,6 +402,11 @@
                                 <CheckBox IsChecked="{Binding Server.AutoStart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-start when WGS launches" Margin="0,0,0,8"/>
 
+                                <!-- Wake on Demand -->
+                                <CheckBox IsChecked="{Binding Server.WakeOnDemand}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Wake on demand (start when player connects)" Margin="0,0,0,8"
+                                          ToolTip="Listens on the server port while stopped. Starts the server automatically when a player connection arrives."/>
+
                                 <!-- Update on Start -->
                                 <CheckBox IsChecked="{Binding Server.UpdateOnStart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Update before each start" Margin="0,0,0,8"/>
@@ -1288,11 +1293,25 @@
             </TabItem>
 
             <!-- ── CHARTS ── -->
-            <TabItem Header="📊 Charts"
-                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-                <Grid Background="{StaticResource BgDeepBrush}" Margin="16">
-                    <oxy:PlotView Model="{Binding PerfPlot}"
-                                  Background="Transparent"
+            <TabItem Header="📊 Charts">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <!-- toolbar: time range selector -->
+                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Time range:" Foreground="{StaticResource TextMutedBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox ItemsSource="{Binding PerfRangeOptions}"
+                                      SelectedItem="{Binding PerfRangeMinutes}"
+                                      Style="{StaticResource DarkComboBox}" Width="100"/>
+                        </StackPanel>
+                    </Border>
+                    <oxy:PlotView Grid.Row="1" Model="{Binding PerfPlot}"
+                                  Background="Transparent" Margin="8"
                                   xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"/>
                 </Grid>
             </TabItem>

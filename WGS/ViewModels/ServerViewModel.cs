@@ -69,6 +69,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private OxyPlot.PlotModel?          _perfModel;
     private OxyPlot.Series.LineSeries?  _cpuSeries;
     private OxyPlot.Series.LineSeries?  _memSeries;
+    [ObservableProperty] private int _perfRangeMinutes = 15;
+    partial void OnPerfRangeMinutesChanged(int _) => UpdatePerfChart();
+    public IReadOnlyList<int> PerfRangeOptions { get; } = [5, 15, 30, 60];
 
     // Workshop
     [ObservableProperty] private List<Services.WorkshopItem>   _workshopItems = [];
@@ -903,7 +906,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     private void UpdatePerfChart()
     {
-        var samples = _perfHistory.Get(Server.Id);
+        var cutoff  = DateTime.Now.AddMinutes(-PerfRangeMinutes);
+        var samples = _perfHistory.Get(Server.Id).Where(s => s.Time >= cutoff).ToList();
         if (samples.Count == 0) return;
         EnsurePerfModel();
         _cpuSeries!.Points.Clear();
