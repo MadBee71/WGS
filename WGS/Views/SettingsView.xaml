@@ -571,22 +571,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- About -->
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="22">
-                        <Run Text="Windows Game Server (WGS) v1.1.1" FontWeight="SemiBold"
-                             Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <LineBreak/>
-                        <Run Text="50+ supported games  ·  .NET 8  ·  WPF  ·  Windows 10+"/>
-                        <LineBreak/>
-                        <Run Text="MIT License  ·  Free and open source"/>
-                    </TextBlock>
-                </StackPanel>
-            </Border>
-
             <!-- User Management -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
