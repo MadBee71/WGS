@@ -12,9 +12,12 @@ public class CrashPrediction
 public class CrashPredictionService : IDisposable
 {
     private readonly PerfHistoryService _perfHistory;
-    private readonly Dictionary<string, DateTime> _lastFired = new();
+    private readonly Dictionary<string, DateTime> _lastFired  = new();
+    private readonly Dictionary<string, DateTime> _startTimes = new();
     private CancellationTokenSource? _cts;
     private Task? _task;
+
+    public static readonly TimeSpan StartupGracePeriod = TimeSpan.FromMinutes(3);
 
     // Wired from MainViewModel after DI is fully built
     public Func<IEnumerable<(string id, string name)>>? GetRunningServers { get; set; }
@@ -32,6 +35,10 @@ public class CrashPredictionService : IDisposable
     }
 
     public void Initialize() => Start();
+
+    /// <summary>Call when a server process starts to suppress predictions during startup.</summary>
+    public void RegisterServerStart(string serverId)
+        => _startTimes[serverId] = DateTime.Now;
 
     private void Start()
     {
@@ -57,7 +64,14 @@ public class CrashPredictionService : IDisposable
 
     private void AnalyzeServer(string serverId, string serverName)
     {
-        var now       = DateTime.Now;        // capture once for consistency
+        var now = DateTime.Now;
+
+        // Skip analysis during startup grace period
+        if (_startTimes.TryGetValue(serverId, out var startedAt)
+            && now - startedAt < StartupGracePeriod)
+            return;
+
+        // capture once for consistency
         var windowStart = now - WindowSize;
         var sustainStart = now - SustainedCpuWindow;
 

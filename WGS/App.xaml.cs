@@ -84,6 +84,7 @@ public partial class App : System.Windows.Application
 
         // Start Web API if configured (includes slave mode via WebApiRequired)
         var webApi = Services.GetRequiredService<WebApiService>();
+        webApi.DashboardEnabled = config.WebApiEnabled;
         if (config.WebApiRequired && config.WebApiPort > 0)
             webApi.Start(config.WebApiPort, config.WebApiToken);
 

@@ -458,6 +458,66 @@
             </Border>
 
             <!-- General -->
+            <!-- Email Notifications -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Email Notifications (SMTP)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <CheckBox IsChecked="{Binding EmailEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable email notifications" Margin="0,0,0,12"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="SMTP Host" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpHost, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpPort, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                            <CheckBox IsChecked="{Binding SmtpSsl}" Style="{StaticResource DarkCheckBox}" Content="SSL/TLS"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpUser, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+                            <PasswordBox x:Name="SmtpPasswordBox" Style="{StaticResource DarkPasswordBox}"
+                                         PasswordChanged="SmtpPasswordBox_Changed"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="From address" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailFrom, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="To address(es)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailTo, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Separate multiple addresses with commas"/>
+                        </StackPanel>
+                    </Grid>
+                    <Button Content="Send test email" Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
+                            Command="{Binding TestEmailCommand}" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="General Settings" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
