@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Text;
 using Newtonsoft.Json;
 using WGS.Models;
@@ -20,7 +22,17 @@ public class NotificationSettings
     public string BotToken        { get; set; } = string.Empty;
     public string BotChannelId    { get; set; } = string.Empty;
     public string BotPrefix       { get; set; } = "!";
-    public string BotAllowedUsers { get; set; } = string.Empty; // comma-separated Discord user IDs
+    public string BotAllowedUsers { get; set; } = string.Empty;
+
+    // Email (SMTP)
+    public bool   EmailEnabled    { get; set; }
+    public string SmtpHost        { get; set; } = string.Empty;
+    public int    SmtpPort        { get; set; } = 587;
+    public bool   SmtpSsl         { get; set; } = true;
+    public string SmtpUser        { get; set; } = string.Empty;
+    public string SmtpPassword    { get; set; } = string.Empty;
+    public string EmailFrom       { get; set; } = string.Empty;
+    public string EmailTo         { get; set; } = string.Empty; // comma-separated
 }
 
 // On-disk representation — secrets stored encrypted
@@ -31,11 +43,19 @@ file record NotificationSettingsData(
     bool   NotifyOnStop,
     bool   NotifyOnCrash,
     bool   NotifyOnUpdate,
-    bool   BotEnabled           = false,
-    string BotTokenEncrypted    = "",
-    string BotChannelId         = "",
-    string BotPrefix            = "!",
-    string BotAllowedUsers      = "");
+    bool   BotEnabled                = false,
+    string BotTokenEncrypted         = "",
+    string BotChannelId              = "",
+    string BotPrefix                 = "!",
+    string BotAllowedUsers           = "",
+    bool   EmailEnabled              = false,
+    string SmtpHost                  = "",
+    int    SmtpPort                  = 587,
+    bool   SmtpSsl                   = true,
+    string SmtpUser                  = "",
+    string SmtpPasswordEncrypted     = "",
+    string EmailFrom                 = "",
+    string EmailTo                   = "");
 
 public class NotificationService
 {
@@ -63,6 +83,10 @@ public class NotificationService
             ? string.Empty
             : EncryptionService.Encrypt(_settings.BotToken);
 
+        var encryptedSmtp = string.IsNullOrEmpty(_settings.SmtpPassword)
+            ? string.Empty
+            : EncryptionService.Encrypt(_settings.SmtpPassword);
+
         var data = new NotificationSettingsData(
             _settings.DiscordEnabled,
             encryptedUrl,
@@ -74,7 +98,15 @@ public class NotificationService
             encryptedToken,
             _settings.BotChannelId,
             _settings.BotPrefix,
-            _settings.BotAllowedUsers);
+            _settings.BotAllowedUsers,
+            _settings.EmailEnabled,
+            _settings.SmtpHost,
+            _settings.SmtpPort,
+            _settings.SmtpSsl,
+            _settings.SmtpUser,
+            encryptedSmtp,
+            _settings.EmailFrom,
+            _settings.EmailTo);
 
         System.IO.File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(data, Formatting.Indented));
     }
@@ -107,6 +139,16 @@ public class NotificationService
                     BotChannelId    = data.BotChannelId,
                     BotPrefix       = string.IsNullOrEmpty(data.BotPrefix) ? "!" : data.BotPrefix,
                     BotAllowedUsers = data.BotAllowedUsers,
+                    EmailEnabled    = data.EmailEnabled,
+                    SmtpHost        = data.SmtpHost,
+                    SmtpPort        = data.SmtpPort,
+                    SmtpSsl         = data.SmtpSsl,
+                    SmtpUser        = data.SmtpUser,
+                    SmtpPassword    = string.IsNullOrEmpty(data.SmtpPasswordEncrypted)
+                        ? string.Empty
+                        : EncryptionService.Decrypt(data.SmtpPasswordEncrypted),
+                    EmailFrom       = data.EmailFrom,
+                    EmailTo         = data.EmailTo,
                 };
                 return;
             }
@@ -119,8 +161,12 @@ public class NotificationService
 
     public async Task NotifyAsync(string title, string message, string color = "#58A6FF")
     {
+        var tasks = new List<Task>();
         if (_settings.DiscordEnabled && !string.IsNullOrWhiteSpace(_settings.DiscordWebhookUrl))
-            await SendDiscordAsync(title, message, color);
+            tasks.Add(SendDiscordAsync(title, message, color));
+        if (_settings.EmailEnabled && !string.IsNullOrWhiteSpace(_settings.EmailTo))
+            tasks.Add(SendEmailAsync(title, message));
+        if (tasks.Count > 0) await Task.WhenAll(tasks);
     }
 
     public async Task NotifyServerStatusAsync(GameServer server, ServerStatus status)
@@ -141,6 +187,47 @@ public class NotificationService
 
     private static string GameRegistry_GameName(string gameId)
         => Games.GameRegistry.Get(gameId)?.GameName ?? gameId;
+
+    private async Task SendEmailAsync(string subject, string body)
+    {
+        try
+        {
+            using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort)
+            {
+                EnableSsl   = _settings.SmtpSsl,
+                Credentials = new NetworkCredential(_settings.SmtpUser, _settings.SmtpPassword),
+            };
+
+            var html = $"""
+                <html><body style="font-family:sans-serif;background:#0d1117;color:#c9d1d9;padding:24px">
+                <h2 style="color:#58a6ff">{System.Net.WebUtility.HtmlEncode(subject)}</h2>
+                <p>{System.Net.WebUtility.HtmlEncode(body)}</p>
+                <hr style="border-color:#30363d"/><p style="color:#8b949e;font-size:12px">Windows Game Server</p>
+                </body></html>
+                """;
+
+            var from = string.IsNullOrWhiteSpace(_settings.EmailFrom) ? _settings.SmtpUser : _settings.EmailFrom;
+            var mail = new MailMessage { From = new MailAddress(from), Subject = subject, Body = html, IsBodyHtml = true };
+
+            foreach (var addr in _settings.EmailTo.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                mail.To.Add(addr);
+
+            await client.SendMailAsync(mail);
+        }
+        catch { }
+    }
+
+    public async Task<bool> TestEmailAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.SmtpHost) || string.IsNullOrWhiteSpace(_settings.EmailTo))
+            return false;
+        try
+        {
+            await SendEmailAsync("🧪 WGS Test Email", "Windows Game Server email notifications are working!");
+            return true;
+        }
+        catch { return false; }
+    }
 
     private async Task SendDiscordAsync(string title, string description, string hexColor)
     {

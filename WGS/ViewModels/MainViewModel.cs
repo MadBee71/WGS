@@ -186,7 +186,10 @@ public partial class MainViewModel : BaseViewModel
                 if (server != null)
                 {
                     if (status == ServerStatus.Running)
+                    {
                         _ = _upnp.AddPortsForServerAsync(server);
+                        _crashPrediction.RegisterServerStart(id);
+                    }
                     else if (status is ServerStatus.Stopped or ServerStatus.Error)
                         _ = _upnp.RemovePortsForServerAsync(server);
                 }
@@ -570,6 +573,58 @@ public partial class MainViewModel : BaseViewModel
         Servers.Add(vm);
         SelectedServer = vm;
         ShowAddDialog  = false;
+        Save();
+        RefreshCounts();
+    }
+
+    [RelayCommand]
+    private void CloneServer(ServerViewModel? source)
+    {
+        if (source == null) return;
+
+        var src = source.Server;
+        var plugin = GameRegistry.Get(src.GameId);
+        if (plugin == null) return;
+
+        // Allocate fresh ports so clone doesn't conflict
+        var (gp, qp, sp) = AllocatePorts(src.ServerPort, src.QueryPort, src.SteamPort);
+
+        // Build a unique name and install path
+        var cloneName = $"{src.DisplayName} (Copy)";
+        var safeName  = string.Join("_", cloneName.Split(System.IO.Path.GetInvalidFileNameChars()));
+        var clonePath = System.IO.Path.Combine(
+            System.IO.Path.GetDirectoryName(src.InstallPath) ?? _config.DefaultInstallRoot,
+            safeName);
+
+        var clone = new GameServer
+        {
+            GameId               = src.GameId,
+            DisplayName          = cloneName,
+            ServerName           = cloneName,
+            InstallPath          = clonePath,
+            ServerPort           = gp,
+            QueryPort            = qp,
+            SteamPort            = sp,
+            RconPort             = src.RconPort > 0 ? gp + 10 : 0,
+            MaxPlayers           = src.MaxPlayers,
+            AutoRestart          = src.AutoRestart,
+            AutoUpdate           = src.AutoUpdate,
+            DailyRestartEnabled  = src.DailyRestartEnabled,
+            DailyRestartTime     = src.DailyRestartTime,
+            DiscordAlertsEnabled = src.DiscordAlertsEnabled,
+            BackupEnabled        = src.BackupEnabled,
+            BackupRetention      = src.BackupRetention,
+            Gslt                 = src.Gslt,
+            CpuAffinityMask      = src.CpuAffinityMask,
+            ProcessPriority      = src.ProcessPriority,
+            Status               = ServerStatus.NotInstalled,
+            GameSpecificSettings = new Dictionary<string, string>(src.GameSpecificSettings),
+        };
+
+        var vm = MakeVm(clone);
+        vm.ServerNumber = Servers.Count + 1;
+        Servers.Add(vm);
+        SelectedServer = vm;
         Save();
         RefreshCounts();
     }

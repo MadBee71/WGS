@@ -56,6 +56,10 @@
                     <Button Content="🔗" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding CopyConnectionLinkCommand}"
                             ToolTip="Copy steam://connect link to clipboard"/>
+                    <Button Content="⧉" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
+                            Command="{Binding DataContext.CloneServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            ToolTip="Clone server (copy config, allocate new ports)"/>
                     <Button Content="🗑" Style="{StaticResource DangerButton}" Width="36" Padding="0"
                             Command="{Binding DataContext.RemoveServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"

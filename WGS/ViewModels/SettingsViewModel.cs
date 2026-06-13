@@ -38,6 +38,16 @@ public partial class SettingsViewModel : BaseViewModel
     public ObservableCollection<string> BotAdminList { get; } = [];
     public bool BotIsRunning => BotEnabled && _bot.IsRunning;
 
+    // ── Email (SMTP) ──────────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _emailEnabled;
+    [ObservableProperty] private string _smtpHost     = string.Empty;
+    [ObservableProperty] private int    _smtpPort     = 587;
+    [ObservableProperty] private bool   _smtpSsl      = true;
+    [ObservableProperty] private string _smtpUser     = string.Empty;
+    [ObservableProperty] private string _smtpPassword = string.Empty;
+    [ObservableProperty] private string _emailFrom    = string.Empty;
+    [ObservableProperty] private string _emailTo      = string.Empty;
+
     // ── Web API ───────────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _webApiEnabled;
     [ObservableProperty] private int    _webApiPort    = 8765;
@@ -126,6 +136,14 @@ public partial class SettingsViewModel : BaseViewModel
         BotAdminList.Clear();
         foreach (var id in s.BotAllowedUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             BotAdminList.Add(id);
+        EmailEnabled       = s.EmailEnabled;
+        SmtpHost           = s.SmtpHost;
+        SmtpPort           = s.SmtpPort;
+        SmtpSsl            = s.SmtpSsl;
+        SmtpUser           = s.SmtpUser;
+        SmtpPassword       = s.SmtpPassword;
+        EmailFrom          = s.EmailFrom;
+        EmailTo            = s.EmailTo;
         DefaultInstallRoot = _config.DefaultInstallRoot;
         BackupPath         = _config.BackupPath;
         SteamCmdPath       = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");
@@ -158,6 +176,14 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotChannelId      = BotChannelId;
         s.BotPrefix         = BotPrefix;
         s.BotAllowedUsers   = string.Join(",", BotAdminList);
+        s.EmailEnabled      = EmailEnabled;
+        s.SmtpHost          = SmtpHost;
+        s.SmtpPort          = SmtpPort;
+        s.SmtpSsl           = SmtpSsl;
+        s.SmtpUser          = SmtpUser;
+        s.SmtpPassword      = SmtpPassword;
+        s.EmailFrom         = EmailFrom;
+        s.EmailTo           = EmailTo;
         _notifications.Save();
 
         _config.DefaultInstallRoot     = DefaultInstallRoot;
@@ -236,6 +262,16 @@ public partial class SettingsViewModel : BaseViewModel
         var ok = await _notifications.TestDiscordAsync();
         WpfMsgBox.Show(ok ? "Discord webhook test succeeded!" : "Test failed. Check the webhook URL.",
             "WGS Discord", WpfMsgBoxButton.OK,
+            ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
+    }
+
+    [RelayCommand]
+    private async Task TestEmailAsync()
+    {
+        SaveSettings();
+        var ok = await _notifications.TestEmailAsync();
+        WpfMsgBox.Show(ok ? "Test email sent successfully!" : "Failed to send. Check SMTP settings.",
+            "WGS Email", WpfMsgBoxButton.OK,
             ok ? WpfMsgBoxImage.Information : WpfMsgBoxImage.Warning);
     }
 
