@@ -371,6 +371,96 @@ public class ModManagerService
         Report(progress, 100, $"✅ Vanilla Minecraft {latestRelease} server installed");
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // FORGE — downloads official installer, runs --installServer
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private const string ForgePromotionsUrl =
+        "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
+    private const string ForgeInstallerBase =
+        "https://maven.minecraftforge.net/net/minecraftforge/forge";
+
+    public async Task InstallForgeAsync(string installPath,
+                                        IProgress<(int pct, string msg)>? progress = null)
+    {
+        // Java required
+        var javaPath = FindOnPath("java.exe") ?? FindOnPath("java")
+            ?? throw new InvalidOperationException(
+                "Java not found on PATH. Install JDK 17+ and make sure it is in your system PATH.");
+
+        Report(progress, 5, "Fetching latest Forge version info...");
+
+        // Get promotions — find latest MC version with a "latest" forge build
+        var promoJson = await _http.GetStringAsync(ForgePromotionsUrl);
+        using var promoDoc = JsonDocument.Parse(promoJson);
+        var promos = promoDoc.RootElement.GetProperty("promos");
+
+        // Pick highest MC version that has a "-recommended" or "-latest" entry
+        string? bestBuild = null;
+        Version? bestMc   = null;
+        foreach (var entry in promos.EnumerateObject())
+        {
+            var key = entry.Name; // e.g. "1.20.1-recommended"
+            var parts = key.Split('-');
+            if (parts.Length < 2) continue;
+            if (Version.TryParse(parts[0], out var mcVer) && mcVer > bestMc)
+            {
+                bestMc    = mcVer;
+                bestBuild = $"{parts[0]}-{entry.Value.GetString()}";
+            }
+        }
+
+        if (bestBuild == null)
+            throw new InvalidOperationException("Could not determine latest Forge version from promotions_slim.json.");
+
+        var installerJar  = $"forge-{bestBuild}-installer.jar";
+        var installerUrl  = $"{ForgeInstallerBase}/{bestBuild}/{installerJar}";
+        var installerPath = Path.Combine(installPath, installerJar);
+
+        Report(progress, 15, $"Downloading Forge {bestBuild} installer...");
+        Directory.CreateDirectory(installPath);
+        var bytes = await _http.GetByteArrayAsync(installerUrl);
+        await File.WriteAllBytesAsync(installerPath, bytes);
+        EnsureEula(installPath);
+
+        // Run installer with --installServer
+        Report(progress, 30, $"Running Forge installer (this may take a few minutes)...");
+        var outputLines = new System.Collections.Concurrent.ConcurrentBag<string>();
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName               = javaPath,
+            Arguments              = $"-jar \"{installerPath}\" --installServer",
+            WorkingDirectory       = installPath,
+            UseShellExecute        = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+        };
+        using var proc = new System.Diagnostics.Process { StartInfo = psi };
+        proc.OutputDataReceived += (_, e) => { if (e.Data != null) outputLines.Add(e.Data); };
+        proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) outputLines.Add(e.Data); };
+        proc.Start();
+        proc.BeginOutputReadLine();
+        proc.BeginErrorReadLine();
+
+        int fake = 30;
+        while (!proc.WaitForExit(3000))
+        {
+            fake = Math.Min(fake + 3, 90);
+            Report(progress, fake, "Installing Forge server files...");
+        }
+
+        if (proc.ExitCode != 0)
+        {
+            var tail = string.Join("\n", outputLines.TakeLast(5));
+            throw new InvalidOperationException($"Forge installer failed (exit {proc.ExitCode}):\n{tail}");
+        }
+
+        // Clean up installer jar
+        try { File.Delete(installerPath); } catch { }
+
+        Report(progress, 100, $"✅ Forge {bestBuild} installed");
+    }
+
     private static void EnsureEula(string installPath)
     {
         var eulaPath = Path.Combine(installPath, "eula.txt");

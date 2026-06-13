@@ -1,3 +1,4 @@
+using System.IO;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -27,6 +28,23 @@ public class ForgePlugin : GamePluginBase
     public override string BuildStartArguments(GameServer s)
     {
         var ram = S(s, "ramGb", "4");
+
+        // Forge 1.17+ installs a unix_args.txt (JVM args file) — use it if present
+        if (Directory.Exists(s.InstallPath))
+        {
+            var argsFiles = Directory.GetFiles(s.InstallPath, "unix_args.txt", SearchOption.AllDirectories);
+            if (argsFiles.Length > 0)
+                return $"-Xmx{ram}G -Xms{ram}G @\"{argsFiles[0]}\" nogui";
+
+            // Legacy Forge (<1.17): single forge-*.jar (excluding installer)
+            var forgeJars = Directory.GetFiles(s.InstallPath, "*forge*.jar")
+                .Where(f => !f.Contains("installer", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (forgeJars.Length > 0)
+                return $"-Xmx{ram}G -Xms{ram}G -jar \"{forgeJars[0]}\" nogui";
+        }
+
+        // Fallback before first install
         var jar = S(s, "jarFile", "forge-server.jar");
         return $"-Xmx{ram}G -Xms{ram}G -jar \"{s.InstallPath}\\{jar}\" nogui";
     }
@@ -34,7 +52,6 @@ public class ForgePlugin : GamePluginBase
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
         ["ramGb"]      = "4",
-        ["jarFile"]    = "forge-server.jar",
         ["difficulty"] = "normal",
         ["gamemode"]   = "survival",
         ["onlineMode"] = "true",
@@ -45,7 +62,6 @@ public class ForgePlugin : GamePluginBase
         var fields = BaseFields();
         fields.AddRange([
             new() { Key = "ramGb",      Label = "RAM (GB)",    FieldType = ConfigFieldType.Slider,   DefaultValue = "4", Min = 2, Max = 64 },
-            new() { Key = "jarFile",    Label = "Forge JAR",   FieldType = ConfigFieldType.Text,     DefaultValue = "forge-server.jar" },
             new() { Key = "difficulty", Label = "Difficulty",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",   FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode", FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
