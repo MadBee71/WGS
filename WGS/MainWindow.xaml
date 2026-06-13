@@ -43,11 +43,18 @@
                                 Background="#1a3a1a" BorderBrush="{StaticResource AccentGreenBrush}"
                                 BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="8,0,0,0"
                                 VerticalAlignment="Center" Cursor="Hand"
-                                ToolTip="{Binding LatestVersion, StringFormat='Version {0} available — click to download'}"
+                                ToolTip="{Binding LatestVersion, StringFormat='Version {0} available — click to update automatically'}"
                                 MouseLeftButtonUp="UpdateBadge_Click">
-                            <TextBlock Text="{Binding LatestVersion, StringFormat='⬆ {0} available'}"
-                                       FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AccentGreenBrush}"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding LatestVersion, StringFormat='⬆ {0} available'}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentGreenBrush}"
+                                           Visibility="{Binding UpdateDownloading, Converter={StaticResource InvBoolToVis}}"/>
+                                <TextBlock Text="{Binding UpdateStatusText}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentGreenBrush}"
+                                           Visibility="{Binding UpdateDownloading, Converter={StaticResource BoolToVis}}"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
