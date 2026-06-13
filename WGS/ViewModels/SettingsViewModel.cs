@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -32,6 +33,10 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _botPrefix       = "!";
     [ObservableProperty] private string _botAllowedUsers = string.Empty;
     [ObservableProperty] private string _botStatus       = string.Empty;
+    [ObservableProperty] private string _newBotAdminId   = string.Empty;
+    [ObservableProperty] private string? _selectedBotAdmin;
+    public ObservableCollection<string> BotAdminList { get; } = [];
+    public bool BotIsRunning => BotEnabled && _bot.IsRunning;
 
     // ── Web API ───────────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _webApiEnabled;
@@ -39,6 +44,7 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _webApiToken   = string.Empty;
     [ObservableProperty] private string _webApiStatus  = string.Empty;
     public bool WebApiStatusIsWarning => WebApiStatus.StartsWith("⚠");
+    public bool WebApiIsRunning       => WebApiEnabled && _webApi.IsRunning;
 
     // ── Slave / Remote Control ────────────────────────────────────────────────
     [ObservableProperty] private bool   _slaveMode;
@@ -52,6 +58,7 @@ public partial class SettingsViewModel : BaseViewModel
     // ── UPnP ─────────────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _enableUPnP;
     [ObservableProperty] private string _upnpStatus = string.Empty;
+    public bool UpnpIsFound => UpnpStatus.StartsWith("Router found");
 
     // ── General / paths ───────────────────────────────────────────────────────
     [ObservableProperty] private string _defaultInstallRoot  = string.Empty;
@@ -95,7 +102,10 @@ public partial class SettingsViewModel : BaseViewModel
         _bot           = bot;
         _webApi        = webApi;
         _upnp          = upnp;
-        _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => BotStatus = msg);
+        _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => {
+            BotStatus = msg;
+            OnPropertyChanged(nameof(BotIsRunning));
+        });
         Load();
     }
 
@@ -113,6 +123,9 @@ public partial class SettingsViewModel : BaseViewModel
         BotChannelId       = s.BotChannelId;
         BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
         BotAllowedUsers    = s.BotAllowedUsers;
+        BotAdminList.Clear();
+        foreach (var id in s.BotAllowedUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            BotAdminList.Add(id);
         DefaultInstallRoot = _config.DefaultInstallRoot;
         BackupPath         = _config.BackupPath;
         SteamCmdPath       = System.IO.Path.Combine(_config.AppDataPath, "steamcmd");
@@ -144,7 +157,7 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotToken          = BotToken;
         s.BotChannelId      = BotChannelId;
         s.BotPrefix         = BotPrefix;
-        s.BotAllowedUsers   = BotAllowedUsers;
+        s.BotAllowedUsers   = string.Join(",", BotAdminList);
         _notifications.Save();
 
         _config.DefaultInstallRoot     = DefaultInstallRoot;
@@ -159,14 +172,17 @@ public partial class SettingsViewModel : BaseViewModel
         _config.SlaveName              = SlaveName;
         _config.CrashPredictionDiscord = CrashPredictionDiscord;
         _config.EnableUPnP             = EnableUPnP;
+        if (!EnableUPnP) { UpnpStatus = "Stopped"; OnPropertyChanged(nameof(UpnpIsFound)); }
         _config.Save(); // single save — all settings written atomically
 
         System.IO.Directory.CreateDirectory(BackupPath);
 
         // Apply bot settings immediately
         _bot.ApplySettings(s);
-        BotStatus = _bot.IsRunning ? "🟢 Running" : "⚫ Stopped";
+        BotStatus = _bot.IsRunning ? "Running" : "Stopped";
+        OnPropertyChanged(nameof(BotIsRunning));
 
+        _webApi.DashboardEnabled = WebApiEnabled;
         if (WebApiEnabled || SlaveMode)
         {
             _webApi.Start(WebApiPort, WebApiToken);
@@ -175,12 +191,30 @@ public partial class SettingsViewModel : BaseViewModel
         else
         {
             _webApi.Stop();
-            WebApiStatus = "⚫ Stopped";
+            WebApiStatus = "Stopped";
+            OnPropertyChanged(nameof(WebApiIsRunning));
+            OnPropertyChanged(nameof(WebApiStatusIsWarning));
         }
 
         SetStartWithWindows(StartWithWindows);
 
         WpfMsgBox.Show("Settings saved.", "WGS", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
+    }
+
+    [RelayCommand]
+    private void AddBotAdmin()
+    {
+        var id = NewBotAdminId.Trim();
+        if (string.IsNullOrEmpty(id) || BotAdminList.Contains(id)) return;
+        BotAdminList.Add(id);
+        NewBotAdminId = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveBotAdmin()
+    {
+        if (SelectedBotAdmin != null)
+            BotAdminList.Remove(SelectedBotAdmin);
     }
 
     [RelayCommand]
@@ -234,15 +268,13 @@ public partial class SettingsViewModel : BaseViewModel
 
     private string BuildWebApiStatus()
     {
-        if (!_webApi.IsRunning) return "⚫ Stopped";
-        if (!_webApi.BoundToAllInterfaces)
-        {
-            OnPropertyChanged(nameof(WebApiStatusIsWarning));
-            return $"⚠ localhost:{_webApi.Port} only — run WGS as Administrator or: " +
-                   $"netsh http add urlacl url=http://+:{_webApi.Port}/ user=Everyone";
-        }
+        OnPropertyChanged(nameof(WebApiIsRunning));
         OnPropertyChanged(nameof(WebApiStatusIsWarning));
-        return $"🟢 Running on port {_webApi.Port}  (network reachable)";
+        if (!_webApi.IsRunning) return "Stopped";
+        if (!_webApi.BoundToAllInterfaces)
+            return $"localhost:{_webApi.Port} only — run WGS as Administrator or: " +
+                   $"netsh http add urlacl url=http://+:{_webApi.Port}/ user=Everyone";
+        return $"Running on port {_webApi.Port}  (network reachable)";
     }
 
     [RelayCommand]
@@ -264,8 +296,10 @@ public partial class SettingsViewModel : BaseViewModel
     [RelayCommand]
     private async Task TestUPnPAsync()
     {
-        UpnpStatus = "⏳ Discovering router...";
+        UpnpStatus = "Discovering router...";
+        OnPropertyChanged(nameof(UpnpIsFound));
         var ok = await _upnp.DiscoverAsync();
-        UpnpStatus = ok ? "🟢 Router found — UPnP is available" : "🔴 Router not found or UPnP is disabled";
+        UpnpStatus = ok ? "Router found — UPnP is available" : "Router not found or UPnP is disabled";
+        OnPropertyChanged(nameof(UpnpIsFound));
     }
 }

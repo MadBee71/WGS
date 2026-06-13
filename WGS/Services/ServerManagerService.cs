@@ -16,6 +16,7 @@ public class ServerInstance
     public DateTime? StartTime { get; set; }
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public int RestartCount { get; set; }
+    public CancellationTokenSource DailyRestartCts { get; } = new();
 
     /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
     public List<DateTime> CrashTimes { get; } = [];
@@ -373,6 +374,10 @@ public class ServerManagerService
         inst.StartTime = DateTime.Now;
         server.LastStarted = DateTime.Now;
 
+        // Schedule daily restart if enabled
+        if (server.DailyRestartEnabled)
+            _ = RunDailyRestartAsync(server, inst);
+
         // Rekisteröi kaistaseurantaan
         _network.RegisterServer(server.Id, proc.Id);
 
@@ -401,6 +406,7 @@ public class ServerManagerService
         if (inst.Process?.HasExited == false)
             inst.Process.Kill(entireProcessTree: true);
 
+        inst.DailyRestartCts.Cancel();
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
@@ -428,6 +434,7 @@ public class ServerManagerService
         SetStatus(server, ServerStatus.Stopping);
         try { inst.Process?.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* process already dead — swallow */ }
+        inst.DailyRestartCts.Cancel();
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
@@ -463,6 +470,37 @@ public class ServerManagerService
             SetForegroundWindow(hwnd);
         }
         catch { }
+    }
+
+    private async Task RunDailyRestartAsync(GameServer server, ServerInstance inst)
+    {
+        while (_running.TryGetValue(server.Id, out var current) && current == inst && server.DailyRestartEnabled)
+        {
+            var now = DateTime.Now;
+            var target = now.Date + server.DailyRestartTime;
+            if (target <= now)
+                target = target.AddDays(1);
+
+            var delay = target - now;
+            try { await Task.Delay(delay, inst.DailyRestartCts.Token); }
+            catch (TaskCanceledException) { return; }
+
+            if (!_running.TryGetValue(server.Id, out var c) || c != inst || !server.DailyRestartEnabled)
+                return;
+
+            var msg = new ConsoleMessage
+            {
+                Text = $"[WGS] Daily restart triggered at {server.DailyRestartTime:hh\\:mm}",
+                Type = ConsoleMessageType.Warning
+            };
+            inst.Log.Add(msg);
+            LogReceived?.Invoke(server.Id, msg);
+
+            await StopAsync(server);
+            await Task.Delay(3000);
+            await StartAsync(server);
+            return; // new instance will spawn its own RunDailyRestartAsync
+        }
     }
 
     private void SetStatus(GameServer server, ServerStatus status)

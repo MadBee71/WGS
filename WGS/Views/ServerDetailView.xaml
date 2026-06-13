@@ -419,6 +419,21 @@
                                     </StackPanel>
                                 </Grid>
 
+                                <!-- Daily Restart -->
+                                <CheckBox IsChecked="{Binding Server.DailyRestartEnabled}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Restart daily at scheduled time" Margin="0,0,0,8"/>
+                                <Grid Margin="20,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Restart time (HH:MM)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding DailyRestartTimeText, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DarkTextBox}"/>
+                                    </StackPanel>
+                                </Grid>
+
                                 <!-- Auto Update -->
                                 <CheckBox IsChecked="{Binding Server.AutoUpdate}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-update periodically" Margin="0,0,0,8"/>
