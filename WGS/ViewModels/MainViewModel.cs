@@ -34,6 +34,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly RemoteMachineService      _remoteMachines;
     private readonly CrashPredictionService    _crashPrediction;
     private readonly UPnPService               _upnp;
+    private readonly WakeOnDemandService       _wakeOnDemand;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -139,7 +140,7 @@ public partial class MainViewModel : BaseViewModel
         NetworkMonitorService network, TemplateService templates, UserService users,
         ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
         RemoteMachineService remoteMachines, CrashPredictionService crashPrediction,
-        UPnPService upnp)
+        UPnPService upnp, WakeOnDemandService wakeOnDemand)
     {
         _config          = config;
         _manager         = manager;
@@ -165,6 +166,7 @@ public partial class MainViewModel : BaseViewModel
         _remoteMachines  = remoteMachines;
         _crashPrediction = crashPrediction;
         _upnp            = upnp;
+        _wakeOnDemand    = wakeOnDemand;
         Settings         = settings;
         Dashboard        = new DashboardViewModel(metrics, network, Servers);
 
@@ -189,9 +191,13 @@ public partial class MainViewModel : BaseViewModel
                     {
                         _ = _upnp.AddPortsForServerAsync(server);
                         _crashPrediction.RegisterServerStart(id);
+                        _wakeOnDemand.Disarm(id); // server is up, stop proxy listener
                     }
                     else if (status is ServerStatus.Stopped or ServerStatus.Error)
+                    {
                         _ = _upnp.RemovePortsForServerAsync(server);
+                        _wakeOnDemand.Arm(server); // re-arm if WakeOnDemand is enabled
+                    }
                 }
             }
         };

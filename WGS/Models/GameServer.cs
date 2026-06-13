@@ -23,6 +23,7 @@ public class GameServer
     public bool AutoUpdate             { get; set; } = false;
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
     public bool AutoStart              { get; set; } = false;
+    public bool WakeOnDemand           { get; set; } = false;
     public bool UpdateOnStart          { get; set; } = false;
     public bool BackupOnStart          { get; set; } = false;
     public bool DiscordAlertsEnabled   { get; set; } = true;
