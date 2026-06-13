@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="WGS.Views.SettingsView"
+<UserControl x:Class="WGS.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource BgDeepBrush}">
@@ -6,7 +6,61 @@
         <StackPanel Margin="32">
             <TextBlock Text="Settings" Style="{StaticResource SectionHeader}" FontSize="22"/>
 
-            <!-- Discord -->
+            <!-- 1. General Settings -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="General Settings" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text="Default install directory" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
+                             Text="{Binding DefaultInstallRoot, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Backup folder" Style="{StaticResource FieldLabel}"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
+                                 Text="{Binding BackupPath, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Grid.Column="1" Content="Browse" Style="{StaticResource GhostButton}"
+                                Margin="8,0,0,0" Command="{Binding BrowseBackupPathCommand}"/>
+                    </Grid>
+                    <TextBlock Text="SteamCMD directory" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Style="{StaticResource DarkTextBox}"
+                             Text="{Binding SteamCmdPath}" IsReadOnly="True"
+                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <CheckBox IsChecked="{Binding StartWithWindows}" Style="{StaticResource DarkCheckBox}"
+                              Content="Start WGS automatically with Windows" Margin="0,14,0,0"/>
+                    <TextBlock Text="Adds WGS to Windows startup (current user only, no UAC prompt)."
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Steam Login -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Steam Login" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,16"
+                               Text="Required for games that don't support anonymous download (e.g. Wreckfest 2, Conan Exiles)"/>
+                    <TextBlock Text="Steam username" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
+                             Text="{Binding SteamLogin, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Steam password" Style="{StaticResource FieldLabel}"/>
+                    <PasswordBox x:Name="SteamPassBox" Margin="0,0,0,12"
+                                 Background="#161B22" Foreground="#E6EDF3"
+                                 BorderBrush="#30363D" BorderThickness="1" Padding="10,8"
+                                 PasswordChanged="SteamPassBox_PasswordChanged"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                               Text="⚠ Password is stored in plain text. Use a dedicated Steam account for servers."/>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 3. Discord Notifications -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="Discord Notifications" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
@@ -35,7 +89,85 @@
                 </StackPanel>
             </Border>
 
-            <!-- Discord Remote Control Bot -->
+            <!-- 4. Email Notifications (SMTP) -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Email Notifications (SMTP)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <CheckBox IsChecked="{Binding EmailEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable email notifications" Margin="0,0,0,12"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="SMTP Host" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpHost, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpPort, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                            <CheckBox IsChecked="{Binding SmtpSsl}" Style="{StaticResource DarkCheckBox}" Content="SSL/TLS"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpUser, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+                            <PasswordBox x:Name="SmtpPasswordBox" Style="{StaticResource DarkPasswordBox}"
+                                         PasswordChanged="SmtpPasswordBox_Changed"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="From address" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailFrom, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="To address(es)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailTo, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Separate multiple addresses with commas"/>
+                        </StackPanel>
+                    </Grid>
+                    <Button Content="Send test email" Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
+                            Command="{Binding TestEmailCommand}" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 5. Crash Prediction -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Crash Prediction" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        WGS analyzes CPU/RAM history every 30 seconds and warns you before a likely crash:
+                        rapid RAM growth, sustained high CPU, or memory leaks.
+                    </TextBlock>
+                    <CheckBox IsChecked="{Binding CrashPredictionDiscord}" Style="{StaticResource DarkCheckBox}"
+                              Content="Send crash predictions to Discord" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
+                               Text="Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 6. Discord Remote Control Bot -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="Discord Remote Control Bot" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
@@ -142,7 +274,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- Web API -->
+            <!-- 7. Web Remote Control (HTTP API) -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="Web Remote Control (HTTP API)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
@@ -206,372 +338,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- Remote Control (Slave / Multi-Machine) -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Remote Control — Slave Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                        Enable Slave mode on THIS machine so a master WGS can control it over the network.
-                        Configure port and token below, then add this machine on the master using the connection info shown.
-                    </TextBlock>
-
-                    <CheckBox IsChecked="{Binding SlaveMode}" Style="{StaticResource DarkCheckBox}"
-                              Content="Run as Slave (remote-controllable)" Margin="0,0,0,12"/>
-
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="API Port" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}"
-                                     Text="{Binding WebApiPort, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="Access Token (shared secret)" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
-                                     Text="{Binding WebApiToken, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="Machine name (shown on master)" Style="{StaticResource FieldLabel}"/>
-                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
-                             Text="{Binding SlaveName, UpdateSourceTrigger=PropertyChanged}"/>
-
-                    <!-- Connection info box -->
-                    <Border Background="{StaticResource BgDeepBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                            Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}">
-                        <StackPanel>
-                            <TextBlock Text="📋  Add this to the master WGS (Machines tab):" FontSize="11"
-                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="URL:    " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
-                                <TextBlock Text="{Binding SlaveConnectionUrl}" FontSize="12" FontFamily="Consolas"
-                                           Foreground="{StaticResource AccentBlueBrush}"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Token: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
-                                <TextBlock Text="{Binding WebApiToken}" FontSize="12" FontFamily="Consolas"
-                                           Foreground="{StaticResource AccentBlueBrush}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Save &amp; Apply" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"
-                                Command="{Binding SaveSettingsCommand}"/>
-                        <Button Content="📋 Copy connection info" Style="{StaticResource GhostButton}"
-                                Command="{Binding CopySlaveInfoCommand}"
-                                Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="#8b949e"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding WebApiIsRunning}" Value="True">
-                                            <Setter Property="Fill" Value="#3fb950"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
-                                            <Setter Property="Fill" Value="#F0A500"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding WebApiStatus}" FontSize="11"
-                                   TextWrapping="Wrap">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
-                                            <Setter Property="Foreground" Value="#F0A500"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Master: Remote Machines -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Remote Machines — Master Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                        Add slave machines here. Use the URL and Token shown in the slave's Remote Control section.
-                    </TextBlock>
-
-                    <!-- Add form -->
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}"
-                                     Text="{Binding DataContext.NewMachineName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Display name for this machine"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="URL  (e.g. http://192.168.1.50:8765)" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
-                                     Text="{Binding DataContext.NewMachineUrl, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="4">
-                            <TextBlock Text="Token" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
-                                     Text="{Binding DataContext.NewMachineToken, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <Button Grid.Column="6" Content="＋ Add" Style="{StaticResource PrimaryButton}"
-                                VerticalAlignment="Bottom"
-                                Command="{Binding DataContext.AddMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </Grid>
-
-                    <!-- Machine list -->
-                    <TextBlock Text="No machines added yet." FontSize="12" Foreground="{StaticResource TextMutedBrush}"
-                               Margin="0,8,0,0"
-                               Visibility="{Binding DataContext.RemoteMachines.Count, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
-                    <ItemsControl ItemsSource="{Binding DataContext.RemoteMachines, RelativeSource={RelativeSource AncestorType=Window}}"
-                                  Margin="0,4,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource Card}" Margin="0,0,0,6">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <!-- Status dot -->
-                                        <Ellipse Grid.Column="0" Width="9" Height="9" Margin="0,0,10,0" VerticalAlignment="Center">
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Setter Property="Fill" Value="#8B949E"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsOnline}" Value="True">
-                                                            <Setter Property="Fill" Value="#3FB950"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding MachineName}"/>
-                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
-                                                       Text="{Binding MachineUrl}" FontFamily="Consolas"/>
-                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
-                                                       Text="{Binding StatusText}"/>
-                                        </StackPanel>
-                                        <Button Grid.Column="2" Content="🗑" Style="{StaticResource DangerButton}"
-                                                Width="36" Padding="0" VerticalAlignment="Center"
-                                                Command="{Binding DataContext.RemoveMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <!-- Notifications: Crash Prediction -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Crash Prediction" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                        WGS analyzes CPU/RAM history every 30 seconds and warns you before a likely crash:
-                        rapid RAM growth, sustained high CPU, or memory leaks.
-                    </TextBlock>
-                    <CheckBox IsChecked="{Binding CrashPredictionDiscord}" Style="{StaticResource DarkCheckBox}"
-                              Content="Send crash predictions to Discord" Margin="0,0,0,8"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
-                               Text="Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
-                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                            Command="{Binding SaveSettingsCommand}"/>
-                </StackPanel>
-            </Border>
-
-            <!-- UPnP -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="UPnP Port Forwarding" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
-                        Automatically opens and closes port mappings on your router when a server starts or stops.
-                        Requires UPnP to be enabled in your router settings.
-                    </TextBlock>
-                    <!-- Warning box -->
-                    <Border Background="#14F85149" BorderBrush="#F85149" BorderThickness="3,0,0,0"
-                            Padding="12,10" Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="WARNING" FontWeight="Bold" FontSize="11"
-                                       Foreground="#F85149" Margin="0,0,0,5"
-                                       FontFamily="Segoe UI"/>
-                            <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
-                                UPnP automatically modifies your router's firewall rules without further confirmation.
-                                This can expose your network to unintended access if your router or game server is misconfigured.
-                                Only enable this if you understand the risks and fully trust your network environment.
-                                WGS takes no responsibility for security issues arising from UPnP usage.
-                            </TextBlock>
-                        </StackPanel>
-                    </Border>
-                    <CheckBox IsChecked="{Binding EnableUPnP}" Style="{StaticResource DarkCheckBox}"
-                              Content="Enable UPnP automatic port forwarding" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="Test UPnP" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
-                                Command="{Binding TestUPnPCommand}"/>
-                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="#8b949e"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UpnpIsFound}" Value="True">
-                                            <Setter Property="Fill" Value="#3fb950"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding UpnpStatus}" VerticalAlignment="Center"
-                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
-                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                            Command="{Binding SaveSettingsCommand}"/>
-                </StackPanel>
-            </Border>
-
-            <!-- General -->
-            <!-- Email Notifications -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Email Notifications (SMTP)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <CheckBox IsChecked="{Binding EmailEnabled}" Style="{StaticResource DarkCheckBox}"
-                              Content="Enable email notifications" Margin="0,0,0,12"/>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="80"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                            <TextBlock Text="SMTP Host" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpHost, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpPort, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
-                            <CheckBox IsChecked="{Binding SmtpSsl}" Style="{StaticResource DarkCheckBox}" Content="SSL/TLS"/>
-                        </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SmtpUser, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
-                            <PasswordBox x:Name="SmtpPasswordBox" Style="{StaticResource DarkPasswordBox}"
-                                         PasswordChanged="SmtpPasswordBox_Changed"/>
-                        </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                            <TextBlock Text="From address" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailFrom, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="To address(es)" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EmailTo, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Separate multiple addresses with commas"/>
-                        </StackPanel>
-                    </Grid>
-                    <Button Content="Send test email" Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
-                            Command="{Binding TestEmailCommand}" Margin="0,4,0,0"/>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="General Settings" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="Default install directory" Style="{StaticResource FieldLabel}"/>
-                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
-                             Text="{Binding DefaultInstallRoot, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Backup folder" Style="{StaticResource FieldLabel}"/>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
-                                 Text="{Binding BackupPath, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Grid.Column="1" Content="Browse" Style="{StaticResource GhostButton}"
-                                Margin="8,0,0,0" Command="{Binding BrowseBackupPathCommand}"/>
-                    </Grid>
-                    <TextBlock Text="SteamCMD directory" Style="{StaticResource FieldLabel}"/>
-                    <TextBox Style="{StaticResource DarkTextBox}"
-                             Text="{Binding SteamCmdPath}" IsReadOnly="True"
-                             Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <CheckBox IsChecked="{Binding StartWithWindows}" Style="{StaticResource DarkCheckBox}"
-                              Content="Start WGS automatically with Windows" Margin="0,14,0,0"/>
-                    <TextBlock Text="Adds WGS to Windows startup (current user only, no UAC prompt)."
-                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
-                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                            Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Steam login -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Steam Login" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,16"
-                               Text="Required for games that don't support anonymous download (e.g. Wreckfest 2, Conan Exiles)"/>
-                    <TextBlock Text="Steam username" Style="{StaticResource FieldLabel}"/>
-                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
-                             Text="{Binding SteamLogin, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Steam password" Style="{StaticResource FieldLabel}"/>
-                    <PasswordBox x:Name="SteamPassBox" Margin="0,0,0,12"
-                                 Background="#161B22" Foreground="#E6EDF3"
-                                 BorderBrush="#30363D" BorderThickness="1" Padding="10,8"
-                                 PasswordChanged="SteamPassBox_PasswordChanged"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
-                               Text="⚠ Password is stored in plain text. Use a dedicated Steam account for servers."/>
-                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                            Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
-                </StackPanel>
-            </Border>
-
-            <!-- User Management -->
+            <!-- 8. User Management -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="User Management" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
@@ -622,7 +389,7 @@
                                 <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
                                         Padding="12,10" Margin="0,0,0,6">
                                     <StackPanel>
-                                        <!-- Rivi 1: Nimi + rooli + tila -->
+                                        <!-- Row 1: name + role + status -->
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -631,7 +398,6 @@
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Username}" FontWeight="SemiBold" FontSize="13"
                                                            Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                <!-- Roolibadge -->
                                                 <Border CornerRadius="4" Padding="6,2" Margin="8,0,0,0">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
@@ -646,7 +412,6 @@
                                                     <TextBlock Text="{Binding RoleLabel}" FontSize="11"
                                                                Foreground="{StaticResource AccentBlueBrush}"/>
                                                 </Border>
-                                                <!-- Aktiivisuuspallo -->
                                                 <Ellipse Width="8" Height="8" Margin="8,0,0,0" VerticalAlignment="Center">
                                                     <Ellipse.Style>
                                                         <Style TargetType="Ellipse">
@@ -663,7 +428,6 @@
                                                            Foreground="{StaticResource TextMutedBrush}"
                                                            Margin="4,0,0,0" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <!-- Päänapit -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                 <Button Content="↕ Role" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                                                         Command="{Binding DataContext.ChangeUserRoleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -684,13 +448,13 @@
                                                 </Button>
                                                 <Button Content="🔄" Style="{StaticResource GhostButton}" Width="32" Padding="0" Margin="0,0,4,0"
                                                         Command="{Binding DataContext.RegenerateTokenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" ToolTip="Uusi API-token"/>
+                                                        CommandParameter="{Binding}" ToolTip="New API token"/>
                                                 <Button Content="🗑" Style="{StaticResource DangerButton}" Width="32" Padding="0"
                                                         Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}"/>
                                             </StackPanel>
                                         </Grid>
-                                        <!-- Rivi 2: Token + viimeksi kirjautunut -->
+                                        <!-- Row 2: token + last login -->
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
                                             <TextBlock Text="Token: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                             <TextBlock Text="{Binding Token}" FontSize="10" FontFamily="Consolas"
@@ -699,7 +463,7 @@
                                             <TextBlock Text="{Binding LastLoginText}" FontSize="10"
                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                         </StackPanel>
-                                        <!-- Rivi 3: Salasanan vaihto -->
+                                        <!-- Row 3: change password -->
                                         <StackPanel Orientation="Horizontal">
                                             <TextBox x:Name="PwChangeBox"
                                                      Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
@@ -752,6 +516,234 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- 9. Remote Control — Slave Setup -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Remote Control — Slave Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Enable Slave mode on THIS machine so a master WGS can control it over the network.
+                        Configure port and token below, then add this machine on the master using the connection info shown.
+                    </TextBlock>
+
+                    <CheckBox IsChecked="{Binding SlaveMode}" Style="{StaticResource DarkCheckBox}"
+                              Content="Run as Slave (remote-controllable)" Margin="0,0,0,12"/>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="API Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding WebApiPort, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Access Token (shared secret)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding WebApiToken, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Machine name (shown on master)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
+                             Text="{Binding SlaveName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Border Background="{StaticResource BgDeepBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="📋  Add this to the master WGS (Machines tab):" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="URL:    " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
+                                <TextBlock Text="{Binding SlaveConnectionUrl}" FontSize="12" FontFamily="Consolas"
+                                           Foreground="{StaticResource AccentBlueBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Token: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" Width="50"/>
+                                <TextBlock Text="{Binding WebApiToken}" FontSize="12" FontFamily="Consolas"
+                                           Foreground="{StaticResource AccentBlueBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Save &amp; Apply" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"
+                                Command="{Binding SaveSettingsCommand}"/>
+                        <Button Content="📋 Copy connection info" Style="{StaticResource GhostButton}"
+                                Command="{Binding CopySlaveInfoCommand}"
+                                Visibility="{Binding SlaveMode, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiIsRunning}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Fill" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding WebApiStatus}" FontSize="11" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WebApiStatusIsWarning}" Value="True">
+                                            <Setter Property="Foreground" Value="#F0A500"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 10. Remote Machines — Master Setup -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Remote Machines — Master Setup" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Add slave machines here. Use the URL and Token shown in the slave's Remote Control section.
+                    </TextBlock>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}"
+                                     Text="{Binding DataContext.NewMachineName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Display name for this machine"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="URL  (e.g. http://192.168.1.50:8765)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding DataContext.NewMachineUrl, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Token" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding DataContext.NewMachineToken, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <Button Grid.Column="6" Content="＋ Add" Style="{StaticResource PrimaryButton}"
+                                VerticalAlignment="Bottom"
+                                Command="{Binding DataContext.AddMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    </Grid>
+
+                    <TextBlock Text="No machines added yet." FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,8,0,0"
+                               Visibility="{Binding DataContext.RemoteMachines.Count, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
+                    <ItemsControl ItemsSource="{Binding DataContext.RemoteMachines, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  Margin="0,4,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="9" Height="9" Margin="0,0,10,0" VerticalAlignment="Center">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="#8B949E"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                            <Setter Property="Fill" Value="#3FB950"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13" Text="{Binding MachineName}"/>
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                       Text="{Binding MachineUrl}" FontFamily="Consolas"/>
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                       Text="{Binding StatusText}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="🗑" Style="{StaticResource DangerButton}"
+                                                Width="36" Padding="0" VerticalAlignment="Center"
+                                                Command="{Binding DataContext.RemoveMachineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- 11. UPnP Port Forwarding -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="UPnP Port Forwarding" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
+                        Automatically opens and closes port mappings on your router when a server starts or stops.
+                        Requires UPnP to be enabled in your router settings.
+                    </TextBlock>
+                    <Border Background="#14F85149" BorderBrush="#F85149" BorderThickness="3,0,0,0"
+                            Padding="12,10" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="WARNING" FontWeight="Bold" FontSize="11"
+                                       Foreground="#F85149" Margin="0,0,0,5"
+                                       FontFamily="Segoe UI"/>
+                            <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                                UPnP automatically modifies your router's firewall rules without further confirmation.
+                                This can expose your network to unintended access if your router or game server is misconfigured.
+                                Only enable this if you understand the risks and fully trust your network environment.
+                                WGS takes no responsibility for security issues arising from UPnP usage.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox IsChecked="{Binding EnableUPnP}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable UPnP automatic port forwarding" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Test UPnP" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                                Command="{Binding TestUPnPCommand}"/>
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#8b949e"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UpnpIsFound}" Value="True">
+                                            <Setter Property="Fill" Value="#3fb950"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding UpnpStatus}" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                    <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>
