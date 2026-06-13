@@ -23,6 +23,8 @@ public class GameServer
     public bool AutoUpdate             { get; set; } = false;
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
     public bool AutoStart              { get; set; } = false;
+    public bool DailyRestartEnabled    { get; set; } = false;
+    public TimeSpan DailyRestartTime   { get; set; } = TimeSpan.FromHours(4); // 04:00 default
     public string CustomArgs { get; set; } = string.Empty;
     public string Gslt       { get; set; } = string.Empty;
     public long   CpuAffinityMask  { get; set; } = 0; // 0 = all cores

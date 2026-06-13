@@ -77,9 +77,45 @@
                                      Text="{Binding BotPrefix, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Allowed User IDs (comma-separated, empty = everyone)" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource DarkTextBox}"
-                                     Text="{Binding BotAllowedUsers, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Admin User IDs (empty = everyone can use bot)" Style="{StaticResource FieldLabel}"/>
+                            <Border Background="#21262d" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="4" MinHeight="80" MaxHeight="150" Margin="0,0,0,6">
+                                <ListBox ItemsSource="{Binding BotAdminList}"
+                                         SelectedItem="{Binding SelectedBotAdmin}"
+                                         Background="Transparent" BorderThickness="0"
+                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="8,4"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="#2d333b"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </Border>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding NewBotAdminId, UpdateSourceTrigger=PropertyChanged}"
+                                         x:Name="BotAdminInput"
+                                         Tag="Discord User ID"/>
+                                <Button Grid.Column="2" Content="Add" Style="{StaticResource DarkButton}"
+                                        Command="{Binding AddBotAdminCommand}" Padding="12,4"/>
+                                <Button Grid.Column="4" Content="Remove" Style="{StaticResource DarkButton}"
+                                        Command="{Binding RemoveBotAdminCommand}" Padding="12,4"/>
+                            </Grid>
                         </StackPanel>
                     </Grid>
 

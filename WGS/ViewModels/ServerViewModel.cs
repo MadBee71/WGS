@@ -156,6 +156,16 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
         : "--:--:--";
 
+    public string DailyRestartTimeText
+    {
+        get => Server.DailyRestartTime.ToString(@"hh\:mm");
+        set
+        {
+            if (TimeSpan.TryParseExact(value, @"hh\:mm", null, out var ts))
+                Server.DailyRestartTime = ts;
+        }
+    }
+
     // ── Kaistaseuranta ────────────────────────────────────────────────────────
 
     [ObservableProperty] private string _netIn          = "—";
