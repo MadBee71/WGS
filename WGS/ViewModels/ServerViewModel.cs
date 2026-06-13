@@ -224,6 +224,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _manager.LogReceived      += OnLogReceived;
         _manager.StatusChanged    += OnStatusChanged;
         _manager.CrashLimitReached += OnCrashLimitReached;
+        _manager.PortsReassigned  += OnPortsReassigned;
         _steamCmd.OutputReceived  += OnSteamOutput;
         _steamCmd.ProgressChanged += OnSteamProgress;
 
@@ -1312,6 +1313,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
     }
 
+    private void OnPortsReassigned(Models.GameServer srv)
+    {
+        if (srv.Id != Server.Id) return;
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            OnPropertyChanged(nameof(Server));
+        });
+    }
+
     private void OnCrashLimitReached(string serverId)
     {
         if (serverId != Server.Id) return;
@@ -1361,6 +1371,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _manager.LogReceived       -= OnLogReceived;
         _manager.StatusChanged     -= OnStatusChanged;
         _manager.CrashLimitReached -= OnCrashLimitReached;
+        _manager.PortsReassigned   -= OnPortsReassigned;
         _steamCmd.OutputReceived   -= OnSteamOutput;
         _steamCmd.ProgressChanged  -= OnSteamProgress;
         _network.ServerStatsUpdated -= OnServerStatsUpdated; // #1: estää muistivuodon poistetuille palvelimille

@@ -165,6 +165,8 @@ public partial class MainViewModel : BaseViewModel
         Settings         = settings;
         Dashboard        = new DashboardViewModel(metrics, network, Servers);
 
+        manager.PortsReassigned += srv => Save();
+
         manager.StatusChanged += (id, status) =>
         {
             WpfApplication.Current.Dispatcher.Invoke(() =>
