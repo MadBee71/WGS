@@ -275,9 +275,14 @@
                                                        RenderOptions.BitmapScalingMode="HighQuality"/>
                                             </Border>
                                             <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding ServerNumber}" FontSize="10"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           Margin="0,0,5,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Server.DisplayName}"
                                                            FontSize="13" FontWeight="SemiBold"
                                                            Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </StackPanel>
                                                 <TextBlock Text="{Binding Plugin.GameName}"
                                                            FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                             </StackPanel>

@@ -125,6 +125,8 @@ public class NotificationService
 
     public async Task NotifyServerStatusAsync(GameServer server, ServerStatus status)
     {
+        if (!server.DiscordAlertsEnabled) return;
+
         var (title, color) = status switch
         {
             ServerStatus.Running  when _settings.NotifyOnStart  => ($"✅ {server.DisplayName} started", "#3FB950"),

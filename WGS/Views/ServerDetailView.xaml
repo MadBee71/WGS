@@ -396,7 +396,19 @@
 
                                 <!-- Auto Start -->
                                 <CheckBox IsChecked="{Binding Server.AutoStart}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Auto-start when WGS launches" Margin="0,0,0,12"/>
+                                          Content="Auto-start when WGS launches" Margin="0,0,0,8"/>
+
+                                <!-- Update on Start -->
+                                <CheckBox IsChecked="{Binding Server.UpdateOnStart}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Update before each start" Margin="0,0,0,8"/>
+
+                                <!-- Backup on Start -->
+                                <CheckBox IsChecked="{Binding Server.BackupOnStart}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Backup before each start" Margin="0,0,0,8"/>
+
+                                <!-- Discord Alerts -->
+                                <CheckBox IsChecked="{Binding Server.DiscordAlertsEnabled}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Discord alerts for this server" Margin="0,0,0,12"/>
 
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
@@ -1609,6 +1621,30 @@
                             </Border>
                         </Grid>
                     </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ── ACTION LOG ── -->
+            <TabItem Header="Action Log">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <ListBox ItemsSource="{Binding ActionLog}"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             FontFamily="Consolas" FontSize="12"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.IsVirtualizing="True">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,3"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
                 </Grid>
             </TabItem>
 
