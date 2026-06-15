@@ -415,6 +415,16 @@
                                 <CheckBox IsChecked="{Binding Server.BackupOnStart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Backup before each start" Margin="0,0,0,8"/>
 
+                                <!-- Backup Save Path -->
+                                <TextBlock Text="Backup paths (relative to install, semicolon-separated)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding Server.BackupSavePath, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource DarkTextBox}"
+                                         Margin="0,0,0,4"
+                                         xml:space="preserve"
+                                         ToolTip="Leave empty to use the game default. Example: savegame or Saves;config"/>
+                                <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
+                                           Text="Leave empty to use the game default (e.g. for Enshrouded: savegame)"/>
+
                                 <!-- Discord Alerts -->
                                 <CheckBox IsChecked="{Binding Server.DiscordAlertsEnabled}" Style="{StaticResource DarkCheckBox}"
                                           Content="Discord alerts for this server" Margin="0,0,0,12"/>

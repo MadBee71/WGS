@@ -36,6 +36,12 @@ public class GameServer
     public long   MaxRamMb         { get; set; } = 0; // 0 = unlimited
     public bool BackupEnabled      { get; set; } = false;
     public int  BackupRetention    { get; set; } = 5;
+    /// <summary>
+    /// Relative path(s) within InstallPath to backup, separated by semicolons.
+    /// If empty, the game default (or full InstallPath) is used.
+    /// Example: "savegame" or "Saves;config"
+    /// </summary>
+    public string BackupSavePath   { get; set; } = string.Empty;
     public bool FirewallAutoManage { get; set; } = true;
     public Dictionary<string, string> GameSpecificSettings { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.Now;
