@@ -15,6 +15,8 @@ public class ServerInstance
     public Process? Process { get; set; }
     public DateTime? StartTime { get; set; }
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
+    // Lock protecting Log for concurrent read (GetLog HTTP handler) vs write (process output threads)
+    public readonly object LogLock = new();
     public int RestartCount { get; set; }
     public CancellationTokenSource DailyRestartCts { get; } = new();
     public nint JobHandle { get; set; } = nint.Zero;
@@ -25,6 +27,9 @@ public class ServerInstance
     public ServerInstance(GameServer server) => Server = server;
 
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
+
+    public void AddToLog(ConsoleMessage msg) { lock (LogLock) Log.Add(msg); }
+    public List<ConsoleMessage> GetLogSnapshot() { lock (LogLock) return Log.ToList(); }
 }
 
 public class ServerManagerService
@@ -73,8 +78,8 @@ public class ServerManagerService
                 {
                     z.Kill(entireProcessTree: true);
                     z.WaitForExit(3000);
-                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] 🗑 Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
-                    inst0.Log.Add(msg);
+                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] ðŸ—‘ Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
+                    inst0.AddToLog(msg);
                     LogReceived?.Invoke(server.Id, msg);
                 }
                 catch { /* process already gone */ }
@@ -111,22 +116,22 @@ public class ServerManagerService
 
                 var msg = new ConsoleMessage
                 {
-                    Text = $"[WGS] Ports in use — automatically reassigned: game {oldGame}→{server.ServerPort}" +
-                           (oldQuery > 0 ? $", query {oldQuery}→{server.QueryPort}" : "") +
-                           (oldRcon  > 0 ? $", rcon {oldRcon}→{server.RconPort}"   : ""),
+                    Text = $"[WGS] Ports in use â€” automatically reassigned: game {oldGame}â†’{server.ServerPort}" +
+                           (oldQuery > 0 ? $", query {oldQuery}â†’{server.QueryPort}" : "") +
+                           (oldRcon  > 0 ? $", rcon {oldRcon}â†’{server.RconPort}"   : ""),
                     Type = ConsoleMessageType.Warning
                 };
-                inst0.Log.Add(msg);
+                inst0.AddToLog(msg);
                 LogReceived?.Invoke(server.Id, msg);
                 PortsReassigned?.Invoke(server);
             }
             else
             {
-                // Could not find free ports — warn and proceed anyway
+                // Could not find free ports â€” warn and proceed anyway
                 foreach (var r in conflictingPorts)
                 {
-                    var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
-                    inst0.Log.Add(w);
+                    var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] âš  {r.Message}", Type = ConsoleMessageType.Warning };
+                    inst0.AddToLog(w);
                     LogReceived?.Invoke(server.Id, w);
                 }
             }
@@ -189,7 +194,7 @@ public class ServerManagerService
             StandardErrorEncoding  = native ? null : System.Text.Encoding.UTF8,
         };
 
-        // Steam environment variables — skip if plugin explicitly set SteamClientAppId = 0
+        // Steam environment variables â€” skip if plugin explicitly set SteamClientAppId = 0
         if (steamFileId > 0)
         {
             psi.EnvironmentVariables["SteamAppId"]          = steamEnvId.ToString();
@@ -212,7 +217,7 @@ public class ServerManagerService
             if (_recentLines.TryGetValue(text, out var seen) && (now - seen) < threshold) return;
             _recentLines[text] = now;
             var msg = new ConsoleMessage { Text = text, Type = type };
-            inst.Log.Add(msg);
+            inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
         }
 
@@ -242,7 +247,7 @@ public class ServerManagerService
                     return;
                 }
 
-                // ── Crash-loop detection ───────────────────────────────────────
+                // â”€â”€ Crash-loop detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 var now = DateTime.Now;
                 inst.CrashTimes.Add(now);
                 // Forget crashes older than 10 minutes
@@ -254,10 +259,10 @@ public class ServerManagerService
                 {
                     var giveUp = new ConsoleMessage
                     {
-                        Text = $"[WGS] ⛔ Server crashed {inst.CrashTimes.Count}× in 10 min (limit {maxRetries}). Auto-restart disabled.",
+                        Text = $"[WGS] â›” Server crashed {inst.CrashTimes.Count}Ã— in 10 min (limit {maxRetries}). Auto-restart disabled.",
                         Type = ConsoleMessageType.Error
                     };
-                    inst.Log.Add(giveUp);
+                    inst.AddToLog(giveUp);
                     LogReceived?.Invoke(server.Id, giveUp);
                     server.AutoRestart = false;
                     SetStatus(server, ServerStatus.Error);
@@ -270,10 +275,10 @@ public class ServerManagerService
                 inst.RestartCount++;
                 var delayMsg = new ConsoleMessage
                 {
-                    Text = $"[WGS] ⚠ Server stopped unexpectedly (crash #{inst.CrashTimes.Count}/{maxRetries}). Restarting in {delaySec}s...",
+                    Text = $"[WGS] âš  Server stopped unexpectedly (crash #{inst.CrashTimes.Count}/{maxRetries}). Restarting in {delaySec}s...",
                     Type = ConsoleMessageType.Warning
                 };
-                inst.Log.Add(delayMsg);
+                inst.AddToLog(delayMsg);
                 LogReceived?.Invoke(server.Id, delayMsg);
 
                 await Task.Delay(delaySec * 1000);
@@ -315,7 +320,7 @@ public class ServerManagerService
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            // Output is captured in WGS — hide any window the process creates.
+            // Output is captured in WGS â€” hide any window the process creates.
             // CreateNoWindow only suppresses the console host; some servers (e.g. Rust)
             // still create a Win32 window via AllocConsole/CreateWindow internally.
             // Poll until the window appears, then hide it completely.
@@ -341,7 +346,7 @@ public class ServerManagerService
         else
         {
             // Native-console server: has its own useful console window.
-            // Minimize to taskbar without stealing focus — user can open it with Console button.
+            // Minimize to taskbar without stealing focus â€” user can open it with Console button.
             _ = Task.Run(async () =>
             {
                 for (int i = 0; i < 20 && !proc.HasExited; i++) // up to 10 seconds
@@ -394,7 +399,7 @@ public class ServerManagerService
         if (server.DailyRestartEnabled)
             _ = RunDailyRestartAsync(server, inst);
 
-        // Rekisteröi kaistaseurantaan
+        // RekisterÃ¶i kaistaseurantaan
         _network.RegisterServer(server.Id, proc.Id);
 
         // Add firewall rules
@@ -449,7 +454,7 @@ public class ServerManagerService
         if (!_running.TryGetValue(server.Id, out var inst)) return Task.CompletedTask;
         SetStatus(server, ServerStatus.Stopping);
         try { inst.Process?.Kill(entireProcessTree: true); }
-        catch (InvalidOperationException) { /* process already dead — swallow */ }
+        catch (InvalidOperationException) { /* process already dead â€” swallow */ }
         inst.DailyRestartCts.Cancel();
         JobObjectService.ReleaseJob(inst.JobHandle);
         _running.TryRemove(server.Id, out _);
@@ -510,7 +515,7 @@ public class ServerManagerService
                 Text = $"[WGS] Daily restart triggered at {server.DailyRestartTime:hh\\:mm}",
                 Type = ConsoleMessageType.Warning
             };
-            inst.Log.Add(msg);
+            inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
 
             await StopAsync(server);
@@ -566,3 +571,4 @@ public class ServerManagerService
         return ConsoleMessageType.Info;
     }
 }
+
