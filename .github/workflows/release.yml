@@ -21,7 +21,9 @@ jobs:
         run: dotnet publish WGS/WGS.csproj -c Release -r win-x64 --self-contained false -o publish_out
 
       - name: Create ZIP
-        run: Compress-Archive -Path publish_out/WindowsGameServer.exe, publish_out/LICENSE, publish_out/README.md -DestinationPath WGS-${{ github.ref_name }}.zip
+        run: |
+          $files = @("publish_out\WindowsGameServer.exe", "publish_out\LICENSE", "publish_out\README.md")
+          Compress-Archive -Path $files -DestinationPath "WGS-${{ github.ref_name }}.zip"
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
