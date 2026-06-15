@@ -690,6 +690,7 @@ public partial class MainViewModel : BaseViewModel
     [RelayCommand]
     private void OpenDashboard()
     {
+        SelectedServer   = null;
         ShowDashboard    = true;
         ShowSettingsPage = false;
         ShowSupport      = false;
@@ -700,6 +701,7 @@ public partial class MainViewModel : BaseViewModel
     [RelayCommand]
     private void OpenSupport()
     {
+        SelectedServer   = null;
         ShowSupport      = true;
         ShowDashboard    = false;
         ShowSettingsPage = false;
@@ -710,6 +712,7 @@ public partial class MainViewModel : BaseViewModel
     [RelayCommand]
     private void OpenMachines()
     {
+        SelectedServer   = null;
         ShowMachines     = true;
         ShowDashboard    = false;
         ShowSettingsPage = false;
