@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish
+        run: dotnet publish WGS/WGS.csproj -c Release -r win-x64 --self-contained false -o publish_out
+
+      - name: Create ZIP
+        run: Compress-Archive -Path publish_out/WindowsGameServer.exe, publish_out/LICENSE, publish_out/README.md -DestinationPath WGS-${{ github.ref_name }}.zip
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WGS-${{ github.ref_name }}.zip
+          fail_on_unmatched_files: true
