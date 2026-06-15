@@ -3,11 +3,10 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-1.1.1-blue)
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-54+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -30,8 +29,6 @@ Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and ma
 - **Install Workshop mods** and manage Oxide/Minecraft plugins from the same interface
 - **Add any game** that isn't built-in using the graphical Plugin Creator — no coding required
 - **Control servers remotely** via Discord bot commands or the built-in REST API
-- **Manage servers on multiple machines** — slave mode lets any PC run as a background agent, controlled from your main WGS window
-- **Predict crashes before they happen** — WGS monitors RAM growth and CPU load and warns you in advance
 - **Manage firewall rules** automatically — WGS opens and closes the right ports when servers start and stop
 
 WGS is designed for home lab hosts, small community server admins and anyone who wants a clean, reliable way to keep game servers running on Windows without spending time on maintenance.
@@ -41,7 +38,15 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ## 📷 Screenshots
 
 <p align="center">
-  <img src="screenshot.png" width="800">
+  <img src="1.png" width="400">
+  <img src="2.png" width="400">
+</p>
+<p align="center">
+  <img src="3.png" width="400">
+  <img src="5.png" width="400">
+</p>
+<p align="center">
+  <img src="4.png" width="400">
 </p>
 
 ---
@@ -61,18 +66,18 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 |---|---|
 | 🎮 **50+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
-| 🔄 **Auto restart** | Automatic restart after crash, with configurable delay |
-| 🛡️ **Crash loop detection** | Counts crashes in a 10-minute window — stops retrying after a configurable limit |
+| 🔄 **Auto restart** | Automatic restart after crash, with configurable delay and crash loop detection |
 | 🔁 **Auto-update** | Periodic SteamCMD updates on a configurable interval while the server runs |
+| ⧉ **Server cloning** | Duplicate any server with all settings — ports assigned automatically |
+| 💤 **Wake-on-demand** | Server starts automatically when the first player connects, saving resources when idle |
 
 ### Monitoring
 | Feature | Description |
 |---|---|
 | 📊 **System dashboard** | Global CPU, RAM and disk usage across all running servers |
-| 📈 **Per-server performance charts** | CPU and RAM history graphs (last 6 minutes) per server |
-| 👥 **Player management** | Session tracking, total playtime per player and player list — stored in SQLite |
-| 🔮 **Crash prediction** | Detects rapid RAM growth, sustained CPU load and memory leaks — warns before a crash happens |
-| 🌐 **Bandwidth monitoring** | Real-time per-server and global network I/O (bytes in/out per second, active connections) |
+| 📈 **Per-server performance charts** | CPU and RAM history graphs up to 1 hour, with selectable time range |
+| 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
+| 🌐 **Bandwidth & connections** | Live network in/out and active connection count per server |
 
 ### Automation
 | Feature | Description |
@@ -85,105 +90,102 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 |---|---|
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
 | 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
-| 🌐 **REST API + Web dashboard** | Built-in HTTP server with a browser-accessible dashboard — start/stop/status/metrics/log viewer |
-| 🖥️ **Multi-machine management** | Run WGS as a slave agent on any PC or VPS — master sees and controls all machines in one window |
+| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics endpoints |
+| 🖥️ **Remote machine support** | Manage servers running on other PCs from a single master panel |
+
+### Notifications
+| Feature | Description |
+|---|---|
+| 🔔 **Discord webhooks** | Get notified on start, stop, crash and update events in Discord |
+| 📧 **Email notifications (SMTP)** | Receive the same alerts by email — configurable per server |
 
 ### Configuration & mods
 | Feature | Description |
 |---|---|
 | 📝 **Config editor** | Browse and edit any server config file directly inside WGS |
-| 📁 **File browser** | Full in-app file manager — browse, rename, delete and download server files without leaving WGS |
-| 🔩 **Mod manager** | Install and update Oxide/uMod for Rust; manage plugins for Minecraft |
-| 🗂️ **Steam Workshop** | Install Workshop items for supported games via SteamCMD |
-| 📋 **Server templates** | Save any server configuration as a reusable template — deploy identical servers in seconds |
+| 🗂️ **Steam Workshop** | Install and manage Workshop mods for supported games via SteamCMD |
+| 📁 **File manager** | Browse, upload, download and delete server files without leaving WGS |
 
 ### System & extensibility
 | Feature | Description |
 |---|---|
 | 🛡️ **Firewall management** | Windows Firewall rules opened/closed automatically on start and stop |
-| ⚙️ **CPU affinity & priority** | Per-server core pinning and Windows process priority |
+| ⚙️ **CPU affinity, priority & RAM limit** | Per-server core pinning, process priority and hard RAM cap via Windows Job Objects |
 | 🔧 **Custom Plugin Creator** | Graphical tool to add any game server — no code required |
 | 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |
 | 🔔 **System tray** | Runs minimised in the background with tray notifications |
-| 🔒 **Encrypted credentials** | Steam login and Discord bot token encrypted with Windows DPAPI |
-| 👤 **User management** | Admin and Viewer roles with per-user API tokens, enable/disable accounts and full audit log |
-| ⬇️ **Console auto-scroll** | Console scrolls to latest output automatically; disables when you scroll up manually |
-| 🚀 **Start with Windows** | Optional registry entry to launch WGS automatically on login |
+| 🔒 **Encrypted credentials** | Steam login and Discord tokens encrypted with Windows DPAPI |
 
 ---
 
 ## 🎮 Supported Games
 
-> `🔑` = Requires owning the game on Steam — authenticate via Steam Guard (email or mobile app). SteamCMD may ask for a new code on every run. &nbsp;|&nbsp; all others install anonymously
+> `🔑` = Steam account required to install &nbsp;|&nbsp; all others install anonymously
 
 ### Survival
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| 7 Days to Die | 294420 | 8 | 26900 | |
-| ARK: Survival Evolved | 376030 | 70 | 7777 | |
-| ASKA | 3246670 | 4 | 27015 | |
-| ASTRONEER | 728470 | 4 | 7777 | |
-| Barotrauma | 1026340 | 16 | 27015 | |
-| Conan Exiles | 443030 | 40 | 7777 | |
-| Core Keeper | 1963720 | 8 | 27015 | |
-| DayZ | 223350 | 60 | 2302 | 🔑 |
-| Enshrouded | 2278520 | 16 | 15636 | |
-| Don't Starve Together | 343050 | 10 | 10999 | |
-| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
-| Longvinter | 1639880 | 32 | 7777 | |
-| Necesse | 1169370 | 32 | 14159 | |
-| Icarus | 2089300 | 8 | 17777 | |
-| No One Survived | 2329680 | 50 | 7777 | |
-| Palworld | 2394010 | 32 | 8211 | |
-| Project Zomboid | 380870 | 32 | 16261 | |
-| Return to Moria | 3349480 | 8 | 20151 | |
-| Rising World | 339010 | 16 | 4255 | |
-| Rust | 258550 | 100 | 28015 | |
-| SCUM | 3792580 | 32 | 10000 | |
-| Sons of the Forest | 2465200 | 8 | 8766 | |
-| Soulmask | 3017310 | 20 | 8777 | |
-| Sunkenland | 2667530 | 8 | 27015 | |
-| Survive the Nights | 1502300 | 16 | 7777 | |
-| The Forest | 556450 | 64 | 27017 | 🔑 |
-| The Isle | 412680 | 75 | 7777 | |
-| Unturned | 1110390 | 24 | 27015 | |
-| V Rising | 1829350 | 40 | 9876 | |
 | Valheim | 896660 | 10 | 2456 | |
+| Rust | 258550 | 100 | 28015 | |
+| 7 Days to Die | 294420 | 8 | 26900 | |
+| Conan Exiles | 443030 | 40 | 7777 | |
+| ARK: Survival Evolved | 376030 | 70 | 7777 | |
+| Sons of the Forest | 2465200 | 8 | 8766 | |
+| The Forest | 556450 | 64 | 27017 | 🔑 |
+| Survive the Nights | 1502300 | 16 | 7777 | |
+| SCUM | 3792580 | 32 | 10000 | |
 | Vein | 2131400 | 16 | 7777 | |
-| Wind Rose | 4129620 | 16 | 7777 | |
+| Palworld | 2394010 | 32 | 8211 | |
+| V Rising | 1829350 | 40 | 9876 | |
+| Don't Starve Together | 343050 | 10 | 10999 | |
+| The Isle | 412680 | 75 | 7777 | |
+| Return to Moria | 3349480 | 8 | 20151 | |
+| ASTRONEER | 728470 | 4 | 7777 | |
+| Longvinter | 1639880 | 32 | 7777 | |
+| No One Survived | 2329680 | 50 | 7777 | |
+| ASKA | 3246670 | 4 | 27015 | |
+| Necesse | 1169370 | 32 | 14159 | |
+| Rising World | 339010 | 16 | 4255 | |
+| Sunkenland | 2667530 | 8 | 27015 | |
+| DayZ | 223350 | 60 | 2302 | 🔑 |
+| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
+| Barotrauma | 1026340 | 16 | 27015 | |
+| Project Zomboid | 380870 | 32 | 16261 | |
+| Unturned | 1110390 | 24 | 27015 | |
+| Core Keeper | 1963720 | 8 | 27015 | |
 
 ### FPS
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Black Mesa | 346680 | 24 | 27015 | |
 | Counter-Strike 2 | 730 | 10 | 27015 | |
+| Black Mesa | 346680 | 24 | 27015 | |
 | Garry's Mod | 4020 | 24 | 27015 | |
-| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
-| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
-| MORDHAU | 629800 | 64 | 7777 | |
 | Team Fortress 2 | 232250 | 24 | 27015 | 🔑 |
+| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
+| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
+| MORDHAU | 629800 | 64 | 7777 | |
 
 ### Racing
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
-| Assetto Corsa Competizione | 1430110 | 24 | 9600 | 🔑 |
 | Wreckfest | 361580 | 24 | 33540 | 🔑 |
 | Wreckfest 2 | 3519390 | 16 | 30100 | 🔑 |
+| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
+| Assetto Corsa Competizione | 1430110 | 24 | 9600 | 🔑 |
 
 ### Military
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Arma 2: Operation Arrowhead | 33905 | 64 | 2302 | 🔑 |
-| Arma 3 | 233780 | 64 | 2302 | 🔑 |
 | Arma Reforger | 1874900 | 16 | 2302 | |
+| Arma 3 | 233780 | 64 | 2302 | 🔑 |
+| Arma 2: Operation Arrowhead | 33905 | 64 | 2302 | 🔑 |
 | Squad | 403240 | 100 | 7787 | |
 
 ### Simulation
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| American Truck Simulator | 2239530 | 8 | 27015 | |
 | Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
+| American Truck Simulator | 2239530 | 8 | 27015 | |
 | Satisfactory | 1690800 | 4 | 7777 | |
 | Space Engineers | 298740 | 16 | 27016 | |
 
@@ -191,8 +193,8 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
 | Minecraft Java | — | 20 | 25565 | |
-| RedM | — | 32 | 30120 | |
 | Terraria | — | 8 | 7777 | |
+| RedM | — | 32 | 30120 | |
 
 > `—` = not on Steam; install manually (see plugin description for download link)
 >
@@ -316,12 +318,8 @@ Register(new MyGamePlugin());
 │  ScheduledTaskService               │  ← Recurring automation tasks
 │  NotificationService                │  ← Discord webhooks
 │  DiscordBotService                  │  ← Discord bot (long-poll)
-│  WebApiService                      │  ← REST API + web dashboard (HttpListener)
-│  RemoteMachineService               │  ← Multi-machine polling & control
-│  CrashPredictionService             │  ← RAM/CPU trend analysis
+│  WebApiService                      │  ← REST API (HttpListener)
 │  ServerGroupService                 │  ← Server grouping
-│  TemplateService                    │  ← Server configuration templates
-│  UserService                        │  ← User accounts, roles, audit log
 └─────────────────────────────────────┘
          │
          ▼
@@ -332,9 +330,47 @@ Register(new MyGamePlugin());
 └─────────────────────────────────────┘
 ```
 
+---
+
+## 🆕 What's new in v1.0.1
+
+### 4 new game plugins
+| Game | Category | Note |
+|---|---|---|
+| Arma 2: Operation Arrowhead | Military | AppId 33905 — requires Steam login |
+| Necesse | Survival | Bundled JRE launcher |
+| Terraria | Survival | Manual install from terraria.org |
+| RedM | Other | Manual install from cfx.re/redm |
+
+### Port & max-player data corrected (verified against WindowsGSM source)
+| Game | What changed |
+|---|---|
+| Arma Reforger | Port 2001 → 2302 · Query 17777 → 7777 · Max 64 → 16 · CLI flags fixed |
+| ASTRONEER | Port 8777 → 7777 · Query 7778 → 7777 · Max 8 → 4 |
+| Return to Moria | Port & Query 7777 → 20151 |
+| Wreckfest 2 | Port 27020 → 30100 · Query 27021 → 27015 · Max 24 → 16 |
+| The Forest | Port 27015 → 27017 · Max 8 → 64 |
+| Rising World | Max 64 → 16 · Start args format corrected |
+| The Isle | Default map Isle_V3 → Gateway · Max 100 → 75 |
+
+### Bug fixes
+- **GameId typo** — `noonesuvived` → `noonessurvived`
+- **ARMA 3** — mods (`-mod=`) setting now applied in start arguments
+- **Valheim** — `-public` flag now actually passed to server
+- **The Forest** — caves / enemies / vegan settings now applied as server args
+- **Dead settings removed** — ETS2, Conan Exiles, Arma Reforger, V Rising: settings that were shown in the UI but never applied to the server have been cleaned up
+- **Port conflict auto-resolution** — Add Server dialog now assigns conflict-free ports automatically
+- **Port fields** in Add Server dialog — Game Port, Query Port and Steam Port are all editable
+- **ValidatesOnExceptions** added to port input fields
+
+### SteamCMD beta branch support
+- `TheIslePlugin` → `-beta evrima` (Evrima update)
+- `RisingWorldPlugin` → `-beta unity` (Unity engine version)
+- **PluginExporter** now includes `SteamBranch` in exported `.cs` files
+- Any plugin can override `SteamBranch` to target a specific Steam beta branch
 
 ### Exe size
-- Release binary kept at ~20 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
+- Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
 
 ---
 
