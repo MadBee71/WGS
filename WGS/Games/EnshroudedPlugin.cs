@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -21,20 +23,27 @@ public class EnshroudedPlugin : GamePluginBase
 
     public override async Task PreStartAsync(GameServer server)
     {
-        var json = $$"""
-{
-  "name": "{{server.ServerName}}",
-  "password": "{{S(server, "serverPass")}}",
-  "saveDirectory": "./savegame",
-  "logDirectory": "./logs",
-  "ip": "0.0.0.0",
-  "gamePort": {{server.ServerPort}},
-  "queryPort": {{server.QueryPort}},
-  "slotCount": {{server.MaxPlayers}}
-}
-""";
-        await File.WriteAllTextAsync(
-            Path.Combine(server.InstallPath, "enshrouded_server.json"), json);
+        var cfgPath = Path.Combine(server.InstallPath, "enshrouded_server.json");
+
+        // Merge WGS-managed fields into existing config to preserve user customizations
+        JsonObject obj = new();
+        if (File.Exists(cfgPath))
+        {
+            try { obj = JsonNode.Parse(await File.ReadAllTextAsync(cfgPath))?.AsObject() ?? new(); }
+            catch { obj = new(); }
+        }
+
+        obj["name"]          = server.ServerName;
+        obj["gamePort"]      = server.ServerPort;
+        obj["queryPort"]     = server.QueryPort;
+        obj["slotCount"]     = server.MaxPlayers;
+        if (!obj.ContainsKey("password"))     obj["password"]      = S(server, "serverPass");
+        if (!obj.ContainsKey("saveDirectory")) obj["saveDirectory"] = "./savegame";
+        if (!obj.ContainsKey("logDirectory"))  obj["logDirectory"]  = "./logs";
+        if (!obj.ContainsKey("ip"))            obj["ip"]            = "0.0.0.0";
+
+        await File.WriteAllTextAsync(cfgPath,
+            obj.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new();

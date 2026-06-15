@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using WGS.Models;
 
@@ -87,7 +89,41 @@ public class Wreckfest2Plugin : GamePluginBase
 """;
 
         Directory.CreateDirectory(savePath);
-        await File.WriteAllTextAsync(Path.Combine(savePath, "server_config.scnf"), json);
+        var cfgPath = Path.Combine(savePath, "server_config.scnf");
+
+        // Merge WGS fields into existing config — preserves user customizations
+        JsonObject root = new();
+        if (File.Exists(cfgPath))
+        {
+            try { root = JsonNode.Parse(await File.ReadAllTextAsync(cfgPath))?.AsObject() ?? new(); }
+            catch { }
+        }
+
+        if (root.Count == 0)
+        {
+            // First run — write the full default config
+            await File.WriteAllTextAsync(cfgPath, json);
+        }
+        else
+        {
+            // Update only WGS-managed fields in nested structure
+            var net = root["net server config"]?.AsArray()?[0]?.AsObject();
+            if (net != null)
+            {
+                net["name"]      = server.ServerName;
+                net["password"]  = password;
+                net["game port"] = server.ServerPort;
+            }
+            var evt   = root["game server config"]?.AsArray()?[0]?.AsObject()?["default event"]?.AsArray()?[0]?.AsObject();
+            var level = evt?["level"]?.AsArray()?[0]?.AsObject();
+            var rules = evt?["rules"]?.AsArray()?[0]?.AsObject();
+            if (level != null) { level["level id"] = levelId; level["weather path"] = weatherPath; level["game mode id"] = gameMode; }
+            if (rules != null) { rules["laps"] = laps; rules["max number of participants"] = server.MaxPlayers; rules["vehicle damage id"] = damageId; }
+            if (evt   != null) evt["bot count"] = botCount;
+
+            await File.WriteAllTextAsync(cfgPath,
+                root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        }
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()

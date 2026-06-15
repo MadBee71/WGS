@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -27,42 +29,41 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin
     public override string BuildStartArguments(GameServer s)
         => string.Empty; // config via dedicatedserver.cfg
 
-    // Writes dedicatedserver.cfg every start so WGS settings are always applied
+    // Merges WGS-managed fields into existing config to preserve user customizations
     public override async Task PreStartAsync(GameServer server)
     {
-        var safeName  = server.ServerName.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        var password  = S(server, "serverPass",  "").Replace("\\", "\\\\").Replace("\"", "\\\"");
-        var gameMode  = S(server, "GameDifficulty", "Normal");
-        var treeRegen = S(server, "RegenerationEnabled", "true").Equals("true", StringComparison.OrdinalIgnoreCase);
+        var cfgPath    = Path.Combine(server.InstallPath, "dedicatedserver.cfg");
         var maxPlayers = Math.Min(server.MaxPlayers, 8); // game hard cap
+        var gameMode   = S(server, "GameDifficulty", "Normal");
+        var treeRegen  = S(server, "RegenerationEnabled", "true").Equals("true", StringComparison.OrdinalIgnoreCase);
 
-        var json = $$"""
-{
-  "IpAddress": "0.0.0.0",
-  "GamePort": {{server.ServerPort}},
-  "QueryPort": {{server.QueryPort}},
-  "BlobSyncPort": 9700,
-  "ServerName": "{{safeName}}",
-  "MaxPlayers": {{maxPlayers}},
-  "Password": "{{password}}",
-  "LanOnly": false,
-  "SaveSlot": 1,
-  "SaveMode": "Continue",
-  "GameMode": "{{gameMode}}",
-  "GameSettings": {
-    "Gameplay.TreeRegrowth": {{(treeRegen ? "true" : "false")}},
-    "Structure.Damage": true
-  },
-  "SaveInterval": 600,
-  "IdleDayCycleSpeed": 0.0,
-  "IdleTargetFramerate": 5,
-  "ActiveTargetFramerate": 60,
-  "LogFilesEnabled": false,
-  "SkipNetworkAccessibilityTest": false
-}
-""";
-        await File.WriteAllTextAsync(
-            Path.Combine(server.InstallPath, "dedicatedserver.cfg"), json);
+        JsonObject obj = new();
+        if (File.Exists(cfgPath))
+        {
+            try { obj = JsonNode.Parse(await File.ReadAllTextAsync(cfgPath))?.AsObject() ?? new(); }
+            catch { obj = new(); }
+        }
+
+        obj["IpAddress"]  = "0.0.0.0";
+        obj["GamePort"]   = server.ServerPort;
+        obj["QueryPort"]  = server.QueryPort;
+        obj["ServerName"] = server.ServerName;
+        obj["MaxPlayers"] = maxPlayers;
+        obj["GameMode"]   = gameMode;
+        if (!obj.ContainsKey("Password"))     obj["Password"]     = S(server, "serverPass", "");
+        if (!obj.ContainsKey("BlobSyncPort")) obj["BlobSyncPort"] = 9700;
+        if (!obj.ContainsKey("LanOnly"))      obj["LanOnly"]      = false;
+        if (!obj.ContainsKey("SaveSlot"))     obj["SaveSlot"]     = 1;
+        if (!obj.ContainsKey("SaveMode"))     obj["SaveMode"]     = "Continue";
+        if (!obj.ContainsKey("SaveInterval")) obj["SaveInterval"] = 600;
+
+        // Merge GameSettings sub-object without overwriting existing keys
+        if (obj["GameSettings"] is not JsonObject gs) { gs = new JsonObject(); obj["GameSettings"] = gs; }
+        if (!gs.ContainsKey("Gameplay.TreeRegrowth")) gs["Gameplay.TreeRegrowth"] = treeRegen;
+        if (!gs.ContainsKey("Structure.Damage"))      gs["Structure.Damage"]      = true;
+
+        await File.WriteAllTextAsync(cfgPath,
+            obj.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
