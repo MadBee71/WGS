@@ -224,11 +224,14 @@ public partial class MainViewModel : BaseViewModel
 
         // Wire Web API callbacks
         _webApi.GetServers    = () => Servers.Select(v => v.Server);
-        _webApi.StartServer   = async id => { var vm = FindServer(id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
-        _webApi.StopServer    = async id => { var vm = FindServer(id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
-        _webApi.RestartServer = async id => { var vm = FindServer(id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
-        _webApi.UpdateServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
-        _webApi.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        // Fire-and-forget so the HTTP response returns immediately.
+        // Awaiting long-running commands (restart = stop+3s+start) would exceed the
+        // master's 5-second HttpClient timeout and cause spurious failures / crashes.
+        _webApi.StartServer   = id => { var vm = FindServer(id); if (vm != null) _ = vm.StartCommand.ExecuteAsync(null);   return Task.CompletedTask; };
+        _webApi.StopServer    = id => { var vm = FindServer(id); if (vm != null) _ = vm.StopCommand.ExecuteAsync(null);    return Task.CompletedTask; };
+        _webApi.RestartServer = id => { var vm = FindServer(id); if (vm != null) _ = vm.RestartCommand.ExecuteAsync(null); return Task.CompletedTask; };
+        _webApi.UpdateServer  = id => { var vm = FindServer(id); if (vm != null) _ = vm.UpdateCommand.ExecuteAsync(null);  return Task.CompletedTask; };
+        _webApi.BackupServer  = id => { var vm = FindServer(id); if (vm != null) _ = vm.CreateBackupCommand.ExecuteAsync(null); return Task.CompletedTask; };
         _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
         _webApi.GetMetrics    = () => metrics.Current;
         _webApi.GetNetwork    = () => (network.CurrentBytesInPerSec, network.CurrentBytesOutPerSec);
@@ -236,7 +239,7 @@ public partial class MainViewModel : BaseViewModel
         {
             var inst = manager.GetInstance(id);
             if (inst == null) return ([], [], offset);
-            var all   = inst.Log.ToList();
+            var all   = inst.GetLogSnapshot();
             var slice = all.Skip(offset).ToList();
             return (
                 slice.Select(m => m.Text).ToList(),
