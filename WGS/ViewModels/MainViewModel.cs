@@ -206,13 +206,13 @@ public partial class MainViewModel : BaseViewModel
         LoadServers();
         _ = CheckForUpdateAsync();
 
-        // Wire up Discord bot callbacks
+        // Wire up Discord bot callbacks — same Dispatcher fix as WebAPI
         _bot.GetServers    = () => Servers.Select(v => v.Server);
-        _bot.StartServer   = async id => { var vm = FindServer(id); if (vm != null) await vm.StartCommand.ExecuteAsync(null); };
-        _bot.StopServer    = async id => { var vm = FindServer(id); if (vm != null) await vm.StopCommand.ExecuteAsync(null); };
-        _bot.RestartServer = async id => { var vm = FindServer(id); if (vm != null) await vm.RestartCommand.ExecuteAsync(null); };
-        _bot.UpdateServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
-        _bot.BackupServer  = async id => { var vm = FindServer(id); if (vm != null) await vm.CreateBackupCommand.ExecuteAsync(null); };
+        _bot.StartServer   = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StartCommand.ExecuteAsync(null)        : Task.CompletedTask; });
+        _bot.StopServer    = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StopCommand.ExecuteAsync(null)         : Task.CompletedTask; });
+        _bot.RestartServer = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.RestartCommand.ExecuteAsync(null)      : Task.CompletedTask; });
+        _bot.UpdateServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.UpdateCommand.ExecuteAsync(null)       : Task.CompletedTask; });
+        _bot.BackupServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.CreateBackupCommand.ExecuteAsync(null) : Task.CompletedTask; });
         _bot.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
 
         // Start bot if already configured
@@ -224,14 +224,25 @@ public partial class MainViewModel : BaseViewModel
 
         // Wire Web API callbacks
         _webApi.GetServers    = () => Servers.Select(v => v.Server);
-        // Fire-and-forget so the HTTP response returns immediately.
-        // Awaiting long-running commands (restart = stop+3s+start) would exceed the
-        // master's 5-second HttpClient timeout and cause spurious failures / crashes.
-        _webApi.StartServer   = id => { var vm = FindServer(id); if (vm != null) _ = vm.StartCommand.ExecuteAsync(null);   return Task.CompletedTask; };
-        _webApi.StopServer    = id => { var vm = FindServer(id); if (vm != null) _ = vm.StopCommand.ExecuteAsync(null);    return Task.CompletedTask; };
-        _webApi.RestartServer = id => { var vm = FindServer(id); if (vm != null) _ = vm.RestartCommand.ExecuteAsync(null); return Task.CompletedTask; };
-        _webApi.UpdateServer  = id => { var vm = FindServer(id); if (vm != null) _ = vm.UpdateCommand.ExecuteAsync(null);  return Task.CompletedTask; };
-        _webApi.BackupServer  = id => { var vm = FindServer(id); if (vm != null) _ = vm.CreateBackupCommand.ExecuteAsync(null); return Task.CompletedTask; };
+        // AsyncRelayCommand.ExecuteAsync monitors task completion and calls
+        // ButtonBase.UpdateCanExecute() — a DependencyProperty access that requires the
+        // UI thread. Always dispatch through the Dispatcher so WPF never sees a
+        // cross-thread call, regardless of which thread the HTTP handler runs on.
+        // Fire-and-forget (return Task.CompletedTask immediately) so the HTTP response
+        // is not held open for the full duration of long operations like restart.
+        static Task DispatchCommand(Func<Task> action)
+        {
+            WpfApplication.Current?.Dispatcher?.InvokeAsync(async () =>
+            {
+                try { await action(); } catch { }
+            });
+            return Task.CompletedTask;
+        }
+        _webApi.StartServer   = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StartCommand.ExecuteAsync(null)         : Task.CompletedTask; });
+        _webApi.StopServer    = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StopCommand.ExecuteAsync(null)          : Task.CompletedTask; });
+        _webApi.RestartServer = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.RestartCommand.ExecuteAsync(null)       : Task.CompletedTask; });
+        _webApi.UpdateServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.UpdateCommand.ExecuteAsync(null)        : Task.CompletedTask; });
+        _webApi.BackupServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.CreateBackupCommand.ExecuteAsync(null)  : Task.CompletedTask; });
         _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
         _webApi.GetMetrics    = () => metrics.Current;
         _webApi.GetNetwork    = () => (network.CurrentBytesInPerSec, network.CurrentBytesOutPerSec);
