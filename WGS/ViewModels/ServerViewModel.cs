@@ -272,6 +272,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
 
         PluginFields = Plugin?.GetConfigFields()
+            .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
             .Select(f => new PluginFieldVm(server, f))
             .ToList() ?? [];
 
