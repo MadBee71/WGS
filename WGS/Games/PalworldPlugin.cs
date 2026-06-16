@@ -66,6 +66,9 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
 
     public string? LastRestApiError { get; private set; }
 
+    // Palworld's REST API sometimes returns ping as a float (e.g. 12.5) rather than an int.
+    private static int GetPingAsInt(JsonElement pg) => pg.TryGetInt32(out var i) ? i : (int)pg.GetDouble();
+
     public async Task<List<OnlinePlayer>> GetPlayersAsync(GameServer server)
     {
         var password = S(server, "adminPassword", "");
@@ -93,7 +96,7 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
                     {
                         Name    = p.TryGetProperty("name",    out var n) ? n.GetString() ?? "" : "",
                         SteamId = p.TryGetProperty("userId",  out var u) ? u.GetString() ?? "" : "",
-                        Ping    = p.TryGetProperty("ping",    out var pg) ? pg.GetInt32() : 0,
+                        Ping    = p.TryGetProperty("ping", out var pg) ? GetPingAsInt(pg) : 0,
                     });
                 }
             }
