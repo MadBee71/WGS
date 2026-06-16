@@ -271,6 +271,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
 
+        PluginFields = Plugin?.GetConfigFields()
+            .Select(f => new PluginFieldVm(server, f))
+            .ToList() ?? [];
+
         RefreshStatus();
         RefreshBackups();
     }
@@ -1467,5 +1471,30 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         finally { _rconLock.Release(); }
 
         _rconLock.Dispose();
+    }
+
+    // ── Plugin-specific settings fields ──────────────────────────────────────
+    public List<PluginFieldVm> PluginFields { get; }
+}
+
+public partial class PluginFieldVm : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
+{
+    private readonly GameServer _server;
+    public WGS.Games.ConfigField Field { get; }
+
+    public PluginFieldVm(GameServer server, WGS.Games.ConfigField field)
+    {
+        _server = server;
+        Field   = field;
+    }
+
+    public string Value
+    {
+        get => _server.GameSpecificSettings.TryGetValue(Field.Key, out var v) ? v : Field.DefaultValue;
+        set
+        {
+            _server.GameSpecificSettings[Field.Key] = value;
+            OnPropertyChanged();
+        }
     }
 }

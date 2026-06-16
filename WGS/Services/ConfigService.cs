@@ -61,8 +61,10 @@ public class ConfigService
         {
             var d = JsonConvert.DeserializeObject<SettingsData>(File.ReadAllText(SettingsFile));
             if (d == null) return;
-            if (!string.IsNullOrEmpty(d.DefaultInstallRoot)) DefaultInstallRoot = d.DefaultInstallRoot;
-            if (!string.IsNullOrEmpty(d.BackupPath))         BackupPath         = d.BackupPath;
+            if (!string.IsNullOrEmpty(d.DefaultInstallRoot) && Directory.Exists(d.DefaultInstallRoot))
+                DefaultInstallRoot = d.DefaultInstallRoot;
+            if (!string.IsNullOrEmpty(d.BackupPath) && Directory.Exists(d.BackupPath))
+                BackupPath = d.BackupPath;
             SteamLogin    = d.SteamLogin;
             SteamPassword = string.IsNullOrEmpty(d.SteamPasswordEncrypted)
                 ? string.Empty

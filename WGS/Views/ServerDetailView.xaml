@@ -392,6 +392,31 @@
                             </Grid>
                         </Border>
 
+                        <!-- Plugin-specific settings -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                                Visibility="{Binding PluginFields.Count, Converter={StaticResource CountToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Game settings" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <ItemsControl ItemsSource="{Binding PluginFields}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Width="280" Margin="0,0,16,12">
+                                                <TextBlock Text="{Binding Field.Label}" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DarkTextBox}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Automaatio -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                             <StackPanel>
@@ -1146,7 +1171,7 @@
                                 </Border>
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,8">
                                     <StackPanel>
-                                        <TextBlock Text="No players or RCON is not connected."
+                                        <TextBlock Text="No players online."
                                                    FontSize="12" Foreground="{StaticResource TextMutedBrush}"
                                                    Visibility="{Binding OnlinePlayers.Count,
                                                        Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>

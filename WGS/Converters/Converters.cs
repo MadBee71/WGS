@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using WGS.Games;
 using WpfColor = System.Windows.Media.Color;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfColorConverter = System.Windows.Media.ColorConverter;
@@ -71,6 +72,27 @@ public class ZeroToInverseVisibilityConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)
         => v is int i && i > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
+public class CountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is int i && i > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
+public class FieldTypeToPasswordVisConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is ConfigFieldType ft && ft == ConfigFieldType.Password ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
+public class FieldTypeToTextVisConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is ConfigFieldType ft && ft == ConfigFieldType.Password ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
