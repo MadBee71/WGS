@@ -7,7 +7,7 @@
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-54+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-63+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -57,7 +57,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **50+ supported games** | Ready-made plugins for the most popular game servers |
+| 🎮 **63+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
 | 🔄 **Auto restart** | Automatic restart after crash, with configurable delay and crash loop detection |
 | 🔁 **Auto-update** | Periodic SteamCMD updates on a configurable interval while the server runs |
@@ -147,6 +147,10 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Project Zomboid | 380870 | 32 | 16261 | |
 | Unturned | 1110390 | 24 | 27015 | |
 | Core Keeper | 1963720 | 8 | 27015 | |
+| Enshrouded | 2278520 | 16 | 15636 | |
+| Icarus | 2089300 | 8 | 17777 | |
+| Soulmask | 3017310 | 20 | 8777 | |
+| Windrose | 4129620 | 16 | 7777 | |
 
 ### FPS
 | Game | Steam AppID | Max Players | Port | |
@@ -158,6 +162,14 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
 | Insurgency: Sandstorm | 581330 | 28 | 27102 | |
 | MORDHAU | 629800 | 64 | 7777 | |
+| Counter-Strike 1.6 | 10 | 20 | 27015 | 🔑 |
+| Counter-Strike: Condition Zero | 80 | 20 | 27015 | 🔑 |
+| Day of Defeat | 30 | 20 | 27015 | 🔑 |
+| Day of Defeat: Source | 232290 | 20 | 27015 | |
+| Team Fortress Classic | 20 | 24 | 27015 | 🔑 |
+| Half-Life Deathmatch | 70 | 16 | 27015 | 🔑 |
+| Half-Life 2: Deathmatch | 232370 | 16 | 27015 | |
+| Half-Life: Opposing Force | 70 | 16 | 27015 | 🔑 |
 
 ### Racing
 | Game | Steam AppID | Max Players | Port | |
@@ -189,6 +201,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Minecraft Java | — | 20 | 25565 | |
 | Terraria | — | 8 | 7777 | |
 | RedM | — | 32 | 30120 | |
+| Grand Theft Auto V (FiveM) | — | 32 | 30120 | |
 
 > `—` = not on Steam; install manually (see plugin description for download link)
 >
@@ -365,6 +378,87 @@ Register(new MyGamePlugin());
 
 ### Exe size
 - Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
+
+---
+
+## 🆕 What's new in v1.1.0
+
+### New features
+- **File manager** — browse, upload, download and delete server files directly inside WGS, without opening File Explorer
+- **Bandwidth monitoring** — live network in/out and active connection count per server in the server detail view
+- **Steam Workshop** — install and manage Workshop mods for supported games via SteamCMD, with a built-in mod list per server
+- **User management** — create local user accounts with Admin / Operator / Viewer roles; all admin actions written to an audit log
+- **Multi-machine management** — manage game servers running on other PCs from a single master WGS panel over HTTP
+- **Server templates** — save any server configuration as a reusable template and spin up new servers from it in seconds
+- **Web Dashboard & REST API** — built-in HTTP server exposes a browser dashboard and REST endpoints for external integrations (start/stop/status/metrics)
+- **UPnP port forwarding** — WGS can automatically open router ports via UPnP when a server starts (optional, configurable per server)
+- **Player statistics** — session-level tracking stored in SQLite: join time, leave time, total playtime per player per server
+
+### New game plugins
+| Game | Category |
+|---|---|
+| Enshrouded | Survival |
+| Icarus | Survival |
+| Soulmask | Survival |
+| Windrose | Survival |
+| Counter-Strike 1.6 | FPS |
+| Counter-Strike: Condition Zero | FPS |
+| Day of Defeat | FPS |
+| Day of Defeat: Source | FPS |
+| Team Fortress Classic | FPS |
+| Half-Life Deathmatch | FPS |
+| Half-Life 2: Deathmatch | FPS |
+| Half-Life: Opposing Force | FPS |
+| Grand Theft Auto V (FiveM) | Open World |
+
+---
+
+## 🆕 What's new in v1.1.1
+
+### Bug fixes
+- Fixed version badge not showing the correct version number in the title bar
+- Fixed navigation: server list items could become unresponsive after switching between views
+- Fixed user role check that allowed Viewer accounts to trigger server actions via keyboard shortcuts
+- Minor UI polish: scrollbar thickness, tooltip delays, button hover states
+
+---
+
+## 🆕 What's new in v1.2.0
+
+### New features
+- **Server cloning** — duplicate any server with all its settings in one click; WGS automatically assigns conflict-free ports for the clone
+- **Wake-on-demand** — server starts automatically the moment the first player tries to connect, and stays off when no one is playing, saving resources
+- **Email notifications (SMTP)** — receive the same start/stop/crash/update alerts by email; configurable SMTP server, port, TLS and credentials per server
+- **RAM limiting** — set a hard memory cap per server using Windows Job Objects; the process is killed and restarted if it exceeds the limit
+- **Historical performance charts** — CPU and RAM history graphs with up to 1 hour of data, selectable time range (5 min / 15 min / 1 hr)
+- **Crash prediction grace period** — configurable cooldown between crash restarts to prevent a crash loop from spinning indefinitely
+- **Daily restart scheduler** — schedule automatic restarts at a specific time of day or week per server, with optional pre-restart warning to players
+- **Discord admin list UI** — manage which Discord user IDs are allowed to issue bot commands, from within the WGS settings screen
+
+### Bug fixes
+- Fixed config file being overwritten on every server start for Enshrouded, Sons of the Forest and Wreckfest 2 — config is now only written on first install
+- Fixed crash on startup when loading a config file saved by an older WGS version with missing fields
+- Fixed `XamlParseException` on startup caused by a missing `GhostButton` style reference
+- All remaining Finnish-language strings in the UI replaced with English
+
+---
+
+## 🆕 What's new in v1.2.1
+
+### Bug fix
+- **Navigation fix** — clicking Dashboard or Machines in the bottom nav bar and then clicking a server in the list would open the wrong server detail view or show a blank panel. Now fixed: re-selecting a server always loads its own detail view correctly.
+
+---
+
+## 🆕 What's new in v1.2.2
+
+### Bug fixes
+- **Fixed critical crash** — starting or restarting a remote server from the master panel caused a WPF cross-thread exception (`AsyncRelayCommand.ExecuteAsync` was being called from a background HTTP listener thread). All server action callbacks now marshal back to the UI thread via `Dispatcher.InvokeAsync`.
+- **Plugin Creator** — after saving a new plugin the success dialog now appears and the game list refreshes immediately; previously both were silently skipped
+- **Dynamic version** — the version number shown in the title bar and about screen is now read directly from the assembly instead of a hardcoded string, so it always matches the release
+
+### New game plugin
+- **Wreckfest 2** — added dedicated server support for the Wreckfest 2 early access release (AppId 3519390, port 30100)
 
 ---
 
