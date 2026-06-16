@@ -20,9 +20,18 @@ jobs:
       - name: Publish
         run: dotnet publish WGS/WGS.csproj -c Release -r win-x64 --self-contained false -o publish_out
 
+      - name: Copy extras
+        run: |
+          Copy-Item LICENSE publish_out\LICENSE
+          Copy-Item README.md publish_out\README.md
+
       - name: Create ZIP
         run: |
-          $files = @("publish_out\WindowsGameServer.exe", "publish_out\LICENSE", "publish_out\README.md")
+          $files = @(
+            "publish_out\WindowsGameServer.exe",
+            "publish_out\LICENSE",
+            "publish_out\README.md"
+          )
           Compress-Archive -Path $files -DestinationPath "WGS-${{ github.ref_name }}.zip"
 
       - name: Upload to Release
