@@ -83,20 +83,20 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Feature | Description |
 |---|---|
 | 🗓️ **Task scheduler** | Schedule start, stop, restart, update or backup — once, daily or weekly |
-| 💾 **Automatic backups** | Zip backups of world saves before updates, configurable retention policy |
+| 💾 **Automatic backups** | Zip backups of world saves before updates, configurable retention policy, selective backup paths per server |
 
 ### Remote access
 | Feature | Description |
 |---|---|
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
 | 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
-| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics endpoints |
+| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics/backup/restore endpoints |
 | 🖥️ **Remote machine support** | Manage servers running on other PCs from a single master panel |
 
 ### Notifications
 | Feature | Description |
 |---|---|
-| 🔔 **Discord webhooks** | Get notified on start, stop, crash and update events in Discord |
+| 🔔 **Discord webhooks** | Get notified on start, stop, crash and update events in Discord — global or per-server webhook URL |
 | 📧 **Email notifications (SMTP)** | Receive the same alerts by email — configurable per server |
 
 ### Configuration & mods
@@ -371,6 +371,21 @@ Register(new MyGamePlugin());
 
 ### Exe size
 - Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
+
+---
+
+## 🆕 What's new in v1.2.3
+
+### New features
+- **Per-server Discord webhooks** — each server can have its own webhook URL in Settings → Discord alerts. Falls back to the global webhook if left empty.
+- **Backup restore via web dashboard** — a 📂 Backups button on each server card in the web GUI lists all available backups and lets you restore with one click.
+- **Selective backup paths** — set custom subdirectories to back up per server (e.g.  for Enshrouded). Saves disk space for large game installs. Built-in defaults for Enshrouded, Palworld, ARK, DayZ, V Rising, Satisfactory, Project Zomboid and Terraria.
+
+### Bug fixes
+- Fixed crash when starting/restarting a remote server via master panel —  was called from a background HTTP thread, causing a WPF cross-thread exception. All server actions now dispatch through .
+- Plugin Creator now shows a success message and refreshes the game list after module creation.
+- Plugin Creator saves errors are now shown in the UI instead of being silently swallowed.
+- Security: restore endpoint rejects path traversal attempts at both the API and callback layers.
 
 ---
 
