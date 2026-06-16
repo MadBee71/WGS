@@ -532,15 +532,32 @@ public class ServerManagerService
 
     public async Task SendCommandAsync(string serverId, string command)
     {
-        if (_running.TryGetValue(serverId, out var inst) && inst.Process?.StandardInput != null)
+        if (!_running.TryGetValue(serverId, out var inst)) return;
+        var plugin = GameRegistry.Get(inst.Server.GameId);
+
+        // Plugins whose process has no redirected stdin (native console) must route
+        // commands through their own REST/RCON mechanism instead.
+        if (plugin is IRestCommandPlugin restCmd)
+        {
+            var (handled, response) = await restCmd.TrySendRestCommandAsync(inst.Server, command);
+            if (handled)
+            {
+                if (!string.IsNullOrEmpty(response))
+                {
+                    var msg = new ConsoleMessage { Text = response, Type = ConsoleMessageType.Info };
+                    inst.AddToLog(msg);
+                    LogReceived?.Invoke(serverId, msg);
+                }
+                return;
+            }
+        }
+
+        if (plugin?.UseNativeConsole != true && inst.Process != null)
             await inst.Process.StandardInput.WriteLineAsync(command);
     }
 
     public void SendCommand(string serverId, string command)
-    {
-        if (_running.TryGetValue(serverId, out var inst) && inst.Process?.StandardInput != null)
-            _ = inst.Process.StandardInput.WriteLineAsync(command);
-    }
+        => _ = SendCommandAsync(serverId, command);
 
     public bool IsRunning(string serverId)
         => _running.TryGetValue(serverId, out var inst) && inst.Process?.HasExited == false;

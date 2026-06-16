@@ -6,7 +6,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugin
+public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugin, IRestCommandPlugin
 {
     public override string GameId          => "palworld";
     public override string GameName        => "Palworld";
@@ -113,5 +113,73 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
             LastRestApiError = $"{ex.GetType().Name}: {ex.Message} (REST API reachable at {GetRestApiBaseUrl(server)}?)";
             return [];
         }
+    }
+
+    // ── REST API console commands ───────────────────────────────────────────
+    // PalServer's stdin-based admin commands (Broadcast/Save/Shutdown/KickPlayer/etc.)
+    // are no longer reachable now that the server runs with a native console window.
+    // These are the same commands PalServer always accepted via stdin, just sent through
+    // the REST API instead so "!cmd" / web dashboard console commands keep working.
+    public async Task<(bool handled, string response)> TrySendRestCommandAsync(GameServer server, string command)
+    {
+        var parts = command.Trim().Split(' ', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length == 0 || parts[0].Length == 0) return (false, "");
+        var verb = parts[0];
+        var rest = parts.Length > 1 ? parts[1] : "";
+
+        try
+        {
+            switch (verb.ToLowerInvariant())
+            {
+                case "broadcast":
+                    return (true, await PostAsync(server, "announce", new { message = rest }));
+
+                case "save":
+                    return (true, await PostAsync(server, "save", new { }));
+
+                case "shutdown":
+                    {
+                        var p = rest.Split(' ', 2, StringSplitOptions.TrimEntries);
+                        int waitSec = p.Length > 0 && int.TryParse(p[0], out var s) ? s : 0;
+                        var msg = p.Length > 1 ? p[1] : "Server is shutting down";
+                        return (true, await PostAsync(server, "shutdown", new { waittime = waitSec, Message = msg }));
+                    }
+
+                case "doexit":
+                case "stop":
+                    return (true, await PostAsync(server, "stop", new { }));
+
+                case "kickplayer":
+                    return (true, await PostAsync(server, "kick", new { userid = rest, message = "Kicked by admin" }));
+
+                case "banplayer":
+                    return (true, await PostAsync(server, "ban", new { userid = rest, message = "Banned by admin" }));
+
+                case "unbanplayer":
+                    return (true, await PostAsync(server, "unban", new { userid = rest }));
+
+                default:
+                    return (false, "");
+            }
+        }
+        catch (Exception ex)
+        {
+            return (true, $"[REST API] {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private async Task<string> PostAsync(GameServer server, string endpoint, object body)
+    {
+        var password = S(server, "adminPassword", "");
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{GetRestApiBaseUrl(server)}/v1/api/{endpoint}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        var creds = Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:" + password));
+        req.Headers.Authorization = new AuthenticationHeaderValue("Basic", creds);
+        var resp = await _http.SendAsync(req);
+        return resp.IsSuccessStatusCode
+            ? $"[REST API] OK: {endpoint}"
+            : $"[REST API] HTTP {(int)resp.StatusCode} {resp.StatusCode} from {endpoint}";
     }
 }
