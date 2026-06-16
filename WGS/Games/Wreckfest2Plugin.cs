@@ -13,6 +13,7 @@ public class Wreckfest2Plugin : GamePluginBase
     public override string Description   => "Next-generation demolition derby and contact racing";
     public override string Category      => "Racing";
     public override int    SteamAppId    => 3519390;
+    public override int    GameStoreAppId => 1203190;
     public override string Executable    => "Wreckfest2.exe";
     public override bool   RequiresSteamLogin    => true;
     public override bool   UseNativeConsole      => true;
