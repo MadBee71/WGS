@@ -114,93 +114,11 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 
 ## 🎮 Supported Games
 
-> `🔑` = Steam account required to install &nbsp;|&nbsp; all others install anonymously
+63+ games supported out of the box — including Valheim, Rust, CS2, ARK, DayZ, Palworld, Minecraft, and many more.
 
-### Survival
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| 7 Days to Die | 294420 | 8 | 26900 | |
-| ARK: Survival Evolved | 376030 | 70 | 7777 | |
-| ASKA | 3246670 | 4 | 27015 | |
-| ASTRONEER | 728470 | 4 | 7777 | |
-| Barotrauma | 1026340 | 16 | 27015 | |
-| Conan Exiles | 443030 | 40 | 7777 | |
-| Core Keeper | 1963720 | 8 | 27015 | |
-| DayZ | 223350 | 60 | 2302 | 🔑 |
-| Don't Starve Together | 343050 | 10 | 10999 | |
-| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
-| Enshrouded | 2278520 | 16 | 15636 | |
-| Icarus | 2089300 | 8 | 17777 | |
-| Longvinter | 1639880 | 32 | 7777 | |
-| Necesse | 1169370 | 32 | 14159 | |
-| No One Survived | 2329680 | 50 | 7777 | |
-| Palworld | 2394010 | 32 | 8211 | |
-| Project Zomboid | 380870 | 32 | 16261 | |
-| Return to Moria | 3349480 | 8 | 20151 | |
-| Rising World | 339010 | 16 | 4255 | |
-| Rust | 258550 | 100 | 28015 | |
-| SCUM | 3792580 | 32 | 10000 | |
-| Sons of the Forest | 2465200 | 8 | 8766 | |
-| Soulmask | 3017310 | 20 | 8777 | |
-| Sunkenland | 2667530 | 8 | 27015 | |
-| Survive the Nights | 1502300 | 16 | 7777 | |
-| The Forest | 556450 | 64 | 27017 | 🔑 |
-| The Isle | 412680 | 75 | 7777 | |
-| Unturned | 1110390 | 24 | 27015 | |
-| V Rising | 1829350 | 40 | 9876 | |
-| Valheim | 896660 | 10 | 2456 | |
-| Vein | 2131400 | 16 | 7777 | |
-| Windrose | 4129620 | 16 | 7777 | |
-### FPS
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| Black Mesa | 346680 | 24 | 27015 | |
-| Counter-Strike 1.6 | 10 | 20 | 27015 | 🔑 |
-| Counter-Strike 2 | 730 | 10 | 27015 | |
-| Counter-Strike: Condition Zero | 80 | 20 | 27015 | 🔑 |
-| Day of Defeat | 30 | 20 | 27015 | 🔑 |
-| Day of Defeat: Source | 232290 | 20 | 27015 | |
-| Garry's Mod | 4020 | 24 | 27015 | |
-| Half-Life 2: Deathmatch | 232370 | 16 | 27015 | |
-| Half-Life Deathmatch | 70 | 16 | 27015 | 🔑 |
-| Half-Life: Opposing Force | 70 | 16 | 27015 | 🔑 |
-| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
-| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
-| MORDHAU | 629800 | 64 | 7777 | |
-| Team Fortress 2 | 232250 | 24 | 27015 | 🔑 |
-| Team Fortress Classic | 20 | 24 | 27015 | 🔑 |
-### Racing
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| Assetto Corsa Competizione | 1430110 | 24 | 9600 | 🔑 |
-| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
-| Wreckfest 2 | 3519390 | 16 | 30100 | 🔑 |
-| Wreckfest | 361580 | 24 | 33540 | 🔑 |
-### Military
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| Arma 2: Operation Arrowhead | 33905 | 64 | 2302 | 🔑 |
-| Arma 3 | 233780 | 64 | 2302 | 🔑 |
-| Arma Reforger | 1874900 | 16 | 2302 | |
-| Squad | 403240 | 100 | 7787 | |
-### Simulation
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| American Truck Simulator | 2239530 | 8 | 27015 | |
-| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
-| Satisfactory | 1690800 | 4 | 7777 | |
-| Space Engineers | 298740 | 16 | 27016 | |
-### Other
-| Game | Steam AppID | Max Players | Port | |
-|---|---|---|---|---|
-| Grand Theft Auto V (FiveM) | — | 32 | 30120 | |
-| Minecraft Java | — | 20 | 25565 | |
-| RedM | — | 32 | 30120 | |
-| Terraria | — | 8 | 7777 | |
+👉 **[Full game list with search →](https://wgsserver.com/docs/games.html)**
 
-> `—` = not on Steam; install manually (see plugin description for download link)
->
-> The **Custom Plugin Creator** lets you add any other game server without touching code.
+The **Custom Plugin Creator** lets you add any other game server without touching code.
 
 ---
 
