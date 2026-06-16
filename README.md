@@ -3,10 +3,11 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
+  ![Version](https://img.shields.io/badge/version-1.2.3-blue)
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-54+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 </div>
@@ -70,6 +71,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 🔁 **Auto-update** | Periodic SteamCMD updates on a configurable interval while the server runs |
 | ⧉ **Server cloning** | Duplicate any server with all settings — ports assigned automatically |
 | 💤 **Wake-on-demand** | Server starts automatically when the first player connects, saving resources when idle |
+| 😴 **Shut down when empty** | Server stops automatically after a configurable idle timeout when all players leave |
 
 ### Monitoring
 | Feature | Description |
@@ -223,7 +225,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Build from source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/WindowsGameServer.git
+git clone https://github.com/MadBee71/WGS.git
 cd WindowsGameServer/WGS
 dotnet publish -c Release -o publish
 ```
@@ -379,13 +381,14 @@ Register(new MyGamePlugin());
 ### New features
 - **Per-server Discord webhooks** — each server can have its own webhook URL in Settings → Discord alerts. Falls back to the global webhook if left empty.
 - **Backup restore via web dashboard** — a 📂 Backups button on each server card in the web GUI lists all available backups and lets you restore with one click.
-- **Selective backup paths** — set custom subdirectories to back up per server (e.g.  for Enshrouded). Saves disk space for large game installs. Built-in defaults for Enshrouded, Palworld, ARK, DayZ, V Rising, Satisfactory, Project Zomboid and Terraria.
+- **Selective backup paths** — set custom subdirectories to back up per server (e.g. `savegame` for Enshrouded). Saves disk space for large game installs. Built-in defaults for Enshrouded, Palworld, ARK, DayZ, V Rising, Satisfactory, Project Zomboid and Terraria.
+- **Shut down when empty** — companion to Wake-on-demand. WGS monitors the player count while the server runs and stops it automatically after a configurable idle timeout (default 10 min). Together they form a full on-demand lifecycle.
 
 ### Bug fixes
-- Fixed crash when starting/restarting a remote server via master panel —  was called from a background HTTP thread, causing a WPF cross-thread exception. All server actions now dispatch through .
+- Fixed crash when starting/restarting a remote server via master panel — `AsyncRelayCommand.ExecuteAsync` was called from a background HTTP thread, causing a WPF cross-thread exception. All server action callbacks now dispatch through `Dispatcher.InvokeAsync`.
 - Plugin Creator now shows a success message and refreshes the game list after module creation.
-- Plugin Creator saves errors are now shown in the UI instead of being silently swallowed.
-- Security: restore endpoint rejects path traversal attempts at both the API and callback layers.
+- Plugin Creator save errors are now shown in the UI instead of being silently swallowed.
+- Security: backup restore endpoint rejects path traversal attempts at both the API and callback layers.
 
 ---
 
