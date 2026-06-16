@@ -114,6 +114,8 @@ public partial class App : System.Windows.Application
             var mainVm  = Services.GetRequiredService<MainViewModel>();
             var manager = Services.GetRequiredService<ServerManagerService>();
 
+            mainVm.Save();
+
             foreach (var serverVm in mainVm.Servers)
             {
                 if (!serverVm.IsRunning) continue;
