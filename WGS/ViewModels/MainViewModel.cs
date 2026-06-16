@@ -35,6 +35,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly CrashPredictionService    _crashPrediction;
     private readonly UPnPService               _upnp;
     private readonly WakeOnDemandService       _wakeOnDemand;
+    private readonly System.Timers.Timer       _autoSaveTimer;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -207,6 +208,12 @@ public partial class MainViewModel : BaseViewModel
         Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedServers));
         LoadServers();
         _ = CheckForUpdateAsync();
+
+        // Auto-save server settings periodically so changes survive app restart
+        // without requiring the user to press the Save button.
+        _autoSaveTimer = new System.Timers.Timer(5000) { AutoReset = true };
+        _autoSaveTimer.Elapsed += (_, _) => Save();
+        _autoSaveTimer.Start();
 
         // Wire up Discord bot callbacks — same Dispatcher fix as WebAPI
         _bot.GetServers    = () => Servers.Select(v => v.Server);
