@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Bot - WGS Documentation</title>
+    <meta name="description" content="Control your WGS game servers from Discord. Setup guide, available commands, and security details.">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top, #1a2333 0%, #0d1117 60%);
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --accent-color: #00adff;
+            --text-color: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --border-color: #30363d;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg-color); background-image: var(--bg-gradient); background-repeat: no-repeat; background-attachment: fixed; color: var(--text-color); margin: 0; padding: 0; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px 20px 60px; }
+        nav { display: flex; justify-content: center; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(48,54,61,0.4); flex-wrap: wrap; gap: 16px; }
+        .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+        nav a { color: #8b949e; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; white-space: nowrap; }
+        nav a:hover, nav a.active { color: var(--accent-color); }
+        .back-home { font-weight: bold; color: var(--text-bright) !important; font-size: 0.95rem !important; }
+        header { padding: 44px 0 28px; }
+        h1 { color: var(--text-bright); font-size: 2.1rem; margin: 0 0 10px; }
+        .content-block { background: var(--card-bg); border: 1px solid var(--border-color); padding: 22px 24px; border-radius: 8px; margin-bottom: 16px; }
+        .content-block h3 { margin: 0 0 12px; color: var(--text-bright); font-size: 1.1rem; }
+        code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #ff7b72; font-size: 0.9em; }
+        .cmd-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .cmd-table th { text-align: left; padding: 8px 12px; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color); }
+        .cmd-table td { padding: 10px 12px; border-bottom: 1px solid rgba(48,54,61,0.4); font-size: 0.92rem; vertical-align: top; }
+        .cmd-table tr:last-child td { border-bottom: none; }
+        .cmd-table td:first-child code { font-size: 0.88rem; }
+        .info-box { background: rgba(0,173,255,0.06); border: 1px solid rgba(0,173,255,0.3); padding: 16px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 0.92rem; }
+        .info-box strong { color: var(--accent-color); }
+        ol { padding-left: 22px; margin: 10px 0 0; }
+        ol li { margin-bottom: 8px; font-size: 0.93rem; }
+        footer { text-align: center; margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--border-color); color: #8b949e; font-size: 0.88rem; }
+        @media (max-width: 600px) { h1 { font-size: 1.7rem; } .nav-links { gap: 10px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <nav>
+        <a href="../index.html" class="back-home" style="display:flex;align-items:center;gap:6px;"><img src="../wgs-logo_mini2.png" alt="WGS" style="height:22px;"></a>
+            <a href="installation.html">Installation</a>
+            <a href="features.html">Features</a>
+            <a href="games.html">63+ Games</a>
+            <a href="discord.html" class="active">Discord Bot</a>
+            <a href="web-api.html">REST API</a>
+            <a href="troubleshooting.html">Troubleshooting</a>
+            <a href="manual.html">Manual</a>
+    </nav>
+
+    <header>
+        <h1>Discord Bot Integration</h1>
+        <p>Control and monitor your game servers directly from Discord. The WGS bot supports server management commands, real-time notifications, and role-based access.</p>
+    </header>
+
+    <div class="content-block">
+        <h3>⚙️ Setup</h3>
+        <ol>
+            <li>Go to <strong>discord.com/developers</strong> and create a new application &amp; bot.</li>
+            <li>In the bot settings, enable <strong>Message Content Intent</strong>.</li>
+            <li>Invite the bot to your server with <strong>Read Messages</strong> and <strong>Send Messages</strong> permissions.</li>
+            <li>In WGS, go to <strong>Settings → Discord Remote Control Bot</strong>.</li>
+            <li>Enable the bot and paste your <strong>Bot Token</strong> and the <strong>Control Channel ID</strong>.</li>
+            <li>Optionally set a custom <strong>command prefix</strong> (default: <code>!</code>) and allowed Discord user IDs.</li>
+            <li>Click <strong>Save</strong> — the bot connects immediately.</li>
+        </ol>
+    </div>
+
+    <div class="info-box">
+        <strong>Tip:</strong> Leave the allowed user IDs field empty to allow all server members to use commands, or enter comma-separated Discord user IDs to restrict access to specific people.
+    </div>
+
+    <div class="content-block">
+        <h3>📋 Available Commands</h3>
+        <p>All commands target the server by its name or a partial match. If multiple servers match, the bot replies asking you to be more specific.</p>
+        <table class="cmd-table">
+            <thead>
+                <tr><th>Command</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>!start &lt;server&gt;</code></td><td>Start the specified server.</td></tr>
+                <tr><td><code>!stop &lt;server&gt;</code></td><td>Gracefully stop the server.</td></tr>
+                <tr><td><code>!restart &lt;server&gt;</code></td><td>Stop and immediately restart the server.</td></tr>
+                <tr><td><code>!update &lt;server&gt;</code></td><td>Run a SteamCMD update for the server.</td></tr>
+                <tr><td><code>!backup &lt;server&gt;</code></td><td>Trigger an immediate world backup.</td></tr>
+                <tr><td><code>!cmd &lt;server&gt; &lt;command&gt;</code></td><td>Send a console command directly to the running server. Example: <code>!cmd MyServer say Hello</code></td></tr>
+                <tr><td><code>!status</code></td><td>List all servers and their current state (running / stopped).</td></tr>
+                <tr><td><code>!help</code></td><td>Show available commands in the channel.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="content-block">
+        <h3>🔔 Notifications</h3>
+        <p>WGS can post automatic notifications to your Discord channel for the following events. Each can be toggled independently in <strong>Settings → Discord Notifications</strong>:</p>
+        <ul style="margin:8px 0 0;padding-left:20px;">
+            <li>Server <strong>started</strong></li>
+            <li>Server <strong>stopped</strong></li>
+            <li>Server <strong>crashed</strong> (unexpected exit)</li>
+            <li>Server <strong>updated</strong> via SteamCMD</li>
+        </ul>
+        <p style="margin-top:10px;">Notifications are sent via a Discord <strong>Webhook URL</strong> (separate from the bot). Set it up in Settings → Discord Notifications → Webhook URL.</p>
+    </div>
+
+    <div class="content-block">
+        <h3>🛡️ Security</h3>
+        <p>Your Bot Token is encrypted with <strong>Windows DPAPI</strong> before being saved to disk — it is never stored as plain text. The bot uses long-polling to communicate with Discord, so no incoming ports need to be opened. All write-access commands (start, stop, restart, update, backup, cmd) require the user to be in the allowed users list if one is configured.</p>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 MadBee71 / Windows Game Server &mdash; <a href="https://wgsserver.com" style="color:#8b949e;text-decoration:none;">wgsserver.com</a> &mdash; Released under the MIT License.</p>
+    </footer>
+</div>
+</body>
+</html>
