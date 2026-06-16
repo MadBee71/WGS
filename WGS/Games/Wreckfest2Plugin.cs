@@ -22,7 +22,7 @@ public class Wreckfest2Plugin : GamePluginBase
     public override int    DefaultMaxPlayers  => 16;
 
     public override string BuildStartArguments(GameServer s)
-        => $"--server --save-dir={s.InstallPath.TrimEnd('\\', '/')}";
+        => $"--server --save-dir=\"{s.InstallPath.TrimEnd('\\', '/')}\"";
 
     public override string? GetStopCommand(GameServer server) => "shutdown";
 
