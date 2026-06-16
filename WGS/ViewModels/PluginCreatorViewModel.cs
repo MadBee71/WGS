@@ -60,8 +60,16 @@ public partial class PluginCreatorViewModel : BaseViewModel
             HasRcon           = HasRcon,
         };
 
-        GameRegistry.SaveCustomPlugin(def, PluginsPath);
-        GameRegistry.LoadCustomPlugins(PluginsPath);
+        try
+        {
+            GameRegistry.SaveCustomPlugin(def, PluginsPath);
+            GameRegistry.LoadCustomPlugins(PluginsPath);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to save module: {ex.Message}";
+            return;
+        }
 
         PluginCreated?.Invoke();
     }

@@ -39,6 +39,10 @@ public class WebApiService : IDisposable
     public Func<string, string?>? GetUptime { get; set; }
     /// <summary>Returns online player list for a server (name, steamId, ping, connectedSeconds).</summary>
     public Func<string, IEnumerable<Models.OnlinePlayer>>? GetOnlinePlayers { get; set; }
+    /// <summary>Returns list of backup entries for a server.</summary>
+    public Func<string, IEnumerable<(string fileName, string sizeText, DateTime createdAt)>>? GetBackups { get; set; }
+    /// <summary>Restores a backup by filename for a server. Returns error message or null on success.</summary>
+    public Func<string, string, Task<string?>>? RestoreBackup { get; set; }
 
     /// <summary>True when listener bound to all interfaces (reachable from network); false = localhost only.</summary>
     public bool BoundToAllInterfaces { get; private set; }
@@ -254,6 +258,47 @@ public class WebApiService : IDisposable
                 return;
             }
 
+            // GET /api/servers/{id}/backups
+            var backupParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (req.HttpMethod == "GET" && backupParts.Length == 4
+                && backupParts[0] == "api" && backupParts[1] == "servers" && backupParts[3] == "backups")
+            {
+                var serverId = backupParts[2];
+                var backups  = GetBackups?.Invoke(serverId) ?? [];
+                await SendJson(resp, backups.Select(b => new {
+                    b.fileName,
+                    b.sizeText,
+                    createdAt = b.createdAt.ToString("yyyy-MM-dd HH:mm:ss")
+                }));
+                return;
+            }
+
+            // POST /api/servers/{id}/restore  body: { "fileName": "..." }
+            if (req.HttpMethod == "POST" && backupParts.Length == 4
+                && backupParts[0] == "api" && backupParts[1] == "servers" && backupParts[3] == "restore")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = backupParts[2];
+                using var reader2 = new System.IO.StreamReader(req.InputStream);
+                var body2 = await reader2.ReadToEndAsync();
+                var doc2  = JsonDocument.Parse(body2.Length > 0 ? body2 : "{}");
+                var fileName = doc2.RootElement.TryGetProperty("fileName", out var fn) ? fn.GetString() ?? "" : "";
+                if (string.IsNullOrWhiteSpace(fileName)) { resp.StatusCode = 400; await SendJson(resp, new { error = "fileName required" }); return; }
+                // Reject path traversal: must be a bare filename with no directory component
+                if (fileName != System.IO.Path.GetFileName(fileName)
+                    || fileName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+                {
+                    resp.StatusCode = 400;
+                    await SendJson(resp, new { error = "Invalid fileName" });
+                    return;
+                }
+                var err = RestoreBackup != null ? await RestoreBackup(serverId, fileName) : "Restore not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "restore", $"server={serverId} file={fileName}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
             // POST /api/servers/{id}/{action}
             var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (req.HttpMethod == "POST" && parts.Length >= 3 && parts[0] == "api" && parts[1] == "servers")
@@ -416,6 +461,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .log-line.System{color:#58a6ff}
 .log-line.Warning{color:#d29922}
 .log-line.Error{color:#f85149}
+/* Backup row */
+#bkrow_* div:last-child{border-bottom:none}
 /* Toast */
 .toast{position:fixed;bottom:20px;right:20px;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
 .toast.show{opacity:1}
@@ -575,7 +622,9 @@ function upsertCard(s){
   <button class="btn bb" onclick="act('${s.Id}','restart')"${!isRun?'disabled':''}>↺ Restart</button>
   <button class="btn bo" onclick="act('${s.Id}','update')">⬇ Update</button>
   <button class="btn bo" onclick="act('${s.Id}','backup')">💾 Backup</button>
+  <button class="btn bo" onclick="toggleBackups('${s.Id}')">📂 Backups</button>
 </div>
+<div id="bkrow_${s.Id}" style="display:none;padding:6px 16px;border-top:1px solid #21262d"></div>
 <div class="con-row">
   <input id="c_${s.Id}" placeholder="Console command…">
   <button class="btn bo" onclick="sendCmd('${s.Id}')">Send</button>
@@ -640,6 +689,31 @@ async function pollLog(id){
     logOffsets[id]=r.nextOffset;
   }catch(e){}
   setTimeout(()=>pollLog(id),2000);
+}
+
+// ── Backup list ───────────────────────────────────────────────────────────
+async function toggleBackups(id){
+  const row=document.getElementById('bkrow_'+id);
+  if(!row)return;
+  if(row.style.display!=='none'){row.style.display='none';return;}
+  row.style.display='';
+  row.innerHTML='<span style="font-size:12px;color:#8b949e">Loading…</span>';
+  try{
+    const list=await api('servers/'+id+'/backups');
+    if(!list||list.length===0){row.innerHTML='<span style="font-size:12px;color:#8b949e">No backups found.</span>';return;}
+    row.innerHTML=list.map(b=>`
+<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #21262d26">
+  <span style="font-size:11px;color:#c9d1d9;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.fileName)}">${esc(b.fileName)}</span>
+  <span style="font-size:11px;color:#8b949e;white-space:nowrap">${esc(b.sizeText)}</span>
+  <span style="font-size:11px;color:#8b949e;white-space:nowrap">${esc(b.createdAt)}</span>
+  <button class="btn bo" style="padding:2px 8px;font-size:11px" onclick="restoreBackup('${id}','${esc(b.fileName)}')">Restore</button>
+</div>`).join('');
+  }catch(e){row.innerHTML='<span style="font-size:12px;color:#f85149">Error loading backups</span>';}
+}
+async function restoreBackup(id,fileName){
+  if(!confirm('Restore backup "'+fileName+'"? This will overwrite current server files.'))return;
+  try{await api('servers/'+id+'/restore','POST',{fileName});toast('Restore started');}
+  catch(e){toast('Restore failed: '+e,true);}
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────

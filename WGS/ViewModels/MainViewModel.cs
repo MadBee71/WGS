@@ -264,6 +264,31 @@ public partial class MainViewModel : BaseViewModel
             : null;
         _webApi.GetOnlinePlayers = id =>
             FindServer(id)?.OnlinePlayers ?? [];
+        _webApi.GetBackups = id =>
+        {
+            GameServer? srv = null;
+            WpfApplication.Current?.Dispatcher?.Invoke(() => { srv = FindServer(id)?.Server; });
+            if (srv == null) return [];
+            return _backup.GetBackupsForServer(srv)
+                .Select(b => (
+                    fileName:  System.IO.Path.GetFileName(b.FilePath),
+                    sizeText:  b.SizeText,
+                    createdAt: b.CreatedAt));
+        };
+        _webApi.RestoreBackup = async (id, fileName) =>
+        {
+            GameServer? srv = null;
+            WpfApplication.Current?.Dispatcher?.Invoke(() => { srv = FindServer(id)?.Server; });
+            if (srv == null) return "Server not found";
+            var dir      = System.IO.Path.GetFullPath(System.IO.Path.Combine(_backup.BackupRoot, id));
+            var zipPath  = System.IO.Path.GetFullPath(System.IO.Path.Combine(dir, fileName));
+            // Ensure the resolved path is strictly within the server backup directory
+            if (!zipPath.StartsWith(dir + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return "Invalid backup path";
+            if (!System.IO.File.Exists(zipPath)) return "Backup file not found";
+            try { await _backup.RestoreBackupAsync(srv, zipPath); return null; }
+            catch (Exception ex) { return ex.Message; }
+        };
 
         // Wire RemoteMachineService
         foreach (var machine in _remoteMachines.Machines)
@@ -840,7 +865,18 @@ public partial class MainViewModel : BaseViewModel
         var vm  = new PluginCreatorViewModel();
         var win = new PluginCreatorView(vm);
         win.Owner = WpfApplication.Current.MainWindow;
+        bool created = false;
+        vm.PluginCreated += () => created = true;
         win.ShowDialog();
+        if (created)
+        {
+            OnPropertyChanged(nameof(AvailableGames));
+            System.Windows.MessageBox.Show(
+                $"✅ Game module '{vm.GameName}' created! You can now add a server using it.",
+                "Module created",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
     }
 
     [RelayCommand]

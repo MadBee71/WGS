@@ -26,7 +26,9 @@ public class GameServer
     public bool WakeOnDemand           { get; set; } = false;
     public bool UpdateOnStart          { get; set; } = false;
     public bool BackupOnStart          { get; set; } = false;
-    public bool DiscordAlertsEnabled   { get; set; } = true;
+    public bool   DiscordAlertsEnabled    { get; set; } = true;
+    /// <summary>Server-specific Discord webhook URL. Falls back to global setting when empty.</summary>
+    public string DiscordWebhookUrl       { get; set; } = string.Empty;
     public bool DailyRestartEnabled    { get; set; } = false;
     public TimeSpan DailyRestartTime   { get; set; } = TimeSpan.FromHours(4); // 04:00 default
     public string CustomArgs { get; set; } = string.Empty;
