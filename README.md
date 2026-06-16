@@ -119,89 +119,84 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Survival
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Valheim | 896660 | 10 | 2456 | |
-| Rust | 258550 | 100 | 28015 | |
 | 7 Days to Die | 294420 | 8 | 26900 | |
-| Conan Exiles | 443030 | 40 | 7777 | |
 | ARK: Survival Evolved | 376030 | 70 | 7777 | |
-| Sons of the Forest | 2465200 | 8 | 8766 | |
-| The Forest | 556450 | 64 | 27017 | 🔑 |
-| Survive the Nights | 1502300 | 16 | 7777 | |
-| SCUM | 3792580 | 32 | 10000 | |
-| Vein | 2131400 | 16 | 7777 | |
-| Palworld | 2394010 | 32 | 8211 | |
-| V Rising | 1829350 | 40 | 9876 | |
-| Don't Starve Together | 343050 | 10 | 10999 | |
-| The Isle | 412680 | 75 | 7777 | |
-| Return to Moria | 3349480 | 8 | 20151 | |
-| ASTRONEER | 728470 | 4 | 7777 | |
-| Longvinter | 1639880 | 32 | 7777 | |
-| No One Survived | 2329680 | 50 | 7777 | |
 | ASKA | 3246670 | 4 | 27015 | |
-| Necesse | 1169370 | 32 | 14159 | |
-| Rising World | 339010 | 16 | 4255 | |
-| Sunkenland | 2667530 | 8 | 27015 | |
-| DayZ | 223350 | 60 | 2302 | 🔑 |
-| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
+| ASTRONEER | 728470 | 4 | 7777 | |
 | Barotrauma | 1026340 | 16 | 27015 | |
-| Project Zomboid | 380870 | 32 | 16261 | |
-| Unturned | 1110390 | 24 | 27015 | |
+| Conan Exiles | 443030 | 40 | 7777 | |
 | Core Keeper | 1963720 | 8 | 27015 | |
+| DayZ | 223350 | 60 | 2302 | 🔑 |
+| Don't Starve Together | 343050 | 10 | 10999 | |
+| Empyrion - Galactic Survival | 530870 | 8 | 30000 | |
 | Enshrouded | 2278520 | 16 | 15636 | |
 | Icarus | 2089300 | 8 | 17777 | |
+| Longvinter | 1639880 | 32 | 7777 | |
+| Necesse | 1169370 | 32 | 14159 | |
+| No One Survived | 2329680 | 50 | 7777 | |
+| Palworld | 2394010 | 32 | 8211 | |
+| Project Zomboid | 380870 | 32 | 16261 | |
+| Return to Moria | 3349480 | 8 | 20151 | |
+| Rising World | 339010 | 16 | 4255 | |
+| Rust | 258550 | 100 | 28015 | |
+| SCUM | 3792580 | 32 | 10000 | |
+| Sons of the Forest | 2465200 | 8 | 8766 | |
 | Soulmask | 3017310 | 20 | 8777 | |
+| Sunkenland | 2667530 | 8 | 27015 | |
+| Survive the Nights | 1502300 | 16 | 7777 | |
+| The Forest | 556450 | 64 | 27017 | 🔑 |
+| The Isle | 412680 | 75 | 7777 | |
+| Unturned | 1110390 | 24 | 27015 | |
+| V Rising | 1829350 | 40 | 9876 | |
+| Valheim | 896660 | 10 | 2456 | |
+| Vein | 2131400 | 16 | 7777 | |
 | Windrose | 4129620 | 16 | 7777 | |
-
 ### FPS
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Counter-Strike 2 | 730 | 10 | 27015 | |
 | Black Mesa | 346680 | 24 | 27015 | |
-| Garry's Mod | 4020 | 24 | 27015 | |
-| Team Fortress 2 | 232250 | 24 | 27015 | 🔑 |
-| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
-| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
-| MORDHAU | 629800 | 64 | 7777 | |
 | Counter-Strike 1.6 | 10 | 20 | 27015 | 🔑 |
+| Counter-Strike 2 | 730 | 10 | 27015 | |
 | Counter-Strike: Condition Zero | 80 | 20 | 27015 | 🔑 |
 | Day of Defeat | 30 | 20 | 27015 | 🔑 |
 | Day of Defeat: Source | 232290 | 20 | 27015 | |
-| Team Fortress Classic | 20 | 24 | 27015 | 🔑 |
-| Half-Life Deathmatch | 70 | 16 | 27015 | 🔑 |
+| Garry's Mod | 4020 | 24 | 27015 | |
 | Half-Life 2: Deathmatch | 232370 | 16 | 27015 | |
+| Half-Life Deathmatch | 70 | 16 | 27015 | 🔑 |
 | Half-Life: Opposing Force | 70 | 16 | 27015 | 🔑 |
-
+| Insurgency: Sandstorm | 581330 | 28 | 27102 | |
+| Killing Floor 2 | 232130 | 6 | 7777 | 🔑 |
+| MORDHAU | 629800 | 64 | 7777 | |
+| Team Fortress 2 | 232250 | 24 | 27015 | 🔑 |
+| Team Fortress Classic | 20 | 24 | 27015 | 🔑 |
 ### Racing
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Wreckfest | 361580 | 24 | 33540 | 🔑 |
-| Wreckfest 2 | 3519390 | 16 | 30100 | 🔑 |
-| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
 | Assetto Corsa Competizione | 1430110 | 24 | 9600 | 🔑 |
-
+| Assetto Corsa | 302550 | 18 | 9600 | 🔑 |
+| Wreckfest 2 | 3519390 | 16 | 30100 | 🔑 |
+| Wreckfest | 361580 | 24 | 33540 | 🔑 |
 ### Military
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Arma Reforger | 1874900 | 16 | 2302 | |
-| Arma 3 | 233780 | 64 | 2302 | 🔑 |
 | Arma 2: Operation Arrowhead | 33905 | 64 | 2302 | 🔑 |
+| Arma 3 | 233780 | 64 | 2302 | 🔑 |
+| Arma Reforger | 1874900 | 16 | 2302 | |
 | Squad | 403240 | 100 | 7787 | |
-
 ### Simulation
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
 | American Truck Simulator | 2239530 | 8 | 27015 | |
+| Euro Truck Simulator 2 | 1948160 | 8 | 27015 | 🔑 |
 | Satisfactory | 1690800 | 4 | 7777 | |
 | Space Engineers | 298740 | 16 | 27016 | |
-
 ### Other
 | Game | Steam AppID | Max Players | Port | |
 |---|---|---|---|---|
-| Minecraft Java | — | 20 | 25565 | |
-| Terraria | — | 8 | 7777 | |
-| RedM | — | 32 | 30120 | |
 | Grand Theft Auto V (FiveM) | — | 32 | 30120 | |
+| Minecraft Java | — | 20 | 25565 | |
+| RedM | — | 32 | 30120 | |
+| Terraria | — | 8 | 7777 | |
 
 > `—` = not on Steam; install manually (see plugin description for download link)
 >
@@ -337,144 +332,6 @@ Register(new MyGamePlugin());
 └─────────────────────────────────────┘
 ```
 
----
-
-## 🆕 What's new in v1.0.1
-
-### 4 new game plugins
-| Game | Category | Note |
-|---|---|---|
-| Arma 2: Operation Arrowhead | Military | AppId 33905 — requires Steam login |
-| Necesse | Survival | Bundled JRE launcher |
-| Terraria | Survival | Manual install from terraria.org |
-| RedM | Other | Manual install from cfx.re/redm |
-
-### Port & max-player data corrected (verified against WindowsGSM source)
-| Game | What changed |
-|---|---|
-| Arma Reforger | Port 2001 → 2302 · Query 17777 → 7777 · Max 64 → 16 · CLI flags fixed |
-| ASTRONEER | Port 8777 → 7777 · Query 7778 → 7777 · Max 8 → 4 |
-| Return to Moria | Port & Query 7777 → 20151 |
-| Wreckfest 2 | Port 27020 → 30100 · Query 27021 → 27015 · Max 24 → 16 |
-| The Forest | Port 27015 → 27017 · Max 8 → 64 |
-| Rising World | Max 64 → 16 · Start args format corrected |
-| The Isle | Default map Isle_V3 → Gateway · Max 100 → 75 |
-
-### Bug fixes
-- **GameId typo** — `noonesuvived` → `noonessurvived`
-- **ARMA 3** — mods (`-mod=`) setting now applied in start arguments
-- **Valheim** — `-public` flag now actually passed to server
-- **The Forest** — caves / enemies / vegan settings now applied as server args
-- **Dead settings removed** — ETS2, Conan Exiles, Arma Reforger, V Rising: settings that were shown in the UI but never applied to the server have been cleaned up
-- **Port conflict auto-resolution** — Add Server dialog now assigns conflict-free ports automatically
-- **Port fields** in Add Server dialog — Game Port, Query Port and Steam Port are all editable
-- **ValidatesOnExceptions** added to port input fields
-
-### SteamCMD beta branch support
-- `TheIslePlugin` → `-beta evrima` (Evrima update)
-- `RisingWorldPlugin` → `-beta unity` (Unity engine version)
-- **PluginExporter** now includes `SteamBranch` in exported `.cs` files
-- Any plugin can override `SteamBranch` to target a specific Steam beta branch
-
-### Exe size
-- Release binary kept at ~21 MB by excluding Roslyn compiler assemblies from single-file bundle (they ship as separate DLLs next to the exe)
-
----
-
-## 🆕 What's new in v1.1.0
-
-### New features
-- **File manager** — browse, upload, download and delete server files directly inside WGS, without opening File Explorer
-- **Bandwidth monitoring** — live network in/out and active connection count per server in the server detail view
-- **Steam Workshop** — install and manage Workshop mods for supported games via SteamCMD, with a built-in mod list per server
-- **User management** — create local user accounts with Admin / Operator / Viewer roles; all admin actions written to an audit log
-- **Multi-machine management** — manage game servers running on other PCs from a single master WGS panel over HTTP
-- **Server templates** — save any server configuration as a reusable template and spin up new servers from it in seconds
-- **Web Dashboard & REST API** — built-in HTTP server exposes a browser dashboard and REST endpoints for external integrations (start/stop/status/metrics)
-- **UPnP port forwarding** — WGS can automatically open router ports via UPnP when a server starts (optional, configurable per server)
-- **Player statistics** — session-level tracking stored in SQLite: join time, leave time, total playtime per player per server
-
-### New game plugins
-| Game | Category |
-|---|---|
-| Enshrouded | Survival |
-| Icarus | Survival |
-| Soulmask | Survival |
-| Windrose | Survival |
-| Counter-Strike 1.6 | FPS |
-| Counter-Strike: Condition Zero | FPS |
-| Day of Defeat | FPS |
-| Day of Defeat: Source | FPS |
-| Team Fortress Classic | FPS |
-| Half-Life Deathmatch | FPS |
-| Half-Life 2: Deathmatch | FPS |
-| Half-Life: Opposing Force | FPS |
-| Grand Theft Auto V (FiveM) | Open World |
-
----
-
-## 🆕 What's new in v1.1.1
-
-### Bug fixes
-- Fixed version badge not showing the correct version number in the title bar
-- Fixed navigation: server list items could become unresponsive after switching between views
-- Fixed user role check that allowed Viewer accounts to trigger server actions via keyboard shortcuts
-- Minor UI polish: scrollbar thickness, tooltip delays, button hover states
-
----
-
-## 🆕 What's new in v1.2.0
-
-### New features
-- **Server cloning** — duplicate any server with all its settings in one click; WGS automatically assigns conflict-free ports for the clone
-- **Wake-on-demand** — server starts automatically the moment the first player tries to connect, and stays off when no one is playing, saving resources
-- **Email notifications (SMTP)** — receive the same start/stop/crash/update alerts by email; configurable SMTP server, port, TLS and credentials per server
-- **RAM limiting** — set a hard memory cap per server using Windows Job Objects; the process is killed and restarted if it exceeds the limit
-- **Historical performance charts** — CPU and RAM history graphs with up to 1 hour of data, selectable time range (5 min / 15 min / 1 hr)
-- **Crash prediction grace period** — configurable cooldown between crash restarts to prevent a crash loop from spinning indefinitely
-- **Daily restart scheduler** — schedule automatic restarts at a specific time of day or week per server, with optional pre-restart warning to players
-- **Discord admin list UI** — manage which Discord user IDs are allowed to issue bot commands, from within the WGS settings screen
-
-### Bug fixes
-- Fixed config file being overwritten on every server start for Enshrouded, Sons of the Forest and Wreckfest 2 — config is now only written on first install
-- Fixed crash on startup when loading a config file saved by an older WGS version with missing fields
-- Fixed `XamlParseException` on startup caused by a missing `GhostButton` style reference
-- All remaining Finnish-language strings in the UI replaced with English
-
----
-
-## 🆕 What's new in v1.2.1
-
-### Bug fix
-- **Navigation fix** — clicking Dashboard or Machines in the bottom nav bar and then clicking a server in the list would open the wrong server detail view or show a blank panel. Now fixed: re-selecting a server always loads its own detail view correctly.
-
----
-
-## 🆕 What's new in v1.2.2
-
-### Bug fixes
-- **Fixed critical crash** — starting or restarting a remote server from the master panel caused a WPF cross-thread exception (`AsyncRelayCommand.ExecuteAsync` was being called from a background HTTP listener thread). All server action callbacks now marshal back to the UI thread via `Dispatcher.InvokeAsync`.
-- **Plugin Creator** — after saving a new plugin the success dialog now appears and the game list refreshes immediately; previously both were silently skipped
-- **Dynamic version** — the version number shown in the title bar and about screen is now read directly from the assembly instead of a hardcoded string, so it always matches the release
-
-### New game plugin
-- **Wreckfest 2** — added dedicated server support for the Wreckfest 2 early access release (AppId 3519390, port 30100)
-
----
-
-## 🆕 What's new in v1.2.3
-
-### New features
-- **Per-server Discord webhooks** — each server can have its own webhook URL in Settings → Discord alerts. Falls back to the global webhook if left empty.
-- **Backup restore via web dashboard** — a 📂 Backups button on each server card in the web GUI lists all available backups and lets you restore with one click.
-- **Selective backup paths** — set custom subdirectories to back up per server (e.g. `savegame` for Enshrouded). Saves disk space for large game installs. Built-in defaults for Enshrouded, Palworld, ARK, DayZ, V Rising, Satisfactory, Project Zomboid and Terraria.
-- **Shut down when empty** — companion to Wake-on-demand. WGS monitors the player count while the server runs and stops it automatically after a configurable idle timeout (default 10 min). Together they form a full on-demand lifecycle.
-
-### Bug fixes
-- Fixed crash when starting/restarting a remote server via master panel — `AsyncRelayCommand.ExecuteAsync` was called from a background HTTP thread, causing a WPF cross-thread exception. All server action callbacks now dispatch through `Dispatcher.InvokeAsync`.
-- Plugin Creator now shows a success message and refreshes the game list after module creation.
-- Plugin Creator save errors are now shown in the UI instead of being silently swallowed.
-- Security: backup restore endpoint rejects path traversal attempts at both the API and callback layers.
 
 ---
 
