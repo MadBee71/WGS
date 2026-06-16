@@ -11,4 +11,7 @@ public interface IRestPlayersPlugin
 
     /// <summary>Fetches the player list and returns it. Returns empty list on failure.</summary>
     Task<List<Models.OnlinePlayer>> GetPlayersAsync(Models.GameServer server);
+
+    /// <summary>Diagnostic message describing the most recent fetch failure, or null if the last fetch succeeded.</summary>
+    string? LastRestApiError { get; }
 }

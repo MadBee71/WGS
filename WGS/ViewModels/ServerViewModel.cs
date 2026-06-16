@@ -843,6 +843,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (Plugin is Games.IRestPlayersPlugin restPlugin)
         {
             parsed = await restPlugin.GetPlayersAsync(Server);
+            if (restPlugin.LastRestApiError != null)
+                AppendLog($"[REST API] {restPlugin.LastRestApiError}", ConsoleMessageType.Warning);
         }
         else
         {

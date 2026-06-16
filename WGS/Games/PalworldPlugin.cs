@@ -38,14 +38,16 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
     {
         ["serverDescription"] = "Palworld Server",
         ["adminPassword"]     = "",
+        ["restApiPort"]       = "21512",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "serverDescription", Label = "Description",   FieldType = ConfigFieldType.Text,     DefaultValue = "Palworld Server" },
+            new() { Key = "serverDescription", Label = "Description",    FieldType = ConfigFieldType.Text,     DefaultValue = "Palworld Server" },
             new() { Key = "adminPassword",     Label = "Admin password", FieldType = ConfigFieldType.Password, DefaultValue = "" },
+            new() { Key = "restApiPort",       Label = "REST API port",  FieldType = ConfigFieldType.Number,   DefaultValue = "21512" },
         ]);
         return fields;
     }
@@ -53,8 +55,16 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
     // ── REST API player list ──────────────────────────────────────────────────
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
 
+    private int RestApiPort(GameServer server)
+    {
+        var p = S(server, "restApiPort", "21512");
+        return int.TryParse(p, out var n) ? n : 21512;
+    }
+
     public string GetRestApiBaseUrl(GameServer server)
-        => $"http://127.0.0.1:{server.QueryPort}";
+        => $"http://127.0.0.1:{RestApiPort(server)}";
+
+    public string? LastRestApiError { get; private set; }
 
     public async Task<List<OnlinePlayer>> GetPlayersAsync(GameServer server)
     {
@@ -66,7 +76,12 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
             var creds = Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:" + password));
             req.Headers.Authorization = new AuthenticationHeaderValue("Basic", creds);
             var resp = await _http.SendAsync(req);
-            if (!resp.IsSuccessStatusCode) return [];
+            if (!resp.IsSuccessStatusCode)
+            {
+                LastRestApiError = $"HTTP {(int)resp.StatusCode} {resp.StatusCode} from {req.RequestUri} " +
+                                    "(check AdminPassword in PalWorldSettings.ini matches 'Admin password' in WGS Game settings)";
+                return [];
+            }
             var json = await resp.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
             var players = new List<OnlinePlayer>();
@@ -82,8 +97,13 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
                     });
                 }
             }
+            LastRestApiError = null;
             return players;
         }
-        catch { return []; }
+        catch (Exception ex)
+        {
+            LastRestApiError = $"{ex.GetType().Name}: {ex.Message} (REST API reachable at {GetRestApiBaseUrl(server)}?)";
+            return [];
+        }
     }
 }
