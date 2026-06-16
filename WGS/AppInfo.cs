@@ -6,5 +6,6 @@ public static class AppInfo
         System.Reflection.Assembly.GetExecutingAssembly()
               .GetName().Version?.ToString(3) ?? "?";
 
+    public static string VersionDisplay => $"v{Version}";
     public static string VersionTag => $"v{Version}  ·  2026 © MadBee71";
 }
