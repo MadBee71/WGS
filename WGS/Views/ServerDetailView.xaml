@@ -404,8 +404,21 @@
 
                                 <!-- Wake on Demand -->
                                 <CheckBox IsChecked="{Binding Server.WakeOnDemand}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Wake on demand (start when player connects)" Margin="0,0,0,8"
+                                          Content="Wake on demand (start when player connects)" Margin="0,0,0,4"
                                           ToolTip="Listens on the server port while stopped. Starts the server automatically when a player connection arrives."/>
+
+                                <!-- Shut down when empty -->
+                                <CheckBox IsChecked="{Binding Server.ShutDownWhenEmpty}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Shut down when empty (no players)" Margin="16,0,0,4"
+                                          ToolTip="Stops the server automatically after all players have left and the idle timeout has elapsed."/>
+                                <StackPanel Orientation="Horizontal" Margin="16,0,0,8"
+                                            Visibility="{Binding Server.ShutDownWhenEmpty, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Idle timeout:" VerticalAlignment="Center" Foreground="#8B949E" FontSize="12" Margin="0,0,8,0"/>
+                                    <TextBox Text="{Binding Server.ShutDownIdleMinutes, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource DarkTextBox}" Width="50" FontSize="12"
+                                             ToolTip="Minutes with zero players before the server is stopped"/>
+                                    <TextBlock Text="min" VerticalAlignment="Center" Foreground="#8B949E" FontSize="12" Margin="4,0,0,0"/>
+                                </StackPanel>
 
                                 <!-- Update on Start -->
                                 <CheckBox IsChecked="{Binding Server.UpdateOnStart}" Style="{StaticResource DarkCheckBox}"

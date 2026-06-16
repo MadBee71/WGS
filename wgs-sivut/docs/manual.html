@@ -833,7 +833,17 @@ dotnet publish -c Release -o publish</code></pre>
             <tr><td><code>{password}</code></td><td>Server password</td></tr>
         </tbody>
     </table></div>
-    <h2 class="sub-title">29.2 Import / Export plugins</h2>
+    <h2 class="sub-title">29.2 After creating a module</h2>
+    <p>When you click <strong>Create module</strong> and the dialog closes, a confirmation message appears. Your new game module is immediately available — no restart needed.</p>
+    <ol class="step-list">
+        <li><span class="step-num">1</span><div class="step-body">Click the <strong>+ Add server</strong> button in the sidebar.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">Open the <strong>Game</strong> dropdown — your new module appears at the bottom of the list under its category.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">Select it, fill in the server name and install path, and click <strong>Add</strong>.</div></li>
+        <li><span class="step-num">4</span><div class="step-body">The server appears in the sidebar. Go to its <strong>Settings</strong> tab to adjust ports and startup arguments, then click <strong>Install</strong>.</div></li>
+    </ol>
+    <p>The module definition is saved in <code>%APPDATA%\WGS\custom_plugins.json</code>. It persists across WGS updates.</p>
+
+    <h2 class="sub-title">29.3 Import / Export plugins</h2>
     <p>Plugins can be exported to a <code>.cs</code> source file and imported on another machine.</p>
     <ul class="bullets">
         <li><strong>Export</strong>: Tools → Export Plugin → select a plugin → save as .cs file</li>
@@ -865,6 +875,16 @@ dotnet publish -c Release -o publish</code></pre>
         <li>The listener is released automatically once the server is running</li>
     </ul>
     <div class="note-box">Works best with games that retry the connection automatically. The server startup time varies by game — typically 10–60 seconds.</div>
+
+    <h2 class="subsection-title">Shut down when empty <span class="new-tag">v1.2.3</span></h2>
+    <p>The companion option <strong>Shut down when empty</strong> stops the server automatically once all players have left and the idle timeout has elapsed. Together the two options form a full on-demand lifecycle: the server wakes up when needed and shuts down when not.</p>
+    <ul class="bullets">
+        <li>Enable <strong>Shut down when empty</strong> in Settings → Automation (visible below the Wake on demand checkbox)</li>
+        <li>Set the <strong>Idle timeout</strong> in minutes — default is 10 min. WGS checks the player count every 2 minutes.</li>
+        <li>The timer resets whenever a player joins. The server is only stopped after the full timeout passes with zero players.</li>
+        <li>Can be used independently of Wake on demand — useful if you just want automatic shutdown after everyone leaves.</li>
+    </ul>
+    <div class="note-box">Requires query port to be configured correctly so WGS can read the current player count.</div>
 </section>
 
 <!-- 32 -->
