@@ -146,7 +146,7 @@ public partial class FileBrowserViewModel : ObservableObject
                     Modified = info.LastWriteTime.ToString("dd.MM.yyyy HH:mm"),
                 });
             }
-            StatusText = $"{Items.Count} kohdetta  —  {CurrentPath}";
+            StatusText = $"{Items.Count} item(s)  —  {CurrentPath}";
             ApplySearch();
         }
         catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
@@ -156,19 +156,12 @@ public partial class FileBrowserViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(SearchQuery)) return;
         var q = SearchQuery.Trim().ToLowerInvariant();
-        foreach (var item in Items)
-        {
-            // WPF ItemsControl ei suoraan tue näkyvyyssuodatusta — filtteröidään
-            // uudelleentäyttämällä lista sopivalla kutsulla.
-            _ = item; // käytetään alla
-        }
-        // Yksinkertaisin tapa: lataa kaikki uudelleen ja suodata
         var all = Items.ToList();
         Items.Clear();
         foreach (var item in all.Where(i => i.Name.Contains(q, StringComparison.OrdinalIgnoreCase)))
             Items.Add(item);
         if (!string.IsNullOrWhiteSpace(SearchQuery))
-            StatusText = $"{Items.Count} osumaa hakuun \"{SearchQuery}\"";
+            StatusText = $"{Items.Count} result(s) for \"{SearchQuery}\"";
     }
 
     [RelayCommand]
@@ -281,7 +274,7 @@ public partial class FileBrowserViewModel : ObservableObject
         {
             Title      = "Upload file",
             FileName   = item.Name,
-            Filter     = "Kaikki tiedostot|*.*",
+            Filter     = "All files|*.*",
             DefaultExt = Path.GetExtension(item.Name),
         };
         if (dlg.ShowDialog() != true) return;

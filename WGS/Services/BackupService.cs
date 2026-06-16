@@ -39,7 +39,7 @@ public class BackupService
         Directory.CreateDirectory(outDir);
 
         var zipPath = Path.Combine(outDir, $"{safeName}_{timestamp}.zip");
-        ProgressMessage?.Invoke($"[Backup] Pakataan {server.DisplayName}...");
+        ProgressMessage?.Invoke($"[Backup] Compressing {server.DisplayName}...");
 
         try
         {
@@ -66,7 +66,7 @@ public class BackupService
         }
 
         var info  = new FileInfo(zipPath);
-        ProgressMessage?.Invoke($"[Backup] Valmis — {new BackupEntry { SizeBytes = info.Length }.SizeText}");
+        ProgressMessage?.Invoke($"[Backup] Done — {new BackupEntry { SizeBytes = info.Length }.SizeText}");
 
         var entry = new BackupEntry
         {
@@ -89,10 +89,10 @@ public class BackupService
 
     public async Task RestoreBackupAsync(GameServer server, string zipPath)
     {
-        ProgressMessage?.Invoke($"[Restore] Puretaan varmuuskopio...");
+        ProgressMessage?.Invoke($"[Restore] Extracting backup...");
         await Task.Run(() =>
             ZipFile.ExtractToDirectory(zipPath, server.InstallPath, overwriteFiles: true));
-        ProgressMessage?.Invoke($"[Restore] Valmis.");
+        ProgressMessage?.Invoke($"[Restore] Done.");
     }
 
     public List<BackupEntry> GetBackupsForServer(GameServer server)

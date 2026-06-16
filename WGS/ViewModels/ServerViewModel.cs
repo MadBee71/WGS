@@ -122,7 +122,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                   .Select(t => t.Category)
                   .Where(c => !string.IsNullOrWhiteSpace(c))
                   .Distinct(StringComparer.OrdinalIgnoreCase)
-                  .Prepend("(kaikki)")
+                  .Prepend("(all)")
                   .ToList();
 
     private System.Timers.Timer? _perfTimer;
@@ -876,7 +876,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         foreach (var p in prev.Where(p => !currNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)))
             _playerStats.RecordLeave(Server.Id, p.Name, p.SteamId);
 
-        WpfApplication.Current?.Dispatcher?.Invoke(() => OnlinePlayers = parsed);
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            OnlinePlayers = parsed;
+            PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
+            PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+        });
     }
 
     // ── Performance history ──────────────────────────────────────────────────
@@ -924,10 +929,14 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         var cutoff  = DateTime.Now.AddMinutes(-PerfRangeMinutes);
         var samples = _perfHistory.Get(Server.Id).Where(s => s.Time >= cutoff).ToList();
-        if (samples.Count == 0) return;
         EnsurePerfModel();
         _cpuSeries!.Points.Clear();
         _memSeries!.Points.Clear();
+        if (samples.Count == 0)
+        {
+            WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(false));
+            return;
+        }
         foreach (var s in samples)
         {
             var x = OxyPlot.Axes.DateTimeAxis.ToDouble(s.Time);
@@ -1207,7 +1216,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (template == null) return;
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Title      = "Vie malli",
+            Title      = "Export template",
             Filter     = "JSON file|*.json",
             FileName   = SanitizeFileName(template.Name) + ".json",
             DefaultExt = ".json",
@@ -1216,7 +1225,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         try
         {
             _templates.ExportSingle(template.Id, dlg.FileName);
-            AppendLog($"[Template] Viety: {dlg.FileName}", ConsoleMessageType.System);
+            AppendLog($"[Template] Exported: {dlg.FileName}", ConsoleMessageType.System);
         }
         catch (Exception ex)
         {
@@ -1229,7 +1238,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title     = "Tuo malleja",
+            Title     = "Import templates",
             Filter    = "JSON file|*.json",
             Multiselect = true,
         };
@@ -1247,7 +1256,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (total > 0)
         {
             RefreshTemplates();
-            AppendLog($"[Template] Tuotu {total} mallia.", ConsoleMessageType.System);
+            AppendLog($"[Template] Imported {total} template(s).", ConsoleMessageType.System);
         }
     }
 
