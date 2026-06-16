@@ -21,8 +21,13 @@ public class Wreckfest2Plugin : GamePluginBase
     public override int    DefaultQueryPort   => 27015;
     public override int    DefaultMaxPlayers  => 16;
 
+    // Wreckfest 2's argument parser cannot handle spaces in --save-dir, even with quotes.
+    // Use a sanitized path (spaces replaced with underscores) for both the save dir and the config.
+    private static string SavePath(GameServer s)
+        => s.InstallPath.TrimEnd('\\', '/').Replace(" ", "_");
+
     public override string BuildStartArguments(GameServer s)
-        => $"--server --save-dir=\"{s.InstallPath.TrimEnd('\\', '/')}\"";
+        => $"--server --save-dir={SavePath(s)}";
 
     public override string? GetStopCommand(GameServer server) => "shutdown";
 
@@ -36,7 +41,7 @@ public class Wreckfest2Plugin : GamePluginBase
         var password    = S(server, "password", "");
         var damageId    = S(server, "vehicleDamageId", "realistic");
         var botCount    = int.TryParse(S(server, "botCount", "0"), out var b) ? b : 0;
-        var savePath    = server.InstallPath.TrimEnd('\\', '/');
+        var savePath    = SavePath(server);
 
         var json = $$"""
 {
