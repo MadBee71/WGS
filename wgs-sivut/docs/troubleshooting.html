@@ -172,12 +172,14 @@
     </div>
 
     <div class="issue-card">
-        <h2>Console Tab Empty / Remote Commands Not Working (Wreckfest, Wreckfest 2)</h2>
-        <p>The WGS console tab shows no output and remote commands via the web dashboard, REST API or Discord <code>!cmd</code> have no effect.</p>
+        <h2>Console Tab Empty (Wreckfest, Wreckfest 2, Palworld)</h2>
+        <p>The WGS console tab shows no output for these games.</p>
         <div class="solution">
-            <strong>Cause:</strong> Wreckfest and Wreckfest 2 open their own native console window instead of piping output to WGS. This is a limitation of how those games launch their dedicated server — WGS cannot capture or inject into a native Win32 console window.
+            <strong>Cause:</strong> Wreckfest, Wreckfest 2 and Palworld open their own native console window instead of piping output to WGS. This is a limitation of how those games launch their dedicated server — WGS cannot capture or inject into a native Win32 console window.
             <br><br>
-            <strong>What still works:</strong> Start, stop, restart, update and backup all function normally. Only console I/O is unavailable for these titles.
+            <strong>Remote commands:</strong> For Wreckfest and Wreckfest 2, remote commands via the web dashboard, REST API or Discord <code>!cmd</code> also have no effect. <strong>Palworld is the exception</strong> — its admin commands (broadcast, save, shutdown, kick, ban, unban) are routed through Palworld's own REST API, so they keep working even though the console tab stays empty.
+            <br><br>
+            <strong>What still works:</strong> Start, stop, restart, update and backup all function normally for all three games.
         </div>
     </div>
 

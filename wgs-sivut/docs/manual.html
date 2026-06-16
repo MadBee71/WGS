@@ -732,7 +732,7 @@ dotnet publish -c Release -o publish</code></pre>
         </tbody>
     </table></div>
     <div class="note-box"><div class="box-label">Authentication</div>All <code>/api/*</code> endpoints require the token via <code>Authorization: Bearer &lt;token&gt;</code> or <code>?token=&lt;token&gt;</code>.</div>
-    <div class="note-box" style="border-color:#F85149;background:rgba(248,81,73,0.06);"><div class="box-label" style="color:#F85149;">Limitation — native console servers</div>Some game servers open their own console window instead of piping output to WGS. Currently this applies to <strong>Wreckfest</strong> and <strong>Wreckfest 2</strong>. For these servers the WGS console tab stays empty and remote console commands (web dashboard, REST API, Discord <code>!cmd</code>) have no effect. Starting, stopping, restarting and updating still work normally.</div>
+    <div class="note-box" style="border-color:#F85149;background:rgba(248,81,73,0.06);"><div class="box-label" style="color:#F85149;">Limitation — native console servers</div>Some game servers open their own console window instead of piping output to WGS. Currently this applies to <strong>Wreckfest</strong>, <strong>Wreckfest 2</strong> and <strong>Palworld</strong>. For these servers the WGS console tab stays empty. For Wreckfest and Wreckfest 2, remote console commands (web dashboard, REST API, Discord <code>!cmd</code>) also have no effect. <strong>Palworld</strong> is the exception — its admin commands (broadcast, save, shutdown, kick, ban, unban) are routed through Palworld's REST API instead, so remote commands keep working even though the console tab is empty. Starting, stopping, restarting and updating still work normally for all of them.</div>
 </section>
 
 <!-- 26 -->
