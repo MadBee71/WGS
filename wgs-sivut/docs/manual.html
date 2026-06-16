@@ -340,14 +340,31 @@ dotnet publish -c Release -o publish</code></pre>
 <!-- 7 -->
 <section class="section" id="s7">
     <h1 class="section-title"><span class="sec-num">7.</span> Automation &amp; Auto-Start</h1>
-    <ul class="bullets">
-        <li><strong>Auto Start</strong> — starts the server automatically when WGS is launched</li>
-        <li><strong>Auto Restart</strong> — restarts the server after a crash (default delay: 10 s)</li>
-        <li><strong>Auto Restart Max Retries</strong> — suspends auto-restart if the server crashes more than N times within 10 minutes (default 5) to prevent crash loops</li>
-        <li><strong>Auto Update</strong> — runs Install/Update on a configurable interval while the server is running; stops and restarts automatically</li>
-    </ul>
-    <div class="note-box"><div class="box-label">Crash loop detection</div>WGS counts crashes within a rolling 10-minute window. If the count exceeds Max Retries, auto-restart is disabled and an error is logged. Re-enable Auto Restart manually after fixing the underlying problem.</div>
-    <div class="note-box"><div class="box-label">Auto Update interval</div>Set <strong>Auto Update Interval (min)</strong> in the server Settings tab. 0 disables periodic updates. A backup is created automatically before each update if Backup Enabled is checked.</div>
+    <p>All automation options are in the server's <strong>Settings → Automation</strong> card. Changes save immediately.</p>
+
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Auto-start when WGS launches</strong></td><td>Off</td><td>Starts this server automatically every time WGS opens.</td></tr>
+            <tr><td><strong>Wake on demand</strong></td><td>Off</td><td>Listens on the game port while stopped; starts the server the moment a player tries to connect. See <a href="#s31">section 31</a>.</td></tr>
+            <tr><td><strong>Shut down when empty</strong></td><td>Off</td><td>Stops the server after all players leave and the idle timeout elapses. Requires Wake on demand or manual start. See <a href="#s31">section 31</a>.</td></tr>
+            <tr><td><strong>Idle timeout</strong></td><td>10 min</td><td>Minutes with zero players before auto-shutdown triggers. Visible when Shut down when empty is enabled.</td></tr>
+            <tr><td><strong>Update before each start</strong></td><td>Off</td><td>Runs SteamCMD update automatically every time the server starts.</td></tr>
+            <tr><td><strong>Backup before each start</strong></td><td>Off</td><td>Creates a backup automatically before every start so you can roll back if an update breaks the server.</td></tr>
+            <tr><td><strong>Auto-restart after crash</strong></td><td>Off</td><td>Restarts the server if the process exits unexpectedly.</td></tr>
+            <tr><td><strong>Max retries (per 10 min)</strong></td><td>5</td><td>If the server crashes more than this many times within 10 minutes, auto-restart is suspended to prevent a crash loop.</td></tr>
+            <tr><td><strong>Delay before restart (sec)</strong></td><td>10</td><td>Seconds to wait after a crash before restarting.</td></tr>
+            <tr><td><strong>Restart daily at scheduled time</strong></td><td>Off</td><td>Restarts the server once per day at the configured time (HH:MM, 24-hour).</td></tr>
+            <tr><td><strong>Auto-update periodically</strong></td><td>Off</td><td>Checks for updates and installs them on a configurable interval while the server is running. The server is stopped, updated, and restarted automatically.</td></tr>
+            <tr><td><strong>Check interval (minutes)</strong></td><td>30</td><td>How often Auto-update polls for new versions.</td></tr>
+        </tbody>
+    </table></div>
+
+    <h2 class="subsection-title">Crash loop detection</h2>
+    <p>WGS counts crashes within a rolling 10-minute window. If the count exceeds <strong>Max Retries</strong>, auto-restart is disabled and the status switches to Error. To re-enable, fix the underlying problem and start the server manually — the counter resets on a successful start.</p>
+
+    <h2 class="subsection-title">Scheduled Tasks</h2>
+    <p>For finer control — weekly restarts, one-off backups at a specific time — use the <strong>Schedule tab</strong> inside the server detail view. See <a href="#s21">section 21</a>.</p>
 </section>
 
 <!-- 8 -->
@@ -943,11 +960,17 @@ dotnet publish -c Release -o publish</code></pre>
     <div class="tbl-wrap"><table>
         <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
         <tbody>
-            <tr><td><code>Ctrl + V</code></td><td>Paste (all text fields)</td></tr>
-            <tr><td><code>Ctrl + C</code></td><td>Copy (all text fields)</td></tr>
-            <tr><td><code>Ctrl + X</code></td><td>Cut (all text fields)</td></tr>
-            <tr><td><code>Ctrl + A</code></td><td>Select all (text fields)</td></tr>
-            <tr><td><code>Enter</code></td><td>Send console / RCON command</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Send console / RCON command</td></tr>
+            <tr><td><kbd>Ctrl + C</kbd></td><td>Copy selected text</td></tr>
+            <tr><td><kbd>Ctrl + X</kbd></td><td>Cut selected text</td></tr>
+            <tr><td><kbd>Ctrl + V</kbd></td><td>Paste</td></tr>
+            <tr><td><kbd>Ctrl + A</kbd></td><td>Select all (text fields)</td></tr>
+            <tr><td><kbd>Ctrl + Z</kbd></td><td>Undo (text fields)</td></tr>
+            <tr><td><kbd>Ctrl + S</kbd></td><td>Save config file (Config Editor)</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Refresh file list (File Browser)</td></tr>
+            <tr><td><kbd>Delete</kbd></td><td>Delete selected file (File Browser)</td></tr>
+            <tr><td><kbd>Backspace</kbd></td><td>Navigate to parent folder (File Browser)</td></tr>
+            <tr><td><kbd>Escape</kbd></td><td>Close dialogs / cancel input</td></tr>
         </tbody>
     </table></div>
 </section>
