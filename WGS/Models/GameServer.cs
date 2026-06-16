@@ -52,6 +52,12 @@ public class GameServer
     public DateTime? LastStarted { get; set; }
     public string GroupId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// PID of the launched process, persisted to disk so WGS can reattach to a still-running
+    /// server after WGS itself was closed and reopened. 0 = not running (or not tracked).
+    /// </summary>
+    public int RunningPid { get; set; }
+
     [JsonIgnore]
     public ServerStatus Status { get; set; } = ServerStatus.NotInstalled;
 

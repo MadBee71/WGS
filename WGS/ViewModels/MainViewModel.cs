@@ -396,10 +396,11 @@ public partial class MainViewModel : BaseViewModel
         foreach (var srv in _config.LoadServers())
         {
             srv.Status = ServerStatus.Stopped;
+            bool reattached = _manager.TryReattach(srv);
             var vm = MakeVm(srv);
             vm.ServerNumber = num++;
             Servers.Add(vm);
-            if (srv.AutoStart)
+            if (srv.AutoStart && !reattached)
                 _ = WpfApplication.Current?.Dispatcher?.InvokeAsync(() => vm.StartCommand.ExecuteAsync(null))
                         .Task.ContinueWith(t => Console.WriteLine($"[WGS] AutoStart failed for {srv.DisplayName}: {t.Exception?.InnerException?.Message}"),
                             TaskContinuationOptions.OnlyOnFaulted);
