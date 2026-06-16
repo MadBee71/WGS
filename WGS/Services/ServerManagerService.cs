@@ -28,7 +28,15 @@ public class ServerInstance
 
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
 
-    public void AddToLog(ConsoleMessage msg) { lock (LogLock) Log.Add(msg); }
+    private const int MaxLogLines = 500;
+    public void AddToLog(ConsoleMessage msg)
+    {
+        lock (LogLock)
+        {
+            Log.Add(msg);
+            while (Log.Count > MaxLogLines) Log.RemoveAt(0);
+        }
+    }
     public List<ConsoleMessage> GetLogSnapshot() { lock (LogLock) return Log.ToList(); }
 }
 
@@ -424,13 +432,14 @@ public class ServerManagerService
             await Task.Delay(5000);
         }
 
-        if (inst.Process?.HasExited == false)
-            inst.Process.Kill(entireProcessTree: true);
-
         inst.DailyRestartCts.Cancel();
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
+
+        if (inst.Process?.HasExited == false)
+            inst.Process.Kill(entireProcessTree: true);
+
         SetStatus(server, ServerStatus.Stopped);
     }
 
@@ -453,13 +462,13 @@ public class ServerManagerService
     {
         if (!_running.TryGetValue(server.Id, out var inst)) return Task.CompletedTask;
         SetStatus(server, ServerStatus.Stopping);
-        try { inst.Process?.Kill(entireProcessTree: true); }
-        catch (InvalidOperationException) { /* process already dead â€” swallow */ }
         inst.DailyRestartCts.Cancel();
         JobObjectService.ReleaseJob(inst.JobHandle);
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
+        try { inst.Process?.Kill(entireProcessTree: true); }
+        catch (InvalidOperationException) { /* process already dead â€” swallow */ }
         SetStatus(server, ServerStatus.Stopped);
         return Task.CompletedTask;
     }

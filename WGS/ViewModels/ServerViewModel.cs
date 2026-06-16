@@ -832,22 +832,31 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task FetchOnlinePlayersAsync()
     {
         if (Plugin == null) return;
-        var cmd = Plugin.GetPlayersCommand();
-        if (cmd == null) return;
 
-        string response;
-        if (RconConnected && _rcon != null)
+        List<Models.OnlinePlayer> parsed;
+
+        if (Plugin is Games.IRestPlayersPlugin restPlugin)
         {
-            await _rconLock.WaitAsync();
-            try   { response = await _rcon.SendCommandAsync(cmd); }
-            catch { return; }
-            finally { _rconLock.Release(); }
+            parsed = await restPlugin.GetPlayersAsync(Server);
         }
-        else return; // Ei RCON-yhteyttä → ei voi parsita
+        else
+        {
+            var cmd = Plugin.GetPlayersCommand();
+            if (cmd == null) return;
 
-        if (string.IsNullOrWhiteSpace(response)) return;
+            string response;
+            if (RconConnected && _rcon != null)
+            {
+                await _rconLock.WaitAsync();
+                try   { response = await _rcon.SendCommandAsync(cmd); }
+                catch { return; }
+                finally { _rconLock.Release(); }
+            }
+            else return;
 
-        var parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+            if (string.IsNullOrWhiteSpace(response)) return;
+            parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+        }
 
         // Vertaa edelliseen listaan → session logging
         var prev = OnlinePlayers.ToList();
