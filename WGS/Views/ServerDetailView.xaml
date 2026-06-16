@@ -567,11 +567,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Save button -->
-                        <Button Content="💾 Save settings" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Right" Margin="0,0,0,16"
-                                Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
-
                         <!-- Install path + port check -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                             <StackPanel>
