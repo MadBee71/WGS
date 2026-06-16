@@ -24,7 +24,7 @@ public class Wreckfest2Plugin : GamePluginBase
     // Wreckfest 2's argument parser cannot handle spaces in --save-dir, even with quotes.
     // Use a sanitized path (spaces replaced with underscores) for both the save dir and the config.
     private static string SavePath(GameServer s)
-        => Path.Combine(s.InstallPath.TrimEnd('\\', '/'), "Saves").Replace(" ", "_");
+        => Path.Combine(Path.GetDirectoryName(s.InstallPath.TrimEnd('\\', '/'))!, "Saves");
 
     public override string BuildStartArguments(GameServer s)
         => $"--server --save-dir={SavePath(s)}";
