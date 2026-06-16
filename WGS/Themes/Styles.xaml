@@ -12,6 +12,9 @@
     <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
     <conv:ZeroToInverseVisibilityConverter x:Key="ZeroToInvVis"/>
     <conv:BoolToGridLengthConverter        x:Key="BoolToGridLength"/>
+    <conv:CountToVisibilityConverter       x:Key="CountToVis"/>
+    <conv:FieldTypeToPasswordVisConverter  x:Key="FieldTypeToPasswordVis"/>
+    <conv:FieldTypeToTextVisConverter      x:Key="FieldTypeToTextVis"/>
 
     <!-- Scrollbar -->
     <Style x:Key="DarkScrollBar" TargetType="ScrollBar">
