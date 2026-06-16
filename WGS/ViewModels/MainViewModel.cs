@@ -191,12 +191,14 @@ public partial class MainViewModel : BaseViewModel
                     {
                         _ = _upnp.AddPortsForServerAsync(server);
                         _crashPrediction.RegisterServerStart(id);
-                        _wakeOnDemand.Disarm(id); // server is up, stop proxy listener
+                        _wakeOnDemand.Disarm(id);
+                        _wakeOnDemand.ArmIdleShutdown(server);
                     }
                     else if (status is ServerStatus.Stopped or ServerStatus.Error)
                     {
                         _ = _upnp.RemovePortsForServerAsync(server);
-                        _wakeOnDemand.Arm(server); // re-arm if WakeOnDemand is enabled
+                        _wakeOnDemand.DisarmIdleShutdown(id);
+                        _wakeOnDemand.Arm(server);
                     }
                 }
             }
