@@ -172,6 +172,16 @@
     </div>
 
     <div class="issue-card">
+        <h2>Console Tab Empty / Remote Commands Not Working (Wreckfest, Wreckfest 2)</h2>
+        <p>The WGS console tab shows no output and remote commands via the web dashboard, REST API or Discord <code>!cmd</code> have no effect.</p>
+        <div class="solution">
+            <strong>Cause:</strong> Wreckfest and Wreckfest 2 open their own native console window instead of piping output to WGS. This is a limitation of how those games launch their dedicated server — WGS cannot capture or inject into a native Win32 console window.
+            <br><br>
+            <strong>What still works:</strong> Start, stop, restart, update and backup all function normally. Only console I/O is unavailable for these titles.
+        </div>
+    </div>
+
+    <div class="issue-card">
         <h2>Backup Not Created</h2>
         <p>Scheduled or manual backups fail silently or do not appear in the backup list.</p>
         <div class="solution">
