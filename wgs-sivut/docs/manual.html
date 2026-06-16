@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Manual - WGS Documentation</title>
+    <meta name="description" content="Complete Windows Game Server (WGS) v1.2.1 user manual — installation, server setup, backups, Discord bot, Web API, User Management, Steam Workshop and more.">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top, #1a2333 0%, #0d1117 60%);
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --card-bg2: #1c2230;
+            --accent-color: #00adff;
+            --text-color: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --text-muted: #8b949e;
+            --border-color: #30363d;
+            --sidebar-w: 260px;
+            --nav-h: 56px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+               background: var(--bg-color); background-image: var(--bg-gradient);
+               background-attachment: fixed; background-repeat: no-repeat;
+               color: var(--text-color); line-height: 1.65; }
+
+        /* ── Top nav ── */
+        .topnav { position: sticky; top: 0; z-index: 100; background: rgba(13,17,23,0.95);
+                  backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-color);
+                  display: flex; justify-content: center; align-items: center;
+                  padding: 0 24px; height: var(--nav-h); gap: 12px; }
+        .topnav-left { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center; flex: 1; }
+        .topnav a { color: var(--text-muted); text-decoration: none; font-size: 0.88rem; font-weight: 500; white-space: nowrap; }
+        .topnav a:hover { color: var(--accent-color); }
+        .topnav .home-link { color: var(--text-bright) !important; font-weight: 700; font-size: 0.92rem; display: flex; align-items: center; gap: 6px; }
+        .topnav .current { color: var(--accent-color); }
+        .menu-toggle { display: none; background: none; border: 1px solid var(--border-color);
+                       color: var(--text-color); padding: 5px 10px; border-radius: 5px;
+                       cursor: pointer; font-size: 1rem; }
+
+        /* ── Layout ── */
+        .layout { display: flex; min-height: calc(100vh - var(--nav-h)); }
+
+        /* ── Sidebar ── */
+        .sidebar { width: var(--sidebar-w); flex-shrink: 0; position: sticky;
+                   top: var(--nav-h); height: calc(100vh - var(--nav-h));
+                   overflow-y: auto; border-right: 1px solid var(--border-color);
+                   padding: 20px 0 40px; background: rgba(13,17,23,0.6); }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+        .sidebar-group { margin-bottom: 4px; }
+        .sidebar-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+                               text-transform: uppercase; color: var(--text-muted);
+                               padding: 12px 20px 4px; }
+        .sidebar a { display: block; padding: 5px 20px; font-size: 0.85rem; color: var(--text-muted);
+                     text-decoration: none; border-left: 2px solid transparent;
+                     transition: all 0.15s; line-height: 1.4; }
+        .sidebar a:hover { color: var(--text-bright); background: rgba(255,255,255,0.03); }
+        .sidebar a.active { color: var(--accent-color); border-left-color: var(--accent-color);
+                            background: rgba(0,173,255,0.05); }
+        .sidebar a .num { color: var(--text-muted); font-size: 0.78rem; margin-right: 5px; }
+        .sidebar a.active .num { color: var(--accent-color); opacity: 0.7; }
+
+        /* ── Content ── */
+        .content { flex: 1; min-width: 0; padding: 40px 48px 80px; }
+        .content-inner { max-width: 760px; margin: 0 auto; }
+
+        /* ── Sections ── */
+        .section { margin-bottom: 56px; scroll-margin-top: calc(var(--nav-h) + 16px); }
+        h1.section-title { color: var(--text-bright); font-size: 1.65rem; margin-bottom: 6px;
+                           padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+        h1.section-title .sec-num { color: var(--text-muted); font-size: 1rem; font-weight: 400;
+                                     margin-right: 6px; }
+        h2.sub-title { color: var(--text-bright); font-size: 1.15rem; margin: 24px 0 10px; }
+        h3.sub-sub { color: var(--text-bright); font-size: 1rem; margin: 18px 0 8px; }
+        p { margin-bottom: 10px; font-size: 0.93rem; }
+        p:last-child { margin-bottom: 0; }
+        .new-tag { display: inline-block; background: rgba(0,173,255,0.15); color: var(--accent-color);
+                   font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+                   margin-left: 8px; vertical-align: middle; }
+
+        /* ── Cards ── */
+        .card { background: var(--card-bg); border: 1px solid var(--border-color);
+                padding: 18px 22px; border-radius: 8px; margin: 12px 0; }
+        .card p { font-size: 0.92rem; }
+
+        /* ── Note / Warning / Tip boxes ── */
+        .note-box, .warn-box, .tip-box { padding: 12px 16px; border-radius: 6px;
+                                          margin: 12px 0; font-size: 0.9rem; line-height: 1.5; }
+        .note-box { background: rgba(0,173,255,0.06); border-left: 3px solid var(--accent-color); }
+        .note-box .box-label { color: var(--accent-color); font-weight: 700; font-size: 0.8rem;
+                                text-transform: uppercase; margin-bottom: 4px; }
+        .warn-box { background: rgba(255,120,50,0.06); border-left: 3px solid #ff7832; }
+        .warn-box .box-label { color: #ff7832; font-weight: 700; font-size: 0.8rem;
+                                text-transform: uppercase; margin-bottom: 4px; }
+        .tip-box  { background: rgba(50,200,100,0.06); border-left: 3px solid #32c864; }
+        .tip-box .box-label  { color: #32c864; font-weight: 700; font-size: 0.8rem;
+                                text-transform: uppercase; margin-bottom: 4px; }
+
+        /* ── Tables ── */
+        .tbl-wrap { overflow-x: auto; margin: 12px 0; border-radius: 8px;
+                    border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        th { background: var(--card-bg2); color: var(--text-bright); font-weight: 600;
+             text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border-color);
+             white-space: nowrap; }
+        td { padding: 8px 14px; border-bottom: 1px solid rgba(48,54,61,0.5);
+             vertical-align: top; line-height: 1.45; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* ── Step list ── */
+        .steps { list-style: none; margin: 10px 0; }
+        .steps li { display: flex; gap: 14px; margin-bottom: 10px; align-items: flex-start; }
+        .step-num { flex-shrink: 0; background: var(--accent-color); color: #000;
+                    font-weight: 700; font-size: 0.8rem; width: 24px; height: 24px;
+                    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    margin-top: 1px; }
+        .step-body { flex: 1; font-size: 0.92rem; }
+        .step-body strong { color: var(--text-bright); }
+
+        /* ── Bullets ── */
+        .bullets { list-style: none; margin: 8px 0; padding: 0; }
+        .bullets li { padding: 3px 0 3px 18px; position: relative; font-size: 0.92rem; }
+        .bullets li::before { content: "–"; position: absolute; left: 0; color: var(--accent-color); }
+
+        /* ── Code ── */
+        code { background: #21262d; padding: 2px 6px; border-radius: 4px;
+               font-family: "Cascadia Code", "Fira Code", monospace; color: #ff7b72;
+               font-size: 0.88em; }
+        pre { background: var(--card-bg); border: 1px solid var(--border-color);
+              padding: 16px 18px; border-radius: 8px; overflow-x: auto;
+              font-size: 0.85rem; line-height: 1.55; margin: 12px 0; }
+        pre code { background: none; padding: 0; color: #c9d1d9; font-size: 1em; }
+
+        /* ── Badges ── */
+        .badge { padding: 2px 7px; border-radius: 4px; font-size: 0.72rem;
+                 font-weight: 700; font-family: monospace; }
+        .get  { background: #1a4a2a; color: #3fb950; border: 1px solid #238636; }
+        .post { background: #3a2e00; color: #d29922; border: 1px solid #9e6a03; }
+
+        /* ── Footer ── */
+        footer { text-align: center; padding: 40px 20px; color: var(--text-muted);
+                 font-size: 0.85rem; border-top: 1px solid var(--border-color); margin-top: 40px; }
+        footer a { color: var(--text-muted); text-decoration: none; }
+        footer a:hover { color: var(--accent-color); }
+
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -100%; top: var(--nav-h);
+                       height: calc(100vh - var(--nav-h)); width: 280px; z-index: 90;
+                       transition: left 0.25s; background: #0d1117; }
+            .sidebar.open { left: 0; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+            .menu-toggle { display: block; }
+            .content { padding: 24px 20px 60px; }
+            .layout { display: block; }
+            h1.section-title { font-size: 1.35rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="topnav">
+    <div class="topnav-left">
+        <a href="../index.html" class="home-link"><img src="../wgs-logo_mini2.png" alt="WGS" style="height:22px;"></a>
+        <a href="installation.html">Installation</a>
+        <a href="features.html">Features</a>
+        <a href="games.html">50+ Games</a>
+        <a href="discord.html">Discord Bot</a>
+        <a href="web-api.html">REST API</a>
+        <a href="troubleshooting.html">Troubleshooting</a>
+        <a href="manual.html" class="current">Manual</a>
+    </div>
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">☰ Contents</button>
+</nav>
+
+<div class="layout">
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-group-label">Getting Started</div>
+    <a href="#s1"><span class="num">1.</span> Introduction</a>
+    <a href="#s2"><span class="num">2.</span> Installation</a>
+    <a href="#s3"><span class="num">3.</span> First Launch</a>
+    <a href="#s4"><span class="num">4.</span> Adding a Server</a>
+    <a href="#s5"><span class="num">5.</span> Install &amp; Update</a>
+
+    <div class="sidebar-group-label">Running Servers</div>
+    <a href="#s6"><span class="num">6.</span> Starting &amp; Stopping</a>
+    <a href="#s7"><span class="num">7.</span> Automation &amp; Auto-Start</a>
+    <a href="#s8"><span class="num">8.</span> Server Settings</a>
+    <a href="#s9"><span class="num">9.</span> Firewall</a>
+    <a href="#s10"><span class="num">10.</span> Ports &amp; Networking</a>
+
+    <div class="sidebar-group-label">Monitoring &amp; Tools</div>
+    <a href="#s11"><span class="num">11.</span> Console &amp; RCON</a>
+    <a href="#s12"><span class="num">12.</span> Config Editor</a>
+    <a href="#s13"><span class="num">13.</span> File Browser</a>
+    <a href="#s14"><span class="num">14.</span> Performance Charts</a>
+    <a href="#s15"><span class="num">15.</span> Bandwidth Monitoring</a>
+
+    <div class="sidebar-group-label">Content &amp; Data</div>
+    <a href="#s16"><span class="num">16.</span> Mod Manager</a>
+    <a href="#s17"><span class="num">17.</span> Steam Workshop</a>
+    <a href="#s18"><span class="num">18.</span> Player Statistics</a>
+    <a href="#s19"><span class="num">19.</span> Backups</a>
+    <a href="#s20"><span class="num">20.</span> Server Templates</a>
+    <a href="#s21"><span class="num">21.</span> Scheduled Tasks</a>
+
+    <div class="sidebar-group-label">Remote Control</div>
+    <a href="#s22"><span class="num">22.</span> Dashboard</a>
+    <a href="#s23"><span class="num">23.</span> Discord Notifications</a>
+    <a href="#s24"><span class="num">24.</span> Discord Bot</a>
+    <a href="#s25"><span class="num">25.</span> Web Dashboard &amp; REST API</a>
+    <a href="#s26"><span class="num">26.</span> User Management</a>
+    <a href="#s27"><span class="num">27.</span> Multi-Machine</a>
+
+    <div class="sidebar-group-label">New in v1.2.0</div>
+    <a href="#s30"><span class="num">30.</span> Server Cloning</a>
+    <a href="#s31"><span class="num">31.</span> Wake-on-Demand</a>
+    <a href="#s32"><span class="num">32.</span> Email Notifications</a>
+    <a href="#s33"><span class="num">33.</span> RAM Limiting</a>
+
+    <div class="sidebar-group-label">New in v1.2.3</div>
+    <a href="#s37"><span class="num">37.</span> Per-Server Webhooks</a>
+    <a href="#s38"><span class="num">38.</span> Web Backup Restore</a>
+
+    <div class="sidebar-group-label">Reference</div>
+    <a href="#s28"><span class="num">28.</span> Supported Games</a>
+    <a href="#s29"><span class="num">29.</span> Plugin Creator</a>
+    <a href="#s34"><span class="num">34.</span> Troubleshooting</a>
+    <a href="#s35"><span class="num">35.</span> Keyboard Shortcuts</a>
+    <a href="#s36"><span class="num">36.</span> File Locations</a>
+</nav>
+
+<!-- ── Main content ── -->
+<main class="content">
+<div class="content-inner">
+
+<!-- 1 -->
+<section class="section" id="s1">
+    <h1 class="section-title"><span class="sec-num">1.</span> Introduction</h1>
+    <p>Windows Game Server (WGS) is a free, open-source management application that makes installing, running and managing Windows game servers straightforward. Every essential operation is available from a single window — no command-line knowledge required for day-to-day use.</p>
+    <div class="note-box"><div class="box-label">Technology</div>.NET 8 · WPF · CommunityToolkit.Mvvm · SteamCMD · SQLite · v1.1.0</div>
+    <div class="note-box"><div class="box-label">Requirements</div>Windows 10 / Server 2019 or newer · .NET 8 Runtime · Administrator rights for firewall management</div>
+</section>
+
+<!-- 2 -->
+<section class="section" id="s2">
+    <h1 class="section-title"><span class="sec-num">2.</span> Installation</h1>
+    <h2 class="sub-title">2.1 Pre-built binary (recommended)</h2>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Download</strong> — Grab the latest release zip from the <a href="https://github.com/MadBee71/WGS/releases/latest" target="_blank" style="color:var(--accent-color)">GitHub Releases</a> page.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Extract</strong> — Unpack to a permanent folder, e.g. <code>C:\WGS\</code></div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Run</strong> — Double-click <code>WindowsGameServer.exe</code> — the app starts immediately.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>.NET Runtime</strong> — If you see a runtime error, install .NET 8 Runtime from <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" style="color:var(--accent-color)">dotnet.microsoft.com</a>.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>SteamCMD</strong> — WGS downloads SteamCMD automatically the first time you install a game.</div></li>
+    </ol>
+    <div class="warn-box"><div class="box-label">Windows SmartScreen</div>Windows may block the exe. Right-click → Properties → check <strong>Unblock</strong> → Apply. Or click "More info" → "Run anyway" in the SmartScreen popup.</div>
+    <h2 class="sub-title">2.2 Build from source</h2>
+    <p>Requires .NET 8 SDK.</p>
+    <pre><code>git clone https://github.com/MadBee71/WindowsGameServer.git
+cd WindowsGameServer/WGS
+dotnet publish -c Release -o publish</code></pre>
+</section>
+
+<!-- 3 -->
+<section class="section" id="s3">
+    <h1 class="section-title"><span class="sec-num">3.</span> First Launch</h1>
+    <p>When the app opens for the first time you will see an empty server list. The left sidebar contains:</p>
+    <ul class="bullets">
+        <li><strong>Dashboard</strong> — global system metrics and server status summary</li>
+        <li><strong>Server list</strong> — all configured servers with their current status</li>
+        <li><strong>+ Add Server</strong> — opens the new server creation dialog</li>
+        <li><strong>Icon toolbar</strong> — quick access to Settings, Dashboard, Backups, CPU Affinity, Discord, Web API, Info and more</li>
+    </ul>
+    <div class="note-box"><div class="box-label">System tray</div>WGS stays running when you close the window. Double-click the tray icon to reopen.</div>
+</section>
+
+<!-- Batch note in section 3 (First Launch) is fine — batch gets its own mention in s6 -->
+<!-- 4 -->
+<section class="section" id="s4">
+    <h1 class="section-title"><span class="sec-num">4.</span> Adding a Server</h1>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Open dialog</strong> — Click the <strong>+ Add Server</strong> button in the left sidebar.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Select game</strong> — Pick from 50+ pre-configured games in the dropdown.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Name</strong> — Give the server a recognisable name (e.g. <em>Valheim — Family</em>).</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Install folder</strong> — WGS suggests a path automatically. Change it if needed.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>Create</strong> — Click "Create server" — it appears with status <em>Not Installed</em>.</div></li>
+    </ol>
+    <div class="note-box">No files are downloaded here — only the server definition is created. Use <strong>Install / Update</strong> to download game files.</div>
+</section>
+
+<!-- 5 -->
+<section class="section" id="s5">
+    <h1 class="section-title"><span class="sec-num">5.</span> Install &amp; Update</h1>
+    <p>WGS uses Valve's SteamCMD to download game files. SteamCMD is fetched automatically into WGS's AppData folder on first use.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Select server</strong> — Click a server in the left list.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Install / Update</strong> — Click <strong>Install / Update</strong> in the server detail view.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Login</strong> — Most games download anonymously. Games marked * (The Forest, Arma 3, ETS2, Wreckfest, Assetto Corsa, etc.) require a Steam account — set credentials in <strong>Settings → Steam Login</strong>.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Progress</strong> — The console shows real-time download percentage from SteamCMD.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>Done</strong> — When the download finishes the status changes to <em>Stopped</em>.</div></li>
+    </ol>
+    <div class="note-box"><div class="box-label">Steam Guard</div>If Steam Guard is enabled, SteamCMD will request an email code on first login. Enter the code in the console input field at the bottom of the Console tab.</div>
+</section>
+
+<!-- 6 -->
+<section class="section" id="s6">
+    <h1 class="section-title"><span class="sec-num">6.</span> Starting &amp; Stopping</h1>
+    <p>Control buttons in the server detail view:</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Button</th><th>Action</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Start</strong></td><td>Launches the server process</td><td>Runs a port pre-flight check first</td></tr>
+            <tr><td><strong>Stop</strong></td><td>Sends graceful stop; kills after 5 s</td><td>Waits for clean shutdown</td></tr>
+            <tr><td><strong>Kill</strong></td><td>Kills the entire process tree immediately</td><td>No grace period</td></tr>
+            <tr><td><strong>Restart</strong></td><td>Stop → 3 s delay → Start</td><td></td></tr>
+            <tr><td><strong>Show Window</strong></td><td>Brings the server console window to the front</td><td>Only if the process has a window</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">Status colours</h2>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Status</th><th>Colour</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td>Running</td><td>🟢 Green</td><td>Server is running normally</td></tr>
+            <tr><td>Starting</td><td>🔵 Blue</td><td>Process is starting up</td></tr>
+            <tr><td>Stopping</td><td>🔵 Blue</td><td>Graceful shutdown in progress</td></tr>
+            <tr><td>Installing / Updating</td><td>🔵 Blue</td><td>SteamCMD is downloading files</td></tr>
+            <tr><td>Stopped</td><td>⚫ Grey</td><td>Stopped — game files are installed</td></tr>
+            <tr><td>Not Installed</td><td>⚫ Grey</td><td>Game files have not been downloaded yet</td></tr>
+            <tr><td>Error</td><td>🔴 Red</td><td>Process failed to start or crash limit reached</td></tr>
+        </tbody>
+    </table></div>
+</section>
+
+<!-- 7 -->
+<section class="section" id="s7">
+    <h1 class="section-title"><span class="sec-num">7.</span> Automation &amp; Auto-Start</h1>
+    <ul class="bullets">
+        <li><strong>Auto Start</strong> — starts the server automatically when WGS is launched</li>
+        <li><strong>Auto Restart</strong> — restarts the server after a crash (default delay: 10 s)</li>
+        <li><strong>Auto Restart Max Retries</strong> — suspends auto-restart if the server crashes more than N times within 10 minutes (default 5) to prevent crash loops</li>
+        <li><strong>Auto Update</strong> — runs Install/Update on a configurable interval while the server is running; stops and restarts automatically</li>
+    </ul>
+    <div class="note-box"><div class="box-label">Crash loop detection</div>WGS counts crashes within a rolling 10-minute window. If the count exceeds Max Retries, auto-restart is disabled and an error is logged. Re-enable Auto Restart manually after fixing the underlying problem.</div>
+    <div class="note-box"><div class="box-label">Auto Update interval</div>Set <strong>Auto Update Interval (min)</strong> in the server Settings tab. 0 disables periodic updates. A backup is created automatically before each update if Backup Enabled is checked.</div>
+</section>
+
+<!-- 8 -->
+<section class="section" id="s8">
+    <h1 class="section-title"><span class="sec-num">8.</span> Server Settings</h1>
+    <h2 class="sub-title">8.1 General fields</h2>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Display Name</td><td>Internal name used inside WGS</td></tr>
+            <tr><td>Server Name</td><td>Public name shown in the in-game server browser</td></tr>
+            <tr><td>Max Players</td><td>Maximum allowed player count</td></tr>
+            <tr><td>Server IP</td><td>Listen address (0.0.0.0 = all network interfaces)</td></tr>
+            <tr><td>Game Port</td><td>Main port — players connect here</td></tr>
+            <tr><td>Query Port</td><td>Steam Query port used by the server browser</td></tr>
+            <tr><td>Steam Port</td><td>Steam network port (required by some games, e.g. Wreckfest)</td></tr>
+            <tr><td>RCON Port</td><td>Remote console port (Source RCON protocol)</td></tr>
+            <tr><td>RCON Password</td><td>RCON password — do not leave blank on a public server</td></tr>
+            <tr><td>Server Password</td><td>Connection password for players (optional)</td></tr>
+            <tr><td>GSLT Token</td><td>Steam Game Server Login Token (requires a Steam account)</td></tr>
+            <tr><td>Custom Args</td><td>Extra command-line arguments appended to the start command</td></tr>
+            <tr><td>Install Path</td><td>Folder where the game files live on disk</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">8.2 Performance settings</h2>
+    <p>Each server can be restricted to specific CPU cores and assigned a Windows process priority. Changes apply on the next startup.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Setting</th><th>Values</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>CPU Affinity</td><td>Core checkboxes</td><td>Which CPU cores the server may use. All unchecked = no restriction.</td></tr>
+            <tr><td>Process Priority</td><td>Normal / AboveNormal / High / BelowNormal / RealTime</td><td>Windows process priority. High and RealTime require admin rights.</td></tr>
+        </tbody>
+    </table></div>
+    <div class="warn-box"><div class="box-label">Warning</div>RealTime priority can freeze the entire system if the server runs at 100% CPU. Use with caution.</div>
+</section>
+
+<!-- 9 -->
+<section class="section" id="s9">
+    <h1 class="section-title"><span class="sec-num">9.</span> Firewall</h1>
+    <p>WGS manages Windows Firewall rules automatically when <strong>Firewall Auto-Manage</strong> is enabled (default: on).</p>
+    <ul class="bullets">
+        <li>On server <strong>start</strong>: WGS adds inbound TCP + UDP rules for game, query and Steam ports</li>
+        <li>On server <strong>stop</strong>: those rules are removed automatically</li>
+        <li>If Auto-Manage is <strong>off</strong>: add rules manually in Windows Defender Firewall</li>
+        <li>Rules use <strong>netsh advfirewall</strong> — administrator rights are required</li>
+    </ul>
+    <h2 class="sub-title">9.2 UPnP Automatic Port Forwarding</h2>
+    <p>WGS can automatically open and close port forwarding rules on your router using UPnP. Enable in <strong>Settings → UPnP Port Forwarding</strong>.</p>
+    <ul class="bullets">
+        <li>When a server <strong>starts</strong> — WGS requests port mappings for game, query and Steam ports from the router</li>
+        <li>When a server <strong>stops or errors</strong> — those mappings are removed automatically</li>
+        <li>Use the <strong>Test UPnP</strong> button in Settings to verify your router supports it</li>
+        <li>Requires UPnP to be enabled in your router's administration interface</li>
+    </ul>
+    <div class="note-box"><div class="box-label">Compatibility</div>WGS uses standard UPnP/SSDP discovery — compatible with the vast majority of home routers. If Test UPnP shows "Router not found", enable UPnP in the router settings or use manual port forwarding instead.</div>
+    <div style="background:rgba(248,81,73,0.08);border-left:3px solid #F85149;padding:12px 16px;margin:12px 0;font-size:0.9rem;line-height:1.5;"><div style="color:#F85149;font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;">WARNING</div>UPnP automatically modifies your router's firewall rules without further confirmation. This can expose your network to unintended access if your router or game server is misconfigured. Only enable this if you understand the risks and fully trust your network environment. WGS takes no responsibility for security issues arising from UPnP usage.</div>
+</section>
+
+<!-- 10 -->
+<section class="section" id="s10">
+    <h1 class="section-title"><span class="sec-num">10.</span> Ports &amp; Networking</h1>
+    <p>Before startup WGS checks whether the required ports are free locally. A port-in-use warning is logged but startup continues.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Port type</th><th>Purpose</th><th>Default</th></tr></thead>
+        <tbody>
+            <tr><td>Game Port</td><td>Players connect to this port</td><td>Varies by game</td></tr>
+            <tr><td>Query Port</td><td>Steam server browser queries this port</td><td>Usually Game Port + 1</td></tr>
+            <tr><td>Steam Port</td><td>Steam network traffic (e.g. Wreckfest)</td><td>27015</td></tr>
+            <tr><td>RCON Port</td><td>Remote console (Source RCON protocol)</td><td>Varies</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box"><div class="box-label">Router / NAT</div>To make the server reachable from the internet you must set up <strong>Port Forwarding</strong> on your router. WGS's pre-flight check only detects local conflicts.</div>
+</section>
+
+<!-- 11 -->
+<section class="section" id="s11">
+    <h1 class="section-title"><span class="sec-num">11.</span> Console &amp; RCON</h1>
+    <h2 class="sub-title">11.1 Console</h2>
+    <p>The Console tab shows server output in real time. Messages are colour-coded:</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Colour</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>White / Grey</td><td>Info</td><td>Normal log messages</td></tr>
+            <tr><td>Yellow</td><td>Warning</td><td>Lines containing "warn"</td></tr>
+            <tr><td>Red</td><td>Error</td><td>Lines containing "error", "exception" or "fatal"</td></tr>
+            <tr><td>Cyan</td><td>System</td><td>WGS messages and SteamCMD output</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box"><div class="box-label">Auto-scroll</div>The console scrolls to the latest output automatically. Scrolling up manually pauses auto-scroll; scroll back to the bottom to resume.</div>
+    <h2 class="sub-title">6.2 Batch Operations</h2>
+    <p>Start, stop, restart or backup multiple servers at once using batch mode.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Activate</strong> — Click the <strong>☑</strong> icon button next to the sort dropdown in the server list header.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Select</strong> — Checkboxes appear next to each server. Tick the ones you want, or click <strong>All</strong> to select everything.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Action</strong> — Use the batch toolbar buttons: <strong>▶ Start</strong>, <strong>■ Stop</strong>, <strong>↺ Restart</strong>, <strong>💾 Backup</strong>.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Deactivate</strong> — Click the ☑ icon again to exit batch mode. All selections are cleared automatically.</div></li>
+    </ol>
+    <div class="note-box">Batch Start only targets servers that can be started (Stopped/Error). Batch Stop only targets running servers. Batch Restart only targets running servers.</div>
+    <h2 class="sub-title">11.2 RCON remote console</h2>
+    <p>RCON is the Valve Source protocol for sending admin commands over the network. Works with Rust, 7 Days to Die, and other Source-based games.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Set RCON port &amp; password</strong> — Fill in RCON Port and RCON Password in the server's Settings tab.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Start the server</strong> — RCON becomes available when the server process is running.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Connect</strong> — Click "RCON: Connect" in the Console tab.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Send a command</strong> — Type the command and press Enter or click Send.</div></li>
+    </ol>
+</section>
+
+<!-- 12 -->
+<section class="section" id="s12">
+    <h1 class="section-title"><span class="sec-num">12.</span> Config Editor</h1>
+    <p>The <strong>Config</strong> tab lets you browse and edit server configuration files directly inside WGS — no file manager or text editor needed.</p>
+    <ul class="bullets">
+        <li>Click the <strong>Config</strong> tab in the server detail view</li>
+        <li>WGS scans the install folder and lists all recognised configuration files</li>
+        <li>Click a file name to load its contents into the built-in text editor</li>
+        <li>Edit the content, then click <strong>Save</strong> to write changes to disk</li>
+    </ul>
+    <div class="tip-box"><div class="box-label">Tip</div>Stop the server before editing files it holds open. Changes take effect on the next start.</div>
+</section>
+
+<!-- 13 -->
+<section class="section" id="s13">
+    <h1 class="section-title"><span class="sec-num">13.</span> File Browser <span class="new-tag">v1.1.0</span></h1>
+    <p>The <strong>Files</strong> tab provides a full in-app file manager for the server's install directory — browse, manage and transfer files without leaving WGS.</p>
+    <ul class="bullets">
+        <li><strong>Browse</strong> — navigate the server's folder tree directly in WGS</li>
+        <li><strong>Rename</strong> — rename any file or folder</li>
+        <li><strong>Delete</strong> — delete files and folders (with confirmation)</li>
+        <li><strong>Download</strong> — save a file to any location on your PC</li>
+        <li><strong>New folder</strong> — create directories as needed</li>
+        <li><strong>Upload</strong> — copy a file from your PC into the current directory</li>
+    </ul>
+    <div class="tip-box"><div class="box-label">Tip</div>Especially useful for uploading custom config files, map files or Oxide plugins directly into the correct server directory.</div>
+</section>
+
+<!-- 14 -->
+<section class="section" id="s14">
+    <h1 class="section-title"><span class="sec-num">14.</span> Performance Charts <span class="new-tag">updated v1.2.0</span></h1>
+    <p>The <strong>Charts</strong> tab displays CPU and RAM usage history for the selected server.</p>
+    <ul class="bullets">
+        <li>CPU % chart — process CPU usage as a percentage of total system CPU capacity</li>
+        <li>RAM chart — working-set memory consumption in MB</li>
+        <li>History window: selectable — <strong>5, 15, 30 or 60 minutes</strong> (up to 1800 data points, persisted to disk)</li>
+        <li>Use the time-range dropdown in the top-right of the Charts tab to switch view</li>
+        <li>History is preserved across WGS restarts and loaded from disk on first view</li>
+        <li>Charts reset automatically when the server is stopped</li>
+    </ul>
+    <div class="note-box">CPU % is normalised across all logical cores. A server fully using one core on a 4-core machine shows ~25%.</div>
+</section>
+
+<!-- 15 -->
+<section class="section" id="s15">
+    <h1 class="section-title"><span class="sec-num">15.</span> Bandwidth Monitoring <span class="new-tag">v1.1.0</span></h1>
+    <p>WGS monitors network traffic in real time — both globally across the machine and per server based on active TCP/UDP connections.</p>
+    <ul class="bullets">
+        <li><strong>Global I/O</strong> — total bytes in/out per second across all network interfaces, shown in the sidebar status bar</li>
+        <li><strong>Per-server I/O</strong> — each server's estimated share of network traffic, calculated from its proportion of active connections</li>
+        <li><strong>Connection count</strong> — number of active TCP connections for each server process</li>
+        <li>Data refreshes every <strong>2 seconds</strong>; history kept for the last 6 minutes</li>
+    </ul>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Display location</th><th>Shows</th></tr></thead>
+        <tbody>
+            <tr><td>Sidebar bottom bar</td><td>Global bytes in/out per second</td></tr>
+            <tr><td>Server detail — Charts tab</td><td>Per-server network I/O history graph</td></tr>
+            <tr><td>Server detail — Info tab</td><td>Current bytes in/out and active connection count</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box"><div class="box-label">Accuracy</div>Per-server bandwidth is estimated proportionally from active connection counts — an approximation, not a kernel-level measurement.</div>
+</section>
+
+<!-- 16 -->
+<section class="section" id="s16">
+    <h1 class="section-title"><span class="sec-num">16.</span> Mod Manager</h1>
+    <p>The <strong>Mods</strong> tab manages server-side modding frameworks:</p>
+    <ul class="bullets">
+        <li><strong>Oxide / uMod</strong> — for Rust and other supported games. Downloads the latest Oxide release and installs it into the server folder</li>
+        <li><strong>Minecraft plugins</strong> — for Paper/Spigot servers. Displays the contents of the plugins folder</li>
+    </ul>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Install Oxide</td><td>Downloads and installs the latest Oxide/uMod release for this game</td></tr>
+            <tr><td>Update Oxide</td><td>Re-downloads Oxide to update to the latest version</td></tr>
+            <tr><td>Open plugins folder</td><td>Opens the server's plugins directory in Windows Explorer</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box">Stop the server before installing or updating Oxide. Oxide injects into the server process on startup.</div>
+</section>
+
+<!-- 17 -->
+<section class="section" id="s17">
+    <h1 class="section-title"><span class="sec-num">17.</span> Steam Workshop</h1>
+    <p>The <strong>Workshop</strong> tab is visible for games that support Steam Workshop (e.g. Arma Reforger). It uses SteamCMD to download Workshop items.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Find the item ID</strong> — Open the Workshop page in a browser. The ID is the number in the URL: <code>steamcommunity.com/sharedfiles/filedetails/?id=XXXXXXXXX</code></div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Enter the ID</strong> — Paste the Workshop item ID into the input field in the Workshop tab.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Download</strong> — Click Download. WGS runs SteamCMD and shows progress in the console.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Done</strong> — The item appears in the Installed Items list with its local folder path.</div></li>
+    </ol>
+    <ul class="bullets">
+        <li>Click <strong>Remove</strong> next to an item to delete it from disk</li>
+        <li>Workshop content: <code>%APPDATA%\WGS\steamcmd\steamapps\workshop\content\</code></li>
+    </ul>
+</section>
+
+<!-- 18 -->
+<section class="section" id="s18">
+    <h1 class="section-title"><span class="sec-num">18.</span> Player Statistics</h1>
+    <p>The <strong>Players</strong> tab shows session history for everyone who has connected. Data is stored in a local SQLite database and survives restarts.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Column</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Player Name</td><td>Name as reported in the server log</td></tr>
+            <tr><td>Join Time</td><td>Timestamp when the player connected</td></tr>
+            <tr><td>Leave Time</td><td>Timestamp when the player disconnected (blank if still online)</td></tr>
+            <tr><td>Duration</td><td>Total time in session — format HH:MM:SS</td></tr>
+        </tbody>
+    </table></div>
+    <ul class="bullets">
+        <li>The <strong>Total Playtime</strong> view shows cumulative playtime per player across all sessions</li>
+        <li>Accuracy depends on each game's log format for join/leave detection</li>
+        <li>Stored in: <code>%APPDATA%\WGS\player_stats.db</code></li>
+    </ul>
+</section>
+
+<!-- 19 -->
+<section class="section" id="s19">
+    <h1 class="section-title"><span class="sec-num">19.</span> Backups</h1>
+    <ul class="bullets">
+        <li><strong>Backup Enabled</strong> — activates automatic backups for this server</li>
+        <li><strong>Backup Retention</strong> — number of backups to keep (default 5); older ones deleted automatically</li>
+        <li><strong>Create Backup</strong> button — takes an immediate backup</li>
+        <li><strong>Backup All</strong> (Dashboard) — backs up every server at once</li>
+        <li><strong>Restore</strong> — extracts a backup into the install folder (stop the server first)</li>
+        <li>Stored in: <code>%APPDATA%\WGS\backups\&lt;server-id&gt;\</code></li>
+    </ul>
+    <div class="note-box"><div class="box-label">Auto backup before update</div>If Backup Enabled is checked, WGS creates a backup automatically before every Install/Update and every Auto Update cycle.</div>
+    <div class="note-box"><div class="box-label">Disk space</div>Large servers (ARK, Valheim) produce big backups. Set a sensible retention value and monitor free disk space.</div>
+</section>
+
+<!-- 20 -->
+<section class="section" id="s20">
+    <h1 class="section-title"><span class="sec-num">20.</span> Server Templates <span class="new-tag">v1.1.0</span></h1>
+    <p>Server Templates let you save a complete server configuration and redeploy identical servers in seconds. Access from <strong>Tools → Server Templates</strong>.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Save as template</strong> — Open any configured server → click "Save as Template" → give it a name and optional tags.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Browse templates</strong> — Open Tools → Server Templates — filter by game category or tag.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Deploy</strong> — Click "Deploy" → choose a name and install path → new server created instantly with all settings pre-filled.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Edit / Delete</strong> — Pencil icon to rename; trash icon to remove permanently.</div></li>
+    </ol>
+    <ul class="bullets">
+        <li>Templates capture: game type, ports, max players, startup arguments, RCON settings, CPU affinity, process priority and automation settings</li>
+        <li>Stored in: <code>%APPDATA%\WGS\templates.json</code></li>
+    </ul>
+</section>
+
+<!-- 21 -->
+<section class="section" id="s21">
+    <h1 class="section-title"><span class="sec-num">21.</span> Scheduled Tasks</h1>
+    <p>The built-in scheduler runs actions automatically at set times. Add tasks in the <strong>Schedule</strong> tab of any server.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Field</th><th>Options / Description</th></tr></thead>
+        <tbody>
+            <tr><td>Action</td><td>Restart · Stop · Start · Backup · Update</td></tr>
+            <tr><td>Frequency</td><td>Once · Daily · Weekly</td></tr>
+            <tr><td>Time of day</td><td>HH:MM (24-hour clock)</td></tr>
+            <tr><td>Day of week</td><td>Monday–Sunday (Weekly only)</td></tr>
+            <tr><td>Enabled</td><td>Toggle a task on/off without deleting it</td></tr>
+            <tr><td>Last / Next</td><td>Timestamps — Next run calculated automatically</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box"><div class="box-label">Polling interval</div>The scheduler checks every 30 seconds, so actual execution may be up to 30 s after the configured time.</div>
+</section>
+
+<!-- 22 -->
+<section class="section" id="s22">
+    <h1 class="section-title"><span class="sec-num">22.</span> Dashboard</h1>
+    <p>Click <strong>Dashboard</strong> in the sidebar to open the live system overview. Data refreshes every 2 seconds.</p>
+    <ul class="bullets">
+        <li><strong>CPU Usage</strong> — overall processor load as a percentage</li>
+        <li><strong>RAM</strong> — used and free memory in GB with percentage bar</li>
+        <li><strong>Drives</strong> — usage and free space for every connected drive</li>
+        <li><strong>Server Count / Online / Stopped</strong> — server status summary</li>
+        <li><strong>Global network I/O</strong> — total bytes in/out per second across all servers</li>
+        <li><strong>Backup All</strong> — triggers an immediate backup of every configured server</li>
+    </ul>
+</section>
+
+<!-- 23 -->
+<section class="section" id="s23">
+    <h1 class="section-title"><span class="sec-num">23.</span> Discord Notifications</h1>
+    <p>WGS posts rich embed messages to a Discord channel via a webhook URL. Configure in <strong>Settings → Discord Notifications</strong>.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Event</th><th>Trigger</th><th>Embed colour</th></tr></thead>
+        <tbody>
+            <tr><td>Server started</td><td>Status → Running</td><td>🟢 Green</td></tr>
+            <tr><td>Server stopped</td><td>Status → Stopped</td><td>⚫ Grey</td></tr>
+            <tr><td>Server crashed</td><td>Status → Error</td><td>🔴 Red</td></tr>
+            <tr><td>Update started</td><td>Status → Updating</td><td>🔵 Blue</td></tr>
+        </tbody>
+    </table></div>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Create webhook</strong> — Discord: channel Settings → Integrations → Webhooks → New Webhook → Copy URL.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Paste URL</strong> — WGS Settings → Discord Notifications → paste into "Webhook URL".</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Enable</strong> — Check "Enable Discord notifications" and choose which events to send.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Test</strong> — Click "Test" to send a test embed immediately.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>Save</strong> — Click "Save". The URL is encrypted with Windows DPAPI before writing.</div></li>
+    </ol>
+</section>
+
+<!-- 24 -->
+<section class="section" id="s24">
+    <h1 class="section-title"><span class="sec-num">24.</span> Discord Remote Control Bot</h1>
+    <p>The Discord bot lets you control your servers from any Discord channel. Configure in <strong>Settings → Discord Remote Control Bot</strong>.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Create a bot</strong> — <a href="https://discord.com/developers/applications" target="_blank" style="color:var(--accent-color)">discord.com/developers</a> → New Application → Bot → Reset Token → Copy Token.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Set permissions</strong> — OAuth2 → URL Generator: "bot" scope + Read Messages + Send Messages. Invite the bot.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Get channel ID</strong> — Developer Mode in Discord → right-click your control channel → Copy Channel ID.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Configure WGS</strong> — Settings → Discord Remote Control Bot. Paste the Bot Token and Channel ID.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>Restrict access</strong> — Enter comma-separated Discord User IDs in "Allowed User IDs". Leave blank to allow everyone.</div></li>
+        <li><span class="step-num">6</span><div class="step-body"><strong>Save &amp; test</strong> — Click Save, then "Test connection".</div></li>
+    </ol>
+    <h2 class="sub-title">Bot commands</h2>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>!help</code></td><td>Lists all available commands</td></tr>
+            <tr><td><code>!status</code></td><td>Shows all servers with their current status</td></tr>
+            <tr><td><code>!start &lt;name&gt;</code></td><td>Starts the named server</td></tr>
+            <tr><td><code>!stop &lt;name&gt;</code></td><td>Stops the named server</td></tr>
+            <tr><td><code>!restart &lt;name&gt;</code></td><td>Restarts the named server</td></tr>
+            <tr><td><code>!update &lt;name&gt;</code></td><td>Runs Install/Update on the named server</td></tr>
+            <tr><td><code>!backup &lt;name&gt;</code></td><td>Creates an immediate backup of the named server</td></tr>
+            <tr><td><code>!cmd &lt;name&gt; &lt;command&gt;</code></td><td>Sends a console command to the running server</td></tr>
+        </tbody>
+    </table></div>
+    <div class="warn-box"><div class="box-label">Security</div>Keep the bot token secret — treat it like a password. Use Allowed User IDs on public servers to prevent unauthorised control.</div>
+</section>
+
+<!-- 25 -->
+<section class="section" id="s25">
+    <h1 class="section-title"><span class="sec-num">25.</span> Web Dashboard &amp; REST API <span class="new-tag">v1.1.0</span></h1>
+    <p>WGS includes a built-in HTTP server with a browser-accessible dashboard and REST API. Enable in <strong>Settings → Web Remote Control</strong>.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Enable</strong> — Check "Enable Web API" and choose a port (default: 8765).</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Token</strong> — An access token is generated automatically. Copy or customise it.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Save</strong> — Click Save — the API starts immediately; status indicator turns green.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Browser UI</strong> — Navigate to <code>http://localhost:8765/ui</code> — dashboard with server controls and a real-time log viewer.</div></li>
+        <li><span class="step-num">5</span><div class="step-body"><strong>Remote access</strong> — Use your LAN IP from other devices. For internet access, add port forwarding.</div></li>
+    </ol>
+    <h2 class="sub-title">REST endpoints</h2>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge get">GET</span></td><td><code>/api/servers</code></td><td>List all servers with status and port info</td></tr>
+            <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}</code></td><td>Get a single server's details</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/start</code></td><td>Start a server</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/stop</code></td><td>Stop a server</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/restart</code></td><td>Restart a server</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/update</code></td><td>Run Install/Update</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/backup</code></td><td>Create a backup</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/cmd</code></td><td>Send console command — body: <code>{"command":"..."}</code></td></tr>
+            <tr><td><span class="badge get">GET</span></td><td><code>/api/system</code></td><td>System metrics — CPU, RAM, drives, network I/O</td></tr>
+        </tbody>
+    </table></div>
+    <div class="note-box"><div class="box-label">Authentication</div>All <code>/api/*</code> endpoints require the token via <code>Authorization: Bearer &lt;token&gt;</code> or <code>?token=&lt;token&gt;</code>.</div>
+</section>
+
+<!-- 26 -->
+<section class="section" id="s26">
+    <h1 class="section-title"><span class="sec-num">26.</span> User Management <span class="new-tag">v1.1.0</span></h1>
+    <p>WGS supports multiple user accounts for the Web Dashboard and REST API. Manage in <strong>Settings → User Management</strong>.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Role</th><th>Permissions</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Admin</strong></td><td>Full access — start, stop, restart, update, backup, console, manage users, change settings</td></tr>
+            <tr><td><strong>Viewer</strong></td><td>Read-only — view status, metrics and logs; cannot start/stop or modify settings</td></tr>
+        </tbody>
+    </table></div>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Add user</td><td>Enter username, password and role → click "Add". Password hashed with PBKDF2-SHA256.</td></tr>
+            <tr><td>Enable / Disable</td><td>Toggle account on/off without deleting it</td></tr>
+            <tr><td>Reset password</td><td>Enter a new password and click "Change password"</td></tr>
+            <tr><td>Delete</td><td>Permanently removes the account and its audit entries</td></tr>
+            <tr><td>API token</td><td>Each user has a unique API token. Regenerate at any time.</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">Audit log</h2>
+    <p>Every significant action is recorded in SQLite. View in <strong>Settings → User Management → Audit Log</strong>.</p>
+    <ul class="bullets">
+        <li>Logged events: login, logout, start/stop/restart, update, backup, create/delete user, change role, reset password</li>
+        <li>Each entry: timestamp, username, action, details</li>
+        <li>Stored in: <code>%APPDATA%\WGS\users.db</code></li>
+    </ul>
+    <div class="note-box"><div class="box-label">Default admin</div>On first run a default "admin" account is created with password "admin". Change it immediately in Settings → User Management.</div>
+</section>
+
+<!-- 27 -->
+<section class="section" id="s27">
+    <h1 class="section-title"><span class="sec-num">27.</span> Multi-Machine Management <span class="new-tag">v1.1.0</span></h1>
+    <p>WGS supports a master/slave architecture — run WGS as an agent on any PC or VPS and control it remotely from your main window.</p>
+    <ul class="bullets">
+        <li><strong>Slave machine</strong>: enable the Web API (section 25) and note the URL + token</li>
+        <li><strong>Master machine</strong>: Settings → Remote Machines → Add Machine → enter URL and token</li>
+        <li>The master polls each slave every few seconds and shows all remote servers in the <strong>Machines</strong> sidebar tab</li>
+        <li>Click a remote server to open its detail view with console, controls and metrics</li>
+    </ul>
+</section>
+
+<!-- 28 -->
+<section class="section" id="s28">
+    <h1 class="section-title"><span class="sec-num">28.</span> Supported Games</h1>
+    <p>WGS ships with 50+ built-in game plugins. Games marked * require a Steam account to install — all others download anonymously.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Login type</th><th>When required</th></tr></thead>
+        <tbody>
+            <tr><td>Anonymous</td><td>Most games — no Steam account needed. WGS downloads via SteamCMD without credentials.</td></tr>
+            <tr><td>Steam account *</td><td>DayZ, The Forest, Arma 3, Wreckfest, Assetto Corsa, ETS2, Killing Floor 2, Team Fortress 2 and a few others require a valid Steam account that owns the game.</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">28.1 Setting up Steam login</h2>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body"><strong>Open Settings</strong> — Click the Settings icon in the left toolbar.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Steam Login tab</strong> — Select the Steam Login tab.</div></li>
+        <li><span class="step-num">3</span><div class="step-body"><strong>Enter credentials</strong> — Type your Steam username and password. Credentials are encrypted with Windows DPAPI before being stored on disk.</div></li>
+        <li><span class="step-num">4</span><div class="step-body"><strong>Save</strong> — Click Save. WGS will use these credentials automatically when SteamCMD requires a login.</div></li>
+    </ol>
+    <h2 class="sub-title">28.2 Steam Guard — email code</h2>
+    <p>If Steam Guard is enabled on your account, SteamCMD will pause and request a verification code the first time you log in from a new machine.</p>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body">Click <strong>Install / Update</strong> on a game that requires a Steam account.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">SteamCMD will print: <em>Enter the current code sent to your email address</em>.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">Check your email for the 5-character code from Steam.</div></li>
+        <li><span class="step-num">4</span><div class="step-body">Type the code into the <strong>console input field</strong> at the bottom of the Console tab and press Enter.</div></li>
+        <li><span class="step-num">5</span><div class="step-body">SteamCMD caches the session — subsequent installs on the same machine will not ask again.</div></li>
+    </ol>
+    <h2 class="sub-title">28.3 Steam Guard — mobile authenticator</h2>
+    <ol class="steps">
+        <li><span class="step-num">1</span><div class="step-body">Click <strong>Install / Update</strong> on a game that requires a Steam account.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">SteamCMD will pause waiting for Steam Guard approval.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">A login approval notification appears on your phone. Open the Steam app.</div></li>
+        <li><span class="step-num">4</span><div class="step-body">Tap <strong>Approve</strong> on the login request — no code entry needed. SteamCMD continues automatically.</div></li>
+        <li><span class="step-num">5</span><div class="step-body">SteamCMD caches the session for this machine.</div></li>
+    </ol>
+    <div class="note-box"><div class="box-label">Game list</div>The full list of supported games with their Steam AppIDs is always up to date inside the application — click <strong>+ Add Server</strong> and browse the game dropdown. A searchable list is also on the <a href="games.html" style="color:var(--accent-color)">50+ Games</a> page.</div>
+</section>
+
+<!-- 29 -->
+<section class="section" id="s29">
+    <h1 class="section-title"><span class="sec-num">29.</span> Custom Plugin Creator</h1>
+    <p>The Plugin Creator lets you add any game server without writing code. Open from <strong>Tools → Plugin Creator</strong>.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Field</th><th>Req.</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Game ID</td><td>Yes</td><td>Unique identifier, e.g. <code>mygame</code></td></tr>
+            <tr><td>Game Name</td><td>Yes</td><td>Display name in the game dropdown</td></tr>
+            <tr><td>Description</td><td>No</td><td>Short description shown in the Info tab</td></tr>
+            <tr><td>Category</td><td>No</td><td>Survival / Racing / Shooter / etc.</td></tr>
+            <tr><td>Steam AppID</td><td>Yes</td><td>Used by SteamCMD to download the server files</td></tr>
+            <tr><td>Executable</td><td>Yes</td><td>Server .exe — relative path from install folder</td></tr>
+            <tr><td>Default Port</td><td>Yes</td><td>Game port</td></tr>
+            <tr><td>Default Query Port</td><td>Yes</td><td>Steam Query port</td></tr>
+            <tr><td>Default Steam Port</td><td>No</td><td>Steam network port (0 = not used)</td></tr>
+            <tr><td>Max Players</td><td>Yes</td><td>Default player count</td></tr>
+            <tr><td>Start Arguments</td><td>Yes</td><td>Command-line args (supports placeholder variables)</td></tr>
+            <tr><td>Stop Command</td><td>No</td><td>Graceful shutdown command (blank = kill process)</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">Placeholder variables</h2>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Placeholder</th><th>Value</th></tr></thead>
+        <tbody>
+            <tr><td><code>{ip}</code></td><td>Server IP address</td></tr>
+            <tr><td><code>{port}</code></td><td>Game port</td></tr>
+            <tr><td><code>{qport}</code></td><td>Query port</td></tr>
+            <tr><td><code>{name}</code></td><td>Server name</td></tr>
+            <tr><td><code>{max}</code></td><td>Max players</td></tr>
+            <tr><td><code>{map}</code></td><td>Map (game-specific setting)</td></tr>
+            <tr><td><code>{password}</code></td><td>Server password</td></tr>
+        </tbody>
+    </table></div>
+    <h2 class="sub-title">29.2 Import / Export plugins</h2>
+    <p>Plugins can be exported to a <code>.cs</code> source file and imported on another machine.</p>
+    <ul class="bullets">
+        <li><strong>Export</strong>: Tools → Export Plugin → select a plugin → save as .cs file</li>
+        <li><strong>Import</strong>: Tools → Import Plugin → select a .cs file — compiled in memory and registered immediately without restarting WGS</li>
+    </ul>
+</section>
+
+<!-- 30 -->
+<section class="section" id="s30">
+    <h1 class="section-title"><span class="sec-num">30.</span> Server Cloning <span class="new-tag">v1.2.0</span></h1>
+    <p>The <strong>clone button (⧉)</strong> in the server toolbar duplicates an existing server — copying all settings, game type, and automation rules while automatically assigning new unique ports.</p>
+    <ul class="bullets">
+        <li>Click ⧉ in the top toolbar of any server detail view</li>
+        <li>A new server is created with the suffix <em>"(copy)"</em> and incremented ports</li>
+        <li>All settings (auto-restart, Discord alerts, CPU affinity, RAM limit) are copied</li>
+        <li>The cloned server appears immediately in the server list</li>
+    </ul>
+    <div class="note-box">Cloning does not copy installed game files — you still need to run Install / Update on the new server.</div>
+</section>
+
+<!-- 31 -->
+<section class="section" id="s31">
+    <h1 class="section-title"><span class="sec-num">31.</span> Wake-on-Demand <span class="new-tag">v1.2.0</span></h1>
+    <p>Wake-on-demand starts a server automatically when the first player tries to connect, saving resources when the server is idle.</p>
+    <ul class="bullets">
+        <li>Enable <strong>Wake on demand</strong> in the server's Settings → Automation section</li>
+        <li>When the server is stopped, WGS listens on the game port for incoming TCP connections</li>
+        <li>The first connection triggers an automatic start — the player's game client will retry and connect once the server is ready</li>
+        <li>The listener is released automatically once the server is running</li>
+    </ul>
+    <div class="note-box">Works best with games that retry the connection automatically. The server startup time varies by game — typically 10–60 seconds.</div>
+</section>
+
+<!-- 32 -->
+<section class="section" id="s32">
+    <h1 class="section-title"><span class="sec-num">32.</span> Email Notifications <span class="new-tag">v1.2.0</span></h1>
+    <p>WGS can send email alerts for the same events as Discord notifications — server start, stop, crash and update.</p>
+    <ul class="bullets">
+        <li>Go to <strong>Settings → Email Notifications (SMTP)</strong></li>
+        <li>Enter your SMTP host, port, SSL toggle, username and password</li>
+        <li>Set <em>From address</em> and <em>To address(es)</em> (comma-separate multiple recipients)</li>
+        <li>Click <strong>Send test email</strong> to verify the configuration</li>
+        <li>Enable <strong>Discord alerts for this server</strong> per server to control which servers send emails</li>
+    </ul>
+    <div class="note-box">SMTP password is encrypted with Windows DPAPI and never stored in plain text.</div>
+</section>
+
+<!-- 33 -->
+<section class="section" id="s33">
+    <h1 class="section-title"><span class="sec-num">33.</span> RAM Limiting <span class="new-tag">v1.2.0</span></h1>
+    <p>WGS can enforce a hard memory cap per server using Windows Job Objects — preventing a single runaway server from consuming all available RAM.</p>
+    <ul class="bullets">
+        <li>Go to the server's <strong>Settings → Performance</strong> section</li>
+        <li>Set <strong>RAM limit (MB)</strong> — enter the maximum amount of RAM this server may use</li>
+        <li>Set to <strong>0</strong> for unlimited (default)</li>
+        <li>The limit is applied via Windows Job Objects when the server process starts</li>
+        <li>If the server exceeds the limit, Windows will terminate it — treat this as a hard ceiling, not a soft warning</li>
+    </ul>
+    <div class="note-box">Set the limit generously above the server's normal usage — e.g. if a Rust server typically uses 6 GB, set the limit to 8–10 GB to allow headroom for player peaks.</div>
+</section>
+
+<!-- 34 (old 30) -->
+<section class="section" id="s34">
+    <h1 class="section-title"><span class="sec-num">34.</span> Troubleshooting</h1>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+        <tbody>
+            <tr><td>Server won't start — "executable not found"</td><td>Game files are not installed or the executable path is wrong. Re-run "Install / Update", or check manually that the .exe exists in the install folder.</td></tr>
+            <tr><td>SteamCMD fails — ERROR! App state is 0x…</td><td>Usually a network issue or Steam servers are temporarily down. Try again shortly. If login is required, verify your Steam Guard code.</td></tr>
+            <tr><td>Port already in use</td><td>Another program is using the same port. Change the port in Settings or stop the conflicting program.</td></tr>
+            <tr><td>RCON won't connect</td><td>Confirm the RCON port and password match the server's config file and that a firewall rule exists for that port.</td></tr>
+            <tr><td>Backup fails</td><td>Disk space may be full or WGS lacks write permission to %APPDATA%.</td></tr>
+            <tr><td>Discord bot won't connect</td><td>Verify the bot token and channel ID. The bot needs Read Messages and Send Messages permissions in that channel.</td></tr>
+            <tr><td>Web API returns 401</td><td>The request is missing the token. Add <code>Authorization: Bearer &lt;token&gt;</code> or append <code>?token=</code> to the URL.</td></tr>
+            <tr><td>Web Dashboard login fails</td><td>Check username and password in Settings → User Management. Default credentials are admin / admin — change them on first use.</td></tr>
+            <tr><td>File Browser shows empty folder</td><td>Verify the install path is correct in the server's Settings tab.</td></tr>
+            <tr><td>Auto-restart disabled — crash limit reached</td><td>The server crashed too many times in 10 minutes. Fix the underlying problem, then re-enable Auto Restart in the server's Settings tab.</td></tr>
+            <tr><td>App won't launch — .NET error</td><td>Install .NET 8 Runtime from <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" style="color:var(--accent-color)">dotnet.microsoft.com</a>.</td></tr>
+            <tr><td>Server processes survive after WGS closes</td><td>Always stop servers with the Stop button before closing WGS.</td></tr>
+        </tbody>
+    </table></div>
+</section>
+
+<!-- 35 -->
+<section class="section" id="s35">
+    <h1 class="section-title"><span class="sec-num">35.</span> Keyboard Shortcuts</h1>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+        <tbody>
+            <tr><td><code>Ctrl + V</code></td><td>Paste (all text fields)</td></tr>
+            <tr><td><code>Ctrl + C</code></td><td>Copy (all text fields)</td></tr>
+            <tr><td><code>Ctrl + X</code></td><td>Cut (all text fields)</td></tr>
+            <tr><td><code>Ctrl + A</code></td><td>Select all (text fields)</td></tr>
+            <tr><td><code>Enter</code></td><td>Send console / RCON command</td></tr>
+        </tbody>
+    </table></div>
+</section>
+
+<!-- 36 -->
+<section class="section" id="s36">
+    <h1 class="section-title"><span class="sec-num">36.</span> File Locations</h1>
+    <p>WGS stores configuration in Windows AppData and writes nothing permanent to its own installation directory.</p>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+        <tbody>
+            <tr><td><code>%APPDATA%\WGS\servers.json</code></td><td>All server configurations</td></tr>
+            <tr><td><code>%APPDATA%\WGS\settings.json</code></td><td>Global application settings</td></tr>
+            <tr><td><code>%APPDATA%\WGS\notifications.json</code></td><td>Discord notification settings</td></tr>
+            <tr><td><code>%APPDATA%\WGS\scheduled_tasks.json</code></td><td>Scheduled task definitions</td></tr>
+            <tr><td><code>%APPDATA%\WGS\custom_plugins.json</code></td><td>Custom Plugin Creator entries</td></tr>
+            <tr><td><code>%APPDATA%\WGS\templates.json</code></td><td>Server templates (v1.1.0)</td></tr>
+            <tr><td><code>%APPDATA%\WGS\player_stats.db</code></td><td>Player session history (SQLite)</td></tr>
+            <tr><td><code>%APPDATA%\WGS\users.db</code></td><td>User accounts and audit log (v1.1.0)</td></tr>
+            <tr><td><code>%APPDATA%\WGS\steamcmd\</code></td><td>SteamCMD installation (auto-downloaded)</td></tr>
+            <tr><td><code>%APPDATA%\WGS\backups\</code></td><td>Server backup zip files</td></tr>
+        </tbody>
+    </table></div>
+</section>
+
+
+<!-- 37 -->
+<section class="section" id="s37">
+    <h1 class="section-title"><span class="sec-num">37.</span> Per-Server Discord Webhooks <span class="new-tag">v1.2.3</span></h1>
+    <p>Every server can send Discord alerts to its own channel, independently of the global webhook configured in Settings → Notifications.</p>
+    <h2 class="subsection-title">Setup</h2>
+    <ol class="step-list">
+        <li><span class="step-num">1</span><div class="step-body">Select the server and open the <strong>Settings</strong> tab.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">Under <strong>Discord alerts</strong>, paste the webhook URL into the <strong>Server webhook URL</strong> field.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">Leave the field empty to fall back to the global webhook from Settings → Notifications.</div></li>
+    </ol>
+    <p>This lets you route different servers to different Discord channels — for example, a public alert channel for your Valheim server and a private one for your admin test server.</p>
+</section>
+
+<!-- 38 -->
+<section class="section" id="s38">
+    <h1 class="section-title"><span class="sec-num">38.</span> Web Backup Restore <span class="new-tag">v1.2.3</span></h1>
+    <p>Backups can be listed and restored directly from the web dashboard without opening the WGS desktop app.</p>
+    <h2 class="subsection-title">Restoring a backup</h2>
+    <ol class="step-list">
+        <li><span class="step-num">1</span><div class="step-body">Open the web dashboard and find the server card.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">Click the <strong>📂 Backups</strong> button below the action buttons.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">A list of available backups appears with filename, size and date.</div></li>
+        <li><span class="step-num">4</span><div class="step-body">Click <strong>Restore</strong> next to the desired backup and confirm. WGS will extract the zip over the server install directory.</div></li>
+    </ol>
+    <p><strong>Note:</strong> Stop the server before restoring. Restoring while the server is running may cause file conflicts.</p>
+
+    <h2 class="subsection-title">Selective backup paths</h2>
+    <p>By default WGS backs up only the game-specific save directory (e.g. <code>savegame</code> for Enshrouded, <code>Saves</code> for Sons of the Forest). You can override this per server:</p>
+    <ol class="step-list">
+        <li><span class="step-num">1</span><div class="step-body">Open the server <strong>Settings</strong> tab.</div></li>
+        <li><span class="step-num">2</span><div class="step-body">Find <strong>Backup paths</strong> below the backup checkbox.</div></li>
+        <li><span class="step-num">3</span><div class="step-body">Enter one or more paths relative to the install directory, separated by semicolons. Example: <code>savegame;config</code></div></li>
+        <li><span class="step-num">4</span><div class="step-body">Leave empty to use the built-in game default.</div></li>
+    </ol>
+    <div class="tbl-wrap"><table>
+        <thead><tr><th>Game</th><th>Default backup path</th></tr></thead>
+        <tbody>
+            <tr><td>Enshrouded</td><td><code>savegame</code></td></tr>
+            <tr><td>Valheim</td><td><code>saves</code></td></tr>
+            <tr><td>Palworld</td><td><code>Pal/Saved/SaveGames</code></td></tr>
+            <tr><td>ARK / ARK SA</td><td><code>ShooterGame/Saved</code></td></tr>
+            <tr><td>DayZ</td><td><code>mpmissions</code></td></tr>
+            <tr><td>V Rising</td><td><code>save-data</code></td></tr>
+            <tr><td>Satisfactory</td><td><code>FactoryGame/Saved</code></td></tr>
+            <tr><td>Rust</td><td><code>server</code></td></tr>
+            <tr><td>7 Days to Die</td><td><code>Saves</code></td></tr>
+            <tr><td>Sons of the Forest</td><td><code>Saves</code></td></tr>
+            <tr><td>Conan Exiles</td><td><code>ConanSandbox/Saved</code></td></tr>
+            <tr><td>Minecraft</td><td><code>world</code></td></tr>
+            <tr><td><em>Other games</em></td><td><em>Full install directory</em></td></tr>
+        </tbody>
+    </table></div>
+</section>
+
+</div> <!-- content-inner -->
+
+<footer>
+    <p>&copy; 2026 MadBee71 / Windows Game Server &mdash; <a href="https://wgsserver.com">wgsserver.com</a> &mdash; Released under the MIT License.</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+}
+
+// Close sidebar on link click (mobile)
+document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    });
+});
+
+// Active sidebar link on scroll
+const sections = document.querySelectorAll('.section[id]');
+const sidebarLinks = document.querySelectorAll('.sidebar a');
+
+function onScroll() {
+    let current = '';
+    sections.forEach(sec => {
+        const top = sec.getBoundingClientRect().top;
+        if (top <= 80) current = sec.id;
+    });
+    sidebarLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+</script>
+</body>
+</html>
