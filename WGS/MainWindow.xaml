@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:WGS.ViewModels"
         xmlns:views="clr-namespace:WGS.Views"
+        xmlns:wgs="clr-namespace:WGS"
         Title="Windows Game Server" Height="800" Width="1280"
         MinHeight="600" MinWidth="900"
         Background="{StaticResource BgDeepBrush}"
@@ -37,7 +38,7 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
                         <Image Source="pack://application:,,,/WindowsGameServer;component/wgs.png"
                                Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="v1.2.2" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Static wgs:AppInfo.VersionDisplay}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,1,0,0" VerticalAlignment="Center"/>
                         <!-- Update available badge -->
                         <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}"
                                 Background="#1a3a1a" BorderBrush="{StaticResource AccentGreenBrush}"
