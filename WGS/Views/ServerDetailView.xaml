@@ -1142,11 +1142,11 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Sisältö: reaaliaikainen lista + historia + tilastot -->
+                    <!-- Content: live list + history + stats -->
                     <TabControl Grid.Row="1" Background="{StaticResource BgDeepBrush}"
                                 BorderThickness="0">
 
-                        <!-- ── Pelaa nyt ── -->
+                        <!-- ── Playing now ── -->
                         <TabItem Header="🟢 Playing now">
                             <Grid Background="{StaticResource BgDeepBrush}">
                                 <Grid.RowDefinitions>
@@ -1209,7 +1209,7 @@
                                                                            FontSize="13" FontFamily="Consolas"
                                                                            Foreground="{StaticResource AccentGreenBrush}"/>
                                                             </StackPanel>
-                                                            <!-- Kick/Ban perustelukenttä -->
+                                                            <!-- Kick/Ban reason field -->
                                                             <TextBox Grid.Column="3" Style="{StaticResource DarkTextBox}"
                                                                      Margin="4,0"
                                                                      Text="{Binding DataContext.KickReason,
@@ -1369,7 +1369,22 @@
                     </Border>
                     <oxy:PlotView Grid.Row="1" Model="{Binding PerfPlot}"
                                   Background="Transparent" Margin="8"
-                                  xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"/>
+                                  xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
+                                  xmlns:oxys="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf.Shared">
+                        <oxy:PlotView.DefaultTrackerTemplate>
+                            <ControlTemplate>
+                                <oxys:TrackerControl Position="{Binding Position}"
+                                                      LineExtents="{Binding PlotModel.PlotArea}">
+                                    <oxys:TrackerControl.Content>
+                                        <Border Background="#1c2128" BorderBrush="#30363d"
+                                                BorderThickness="1" CornerRadius="4" Padding="6">
+                                            <TextBlock Text="{Binding}" Foreground="#e6edf3" FontSize="12"/>
+                                        </Border>
+                                    </oxys:TrackerControl.Content>
+                                </oxys:TrackerControl>
+                            </ControlTemplate>
+                        </oxy:PlotView.DefaultTrackerTemplate>
+                    </oxy:PlotView>
                 </Grid>
             </TabItem>
 
@@ -1550,14 +1565,14 @@
                                 <TextBlock Text="{Binding FileBrowser.StatusText}" FontSize="11"
                                            Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <!-- Hakukenttä -->
+                            <!-- Search field -->
                             <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Width="200"
                                      Text="{Binding FileBrowser.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Search by filename"/>
                         </Grid>
                     </Border>
 
-                    <!-- Pääsisältö -->
+                    <!-- Main content -->
                     <Grid Grid.Row="1">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1660,7 +1675,7 @@
                                 </ListView.ContextMenu>
                             </ListView>
 
-                            <!-- Tekstieditori (näkyy vain kun IsEditing=true) -->
+                            <!-- Text editor (visible only when IsEditing=true) -->
                             <Border Grid.Column="1"
                                     Background="{StaticResource BgSurfaceBrush}"
                                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
@@ -1672,7 +1687,7 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Editorin otsikkopalkki -->
+                                    <!-- Editor title bar -->
                                     <Border Grid.Row="0" Background="{StaticResource BgSurface2Brush}"
                                             Padding="10,6" BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="0,0,0,1">
@@ -1696,7 +1711,7 @@
                                         </Grid>
                                     </Border>
 
-                                    <!-- Tekstikenttä -->
+                                    <!-- Text field -->
                                     <TextBox Grid.Row="1"
                                              Text="{Binding FileBrowser.EditorContent,
                                                  UpdateSourceTrigger=PropertyChanged}"

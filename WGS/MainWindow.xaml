@@ -309,7 +309,7 @@
             <!-- ══ MAIN CONTENT ══ -->
             <Grid Grid.Row="1" Grid.Column="1">
 
-                <!-- Dashboard — DataContext asetettu erikseen, joten Visibility käyttää RelativeSourcea -->
+                <!-- Dashboard — DataContext set separately, so Visibility uses RelativeSource -->
                 <views:DashboardView DataContext="{Binding Dashboard}"
                                      Visibility="{Binding DataContext.ShowDashboard,
                                      RelativeSource={RelativeSource AncestorType=Window},
@@ -322,19 +322,19 @@
                 <views:MachinesView DataContext="{Binding}"
                                     Visibility="{Binding ShowMachines, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Remote server detail — näkyy vain kun ShowRemoteDetail=true (computed property MainViewModelissa) -->
+                <!-- Remote server detail — visible only when ShowRemoteDetail=true (computed property in MainViewModel) -->
                 <views:RemoteServerDetailView DataContext="{Binding SelectedRemoteServer}"
                     Visibility="{Binding DataContext.ShowRemoteDetail,
                         RelativeSource={RelativeSource AncestorType=Window},
                         Converter={StaticResource BoolToVis}}"/>
 
-                <!-- Palvelinruudukko — näkyy vain kun mikään sivu ei ole auki -->
+                <!-- Server grid — visible only when no other page is open -->
                 <Grid>
                     <Grid.Visibility>
                         <Binding Path="ShowServerGrid" Converter="{StaticResource BoolToVis}"/>
                     </Grid.Visibility>
 
-                    <!-- Ei palvelinta valittu -->
+                    <!-- No server selected -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding SelectedServer, Converter={StaticResource NullToInvVis}}">
                         <TextBlock Text="&#x1F3AE;" FontSize="48" HorizontalAlignment="Center"/>
@@ -346,7 +346,7 @@
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
                     </StackPanel>
 
-                    <!-- Palvelimen yksityiskohtanäkymä -->
+                    <!-- Server detail view -->
                     <ContentControl Content="{Binding SelectedServer}"
                                     Visibility="{Binding SelectedServer, Converter={StaticResource NullToVis}}">
                         <ContentControl.ContentTemplate>
