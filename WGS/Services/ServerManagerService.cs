@@ -61,6 +61,61 @@ public class ServerManagerService
     public ServerInstance? GetInstance(string serverId)
         => _running.TryGetValue(serverId, out var i) ? i : null;
 
+    /// <summary>
+    /// Called once at WGS startup for every saved server. If the server has a persisted
+    /// RunningPid and a matching process is still alive (WGS was closed while the game
+    /// server kept running), reattach to it so Status/Stop/Kill work again. Otherwise
+    /// clears the stale PID.
+    /// </summary>
+    public bool TryReattach(GameServer server)
+    {
+        if (server.RunningPid <= 0) return false;
+        try
+        {
+            var p = Process.GetProcessById(server.RunningPid);
+            if (p.HasExited)
+            {
+                server.RunningPid = 0;
+                return false;
+            }
+
+            var plugin = GameRegistry.Get(server.GameId);
+            var exeName = plugin != null ? Path.GetFileNameWithoutExtension(plugin.Executable) : null;
+            if (!string.IsNullOrEmpty(exeName) && !string.Equals(p.ProcessName, exeName, StringComparison.OrdinalIgnoreCase))
+            {
+                // PID was recycled by an unrelated process â€” not actually our server.
+                server.RunningPid = 0;
+                return false;
+            }
+
+            var inst = new ServerInstance(server) { Process = p, StartTime = SafeStartTime(p) };
+            try { p.EnableRaisingEvents = true; } catch { }
+            p.Exited += (_, _) =>
+            {
+                server.RunningPid = 0;
+                _running.TryRemove(server.Id, out _);
+                SetStatus(server, ServerStatus.Stopped);
+            };
+            _running[server.Id] = inst;
+            _network.RegisterServer(server.Id, p.Id);
+            SetStatus(server, ServerStatus.Running);
+            var msg = new ConsoleMessage { Text = $"[WGS] ðŸ”Œ Reattached to running process (PID {p.Id}) after WGS restart.", Type = ConsoleMessageType.Info };
+            inst.AddToLog(msg);
+            LogReceived?.Invoke(server.Id, msg);
+            return true;
+        }
+        catch
+        {
+            server.RunningPid = 0;
+            return false;
+        }
+    }
+
+    private static DateTime? SafeStartTime(Process p)
+    {
+        try { return p.StartTime; } catch { return null; }
+    }
+
     public async Task StartAsync(GameServer server)
     {
         var plugin = GameRegistry.Get(server.GameId);
@@ -248,6 +303,7 @@ public class ServerManagerService
             try
             {
                 SetStatus(server, ServerStatus.Stopped);
+                server.RunningPid = 0;
 
                 if (!server.AutoRestart || !_running.ContainsKey(server.Id))
                 {
@@ -398,6 +454,7 @@ public class ServerManagerService
         inst.Process   = proc;
         inst.StartTime = DateTime.Now;
         server.LastStarted = DateTime.Now;
+        server.RunningPid  = proc.Id;
 
         // Apply RAM limit via Windows Job Object
         if (server.MaxRamMb > 0)
@@ -419,7 +476,13 @@ public class ServerManagerService
 
     public async Task StopAsync(GameServer server)
     {
-        if (!_running.TryGetValue(server.Id, out var inst)) return;
+        if (!_running.TryGetValue(server.Id, out var inst))
+        {
+            // WGS may have been restarted while this server kept running â€” fall back
+            // to killing the orphaned PID we persisted to disk.
+            await KillOrphanedPidAsync(server);
+            return;
+        }
         SetStatus(server, ServerStatus.Stopping);
 
         var plugin = GameRegistry.Get(server.GameId);
@@ -440,7 +503,31 @@ public class ServerManagerService
         if (inst.Process?.HasExited == false)
             inst.Process.Kill(entireProcessTree: true);
 
+        server.RunningPid = 0;
         SetStatus(server, ServerStatus.Stopped);
+    }
+
+    /// <summary>
+    /// Kills a process by the PID persisted on the server model, used when WGS lost its
+    /// in-memory ServerInstance (e.g. after WGS itself was restarted) but the game server
+    /// process is still alive in the background.
+    /// </summary>
+    private Task KillOrphanedPidAsync(GameServer server)
+    {
+        SetStatus(server, ServerStatus.Stopping);
+        if (server.RunningPid > 0)
+        {
+            try
+            {
+                var p = Process.GetProcessById(server.RunningPid);
+                if (!p.HasExited) p.Kill(entireProcessTree: true);
+            }
+            catch { /* already gone */ }
+        }
+        server.RunningPid = 0;
+        if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
+        SetStatus(server, ServerStatus.Stopped);
+        return Task.CompletedTask;
     }
 
     public async Task SendCommandAsync(string serverId, string command)
@@ -460,7 +547,7 @@ public class ServerManagerService
 
     public Task KillAsync(GameServer server)
     {
-        if (!_running.TryGetValue(server.Id, out var inst)) return Task.CompletedTask;
+        if (!_running.TryGetValue(server.Id, out var inst)) return KillOrphanedPidAsync(server);
         SetStatus(server, ServerStatus.Stopping);
         inst.DailyRestartCts.Cancel();
         JobObjectService.ReleaseJob(inst.JobHandle);
@@ -469,6 +556,7 @@ public class ServerManagerService
         if (server.FirewallAutoManage) FirewallService.RemoveRules(server);
         try { inst.Process?.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* process already dead â€” swallow */ }
+        server.RunningPid = 0;
         SetStatus(server, ServerStatus.Stopped);
         return Task.CompletedTask;
     }
