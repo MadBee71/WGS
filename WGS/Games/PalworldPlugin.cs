@@ -22,6 +22,11 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
     public override string Executable      => @"Pal\Binaries\Win64\PalServer-Win64-Shipping-Cmd.exe";
     public override bool   HasRcon          => true;
+    // PalServer's "-Cmd" build expects a real Windows console, not a redirected pipe.
+    // Redirected stdio has been linked to intermittent "SECURE CRT: Invalid parameter
+    // detected" engine crashes after running for a while. Give it its own native console
+    // window instead (same approach as Wreckfest/Wreckfest2).
+    public override bool   UseNativeConsole => true;
     public override int    DefaultPort      => 8211;
     public override int    DefaultQueryPort => 8212;
     public override int    DefaultMaxPlayers => 32;
