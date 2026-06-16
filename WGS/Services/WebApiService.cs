@@ -595,19 +595,20 @@ function upsertCard(s){
   const grid=document.getElementById('srvGrid');
   let card=grid.querySelector('.srv[data-id="'+s.Id+'"]');
   const isNew=!card;
-  if(isNew){card=document.createElement('div');card.className='srv';card.dataset.id=s.Id;grid.appendChild(card);}
 
   const isRun=s.Status==='Running',isStop=!isRun&&s.Status!=='Starting'&&s.Status!=='Stopping';
   const isBusy=s.Status==='Starting'||s.Status==='Stopping'||s.Status==='Installing'||s.Status==='Updating';
 
-  card.innerHTML=`
+  if(isNew){
+    card=document.createElement('div');card.className='srv';card.dataset.id=s.Id;
+    card.innerHTML=`
 <div class="srv-top">
   <div class="srv-hdr">
-    <div class="dot ${sc(s.Status)}"></div>
+    <div class="dot" id="dot_${s.Id}"></div>
     <div style="flex:1">
       <div class="srv-name">${esc(s.DisplayName)}</div>
-      <div class="srv-meta">${esc(s.GameId)} &nbsp;·&nbsp; ${statusLabel(s.Status)}</div>
-      <div class="srv-uptime" id="up_${s.Id}" style="display:${isRun?'block':'none'}"></div>
+      <div class="srv-meta" id="meta_${s.Id}"></div>
+      <div class="srv-uptime" id="up_${s.Id}" style="display:none"></div>
     </div>
   </div>
   <div class="srv-stats">
@@ -617,9 +618,9 @@ function upsertCard(s){
   <div class="players-row" id="plrow_${s.Id}"></div>
 </div>
 <div class="srv-btns">
-  <button class="btn bg" onclick="act('${s.Id}','start')" ${isRun||isBusy?'disabled':''}>▶ Start</button>
-  <button class="btn br" onclick="act('${s.Id}','stop')"  ${isStop?'disabled':''}>■ Stop</button>
-  <button class="btn bb" onclick="act('${s.Id}','restart')"${!isRun?'disabled':''}>↺ Restart</button>
+  <button class="btn bg" id="btn_start_${s.Id}" onclick="act('${s.Id}','start')">▶ Start</button>
+  <button class="btn br" id="btn_stop_${s.Id}"  onclick="act('${s.Id}','stop')">■ Stop</button>
+  <button class="btn bb" id="btn_restart_${s.Id}" onclick="act('${s.Id}','restart')">↺ Restart</button>
   <button class="btn bo" onclick="act('${s.Id}','update')">⬇ Update</button>
   <button class="btn bo" onclick="act('${s.Id}','backup')">💾 Backup</button>
   <button class="btn bo" onclick="toggleBackups('${s.Id}')">📂 Backups</button>
@@ -632,10 +633,25 @@ function upsertCard(s){
 <button class="log-toggle" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
 <div class="log-box" id="log_${s.Id}"></div>
 `;
-  // Fetch detail (uptime + players) async
+    grid.appendChild(card);
+  }
+
+  // Update only dynamic fields — never rebuild the whole card
+  const dot=document.getElementById('dot_'+s.Id);
+  if(dot){dot.className='dot '+sc(s.Status);}
+  const meta=document.getElementById('meta_'+s.Id);
+  if(meta)meta.textContent=s.GameId+' · '+statusLabel(s.Status);
+  const upEl=document.getElementById('up_'+s.Id);
+  if(upEl)upEl.style.display=isRun?'block':'none';
+  const btnStart=document.getElementById('btn_start_'+s.Id);
+  if(btnStart)btnStart.disabled=isRun||isBusy;
+  const btnStop=document.getElementById('btn_stop_'+s.Id);
+  if(btnStop)btnStop.disabled=isStop;
+  const btnRestart=document.getElementById('btn_restart_'+s.Id);
+  if(btnRestart)btnRestart.disabled=!isRun;
+
   if(isRun)fetchDetail(s.Id);
-  // Reopen log if it was open
-  if(logOpen[s.Id])openLog(s.Id);
+  if(isNew&&logOpen[s.Id])openLog(s.Id);
 }
 
 // ── Server detail (uptime + players) ─────────────────────────────────────
