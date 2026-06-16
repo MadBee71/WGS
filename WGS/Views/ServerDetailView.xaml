@@ -427,7 +427,13 @@
 
                                 <!-- Discord Alerts -->
                                 <CheckBox IsChecked="{Binding Server.DiscordAlertsEnabled}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Discord alerts for this server" Margin="0,0,0,12"/>
+                                          Content="Discord alerts for this server" Margin="0,0,0,8"/>
+                                <TextBlock Text="Server-specific webhook URL (optional)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding Server.DiscordWebhookUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource DarkTextBox}" Margin="0,0,0,4"
+                                         ToolTip="If set, alerts for this server go to this channel instead of the global webhook."/>
+                                <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
+                                           Text="Leave empty to use the global webhook from Settings → Notifications"/>
 
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"

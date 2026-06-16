@@ -183,7 +183,16 @@ public class NotificationService
             _ => (null, null)
         };
 
-        if (title != null) await NotifyAsync(title, $"Game: {GameRegistry_GameName(server.GameId)}", color!);
+        if (title == null) return;
+
+        var description = $"Game: {GameRegistry_GameName(server.GameId)}";
+
+        // Server-specific webhook takes priority; fall back to global
+        var serverWebhook = server.DiscordWebhookUrl?.Trim();
+        if (!string.IsNullOrEmpty(serverWebhook))
+            await SendDiscordAsync(title, description, color!, serverWebhook);
+        else
+            await NotifyAsync(title, description, color!);
     }
 
     private static string GameRegistry_GameName(string gameId)
@@ -230,12 +239,24 @@ public class NotificationService
         catch { return false; }
     }
 
+    private Task SendDiscordAsync(string title, string description, string hexColor, string webhookUrl)
+    {
+        if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return Task.CompletedTask;
+        return SendDiscordToUriAsync(title, description, hexColor, uri);
+    }
+
     private async Task SendDiscordAsync(string title, string description, string hexColor)
     {
         if (!Uri.TryCreate(_settings.DiscordWebhookUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             return;
+        await SendDiscordToUriAsync(title, description, hexColor, uri);
+    }
 
+    private async Task SendDiscordToUriAsync(string title, string description, string hexColor, Uri uri)
+    {
         try
         {
             int colorInt = Convert.ToInt32(hexColor.TrimStart('#'), 16);
