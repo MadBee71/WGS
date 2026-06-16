@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Features - WGS Documentation</title>
-    <meta name="description" content="Full feature list for Windows Game Server (WGS) v1.2.3 — Server management, monitoring, automation, remote control, Discord, REST API and more.">
+    <meta name="description" content="Full feature list for Windows Game Server (WGS) v1.2.4 — Server management, monitoring, automation, remote control, Discord, REST API and more.">
     <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         :root {
@@ -238,6 +238,33 @@
     <div class="feature-block">
         <h3>📁 Selective Backup Paths <span class="new-tag">v1.2.3</span></h3>
         <p>Back up only the save folder instead of the entire game install — dramatically reducing backup size for large games. Built-in defaults for Enshrouded, Palworld, ARK, DayZ, V Rising, Satisfactory, Project Zomboid and Terraria. Fully customisable per server.</p>
+    </div>
+
+    <p class="section-divider">New in v1.2.4</p>
+
+    <div class="feature-block">
+        <h3>🎮 Palworld REST API Integration <span class="new-tag">v1.2.4</span></h3>
+        <p>WGS now fetches the Palworld player list via Palworld's official REST API instead of RCON. Pocketpair has deprecated RCON support — the REST API is more stable, handles international player names correctly and returns clean JSON data. No configuration needed; enable <code>RESTAPIEnabled=True</code> in PalWorldSettings.ini.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🔔 Fixed Duplicate Stop Notifications <span class="new-tag">v1.2.4</span></h3>
+        <p>Discord webhooks no longer send two "Server stopped" alerts when a server is shut down. The race condition between the process exit event and the explicit stop status update has been resolved.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🌐 Web Dashboard — Stable Server Cards <span class="new-tag">v1.2.4</span></h3>
+        <p>Server cards in the web dashboard no longer rebuild from scratch every 5 seconds. The Backups list and Console Log now stay open during auto-refresh — only the status indicator, button states and player count update dynamically.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>📋 Console Log Cap <span class="new-tag">v1.2.4</span></h3>
+        <p>In-memory console log is now capped at 500 lines per server, preventing UI slowdown on long-running servers that produce high log output.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🔥 Firewall — Steam Port Auto-Open <span class="new-tag">v1.2.4</span></h3>
+        <p>WGS now automatically opens the Steam networking port (TCP + UDP) in Windows Firewall for games that use a dedicated Steam port separate from the game port (e.g. Wreckfest 2 port 30200).</p>
     </div>
 
     <footer>
