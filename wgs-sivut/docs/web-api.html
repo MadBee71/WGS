@@ -109,6 +109,8 @@
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/restart</code></td><td>Restart the server.</td></tr>
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/update</code></td><td>Trigger a SteamCMD update.</td></tr>
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/backup</code></td><td>Create an immediate world backup.</td></tr>
+                <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}/backups</code></td><td>List available backups for the server (filename, size, date).</td></tr>
+                <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/restore</code></td><td>Restore a backup. Body: <code>{"backup":"2024-01-15_valheim.zip"}</code>. Stop the server first.</td></tr>
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/cmd</code></td><td>Send a console command. Body: <code>{"command":"say hello"}</code></td></tr>
             </tbody>
         </table>
