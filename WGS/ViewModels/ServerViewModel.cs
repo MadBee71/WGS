@@ -981,20 +981,21 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var cutoff  = DateTime.Now.AddMinutes(-PerfRangeMinutes);
         var samples = _perfHistory.Get(Server.Id).Where(s => s.Time >= cutoff).ToList();
         EnsurePerfModel();
-        _cpuSeries!.Points.Clear();
-        _memSeries!.Points.Clear();
-        if (samples.Count == 0)
+
+        // Mutate series + invalidate on the UI thread together â€” this can be called from the
+        // 2s timer's background thread, and OxyPlot's renderer reads Points on the UI thread.
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
-            WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(true));
-            return;
-        }
-        foreach (var s in samples)
-        {
-            var x = OxyPlot.Axes.DateTimeAxis.ToDouble(s.Time);
-            _cpuSeries.Points.Add(new OxyPlot.DataPoint(x, s.Cpu));
-            _memSeries.Points.Add(new OxyPlot.DataPoint(x, s.MemMb));
-        }
-        WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(false));
+            _cpuSeries!.Points.Clear();
+            _memSeries!.Points.Clear();
+            foreach (var s in samples)
+            {
+                var x = OxyPlot.Axes.DateTimeAxis.ToDouble(s.Time);
+                _cpuSeries.Points.Add(new OxyPlot.DataPoint(x, s.Cpu));
+                _memSeries.Points.Add(new OxyPlot.DataPoint(x, s.MemMb));
+            }
+            _perfModel!.InvalidatePlot(true);
+        });
     }
 
     private static OxyPlot.PlotModel CreateEmptyPlot()
