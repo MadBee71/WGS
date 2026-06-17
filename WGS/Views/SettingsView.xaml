@@ -83,6 +83,8 @@
                         <CheckBox IsChecked="{Binding NotifyOnStop}"   Style="{StaticResource DarkCheckBox}" Content="Stop"    Margin="0,0,16,8"/>
                         <CheckBox IsChecked="{Binding NotifyOnCrash}"  Style="{StaticResource DarkCheckBox}" Content="Crash"  Margin="0,0,16,8"/>
                         <CheckBox IsChecked="{Binding NotifyOnUpdate}" Style="{StaticResource DarkCheckBox}" Content="Update"    Margin="0,0,16,8"/>
+                        <CheckBox IsChecked="{Binding NotifyOnPlayerJoin}"  Style="{StaticResource DarkCheckBox}" Content="Player joined" Margin="0,0,16,8"/>
+                        <CheckBox IsChecked="{Binding NotifyOnPlayerLeave}" Style="{StaticResource DarkCheckBox}" Content="Player left"   Margin="0,0,16,8"/>
                     </WrapPanel>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
