@@ -80,6 +80,30 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _workshopItemId      = string.Empty;
     [ObservableProperty] private string _workshopSearchQuery = string.Empty;
     [ObservableProperty] private bool   _workshopBusy;
+    [ObservableProperty] private string _workshopItemIdPreview = string.Empty;
+    private System.Timers.Timer? _workshopIdLookupTimer;
+
+    partial void OnWorkshopItemIdChanged(string value)
+    {
+        _workshopIdLookupTimer?.Stop();
+        WorkshopItemIdPreview = string.Empty;
+        if (!ulong.TryParse(value, out var id) || id == 0) return;
+
+        _workshopIdLookupTimer ??= new System.Timers.Timer(500) { AutoReset = false };
+        _workshopIdLookupTimer.Elapsed -= WorkshopIdLookupElapsed;
+        _workshopIdLookupTimer.Elapsed += WorkshopIdLookupElapsed;
+        _workshopIdLookupTimer.Start();
+
+        void WorkshopIdLookupElapsed(object? _, System.Timers.ElapsedEventArgs __) => _ = LookupWorkshopItemNameAsync(id);
+    }
+
+    private async Task LookupWorkshopItemNameAsync(ulong id)
+    {
+        var title = await Services.SteamWorkshopService.TryGetItemTitleAsync(id);
+        if (ulong.TryParse(WorkshopItemId, out var current) && current != id) return; // stale lookup, ID changed since
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            WorkshopItemIdPreview = title ?? "(not found)");
+    }
 
     // Scheduled tasks
     [ObservableProperty] private List<Services.ScheduledTask> _scheduledTasks = [];
@@ -806,6 +830,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Players ──────────────────────────────────────────────────────────────
 
+    private bool _playersFetchedOnce;
+
     private void StartPlayerRefresh()
     {
         _playerRefreshTimer?.Dispose();
@@ -870,11 +896,23 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var currNames  = parsed.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
         var prevNames  = prev.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
 
-        foreach (var p in parsed.Where(p => !prevNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)))
+        var joined = parsed.Where(p => !prevNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)).ToList();
+        var left   = prev.Where(p => !currNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)).ToList();
+
+        foreach (var p in joined)
             _playerStats.RecordJoin(Server.Id, p.Name, p.SteamId);
 
-        foreach (var p in prev.Where(p => !currNames.Contains(p.SteamId.Length > 0 ? p.SteamId : p.Name)))
+        foreach (var p in left)
             _playerStats.RecordLeave(Server.Id, p.Name, p.SteamId);
+
+        // Skip Discord alerts on the very first fetch after opening a server, otherwise
+        // every already-connected player would fire a spurious "joined" notification.
+        if (_playersFetchedOnce)
+        {
+            foreach (var p in joined) _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: true);
+            foreach (var p in left)   _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: false);
+        }
+        _playersFetchedOnce = true;
 
         WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {

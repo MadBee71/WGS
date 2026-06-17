@@ -16,6 +16,8 @@ public class NotificationSettings
     public bool   NotifyOnStop      { get; set; } = true;
     public bool   NotifyOnCrash     { get; set; } = true;
     public bool   NotifyOnUpdate    { get; set; } = true;
+    public bool   NotifyOnPlayerJoin { get; set; } = false;
+    public bool   NotifyOnPlayerLeave { get; set; } = false;
 
     // Remote control bot
     public bool   BotEnabled      { get; set; }
@@ -43,6 +45,8 @@ file record NotificationSettingsData(
     bool   NotifyOnStop,
     bool   NotifyOnCrash,
     bool   NotifyOnUpdate,
+    bool   NotifyOnPlayerJoin         = false,
+    bool   NotifyOnPlayerLeave        = false,
     bool   BotEnabled                = false,
     string BotTokenEncrypted         = "",
     string BotChannelId              = "",
@@ -94,6 +98,8 @@ public class NotificationService
             _settings.NotifyOnStop,
             _settings.NotifyOnCrash,
             _settings.NotifyOnUpdate,
+            _settings.NotifyOnPlayerJoin,
+            _settings.NotifyOnPlayerLeave,
             _settings.BotEnabled,
             encryptedToken,
             _settings.BotChannelId,
@@ -133,6 +139,8 @@ public class NotificationService
                     NotifyOnStop   = data.NotifyOnStop,
                     NotifyOnCrash  = data.NotifyOnCrash,
                     NotifyOnUpdate = data.NotifyOnUpdate,
+                    NotifyOnPlayerJoin  = data.NotifyOnPlayerJoin,
+                    NotifyOnPlayerLeave = data.NotifyOnPlayerLeave,
                     BotEnabled      = data.BotEnabled,
                     BotToken        = string.IsNullOrEmpty(data.BotTokenEncrypted)
                         ? string.Empty
@@ -193,6 +201,23 @@ public class NotificationService
             await SendDiscordAsync(title, description, color!, serverWebhook);
         else
             await NotifyAsync(title, description, color!);
+    }
+
+    public async Task NotifyPlayerEventAsync(GameServer server, string playerName, bool joined)
+    {
+        if (!server.DiscordAlertsEnabled) return;
+        if (joined  && !_settings.NotifyOnPlayerJoin)  return;
+        if (!joined && !_settings.NotifyOnPlayerLeave) return;
+
+        var name  = string.IsNullOrWhiteSpace(playerName) ? "A player" : playerName;
+        var title = joined ? $"🟢 {name} joined {server.DisplayName}" : $"🔴 {name} left {server.DisplayName}";
+        var color = joined ? "#3FB950" : "#8B949E";
+
+        var serverWebhook = server.DiscordWebhookUrl?.Trim();
+        if (!string.IsNullOrEmpty(serverWebhook))
+            await SendDiscordAsync(title, "", color, serverWebhook);
+        else
+            await NotifyAsync(title, "", color);
     }
 
     private static string GameRegistry_GameName(string gameId)

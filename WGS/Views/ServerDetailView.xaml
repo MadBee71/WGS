@@ -1434,6 +1434,8 @@
                                         Command="{Binding InstallWorkshopItemCommand}"
                                         IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"/>
                             </StackPanel>
+                            <TextBlock Text="{Binding WorkshopItemIdPreview}" FontSize="11" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextMutedBrush}"/>
                             <!-- Busy indicator -->
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
                                         Visibility="{Binding WorkshopBusy, Converter={StaticResource BoolToVis}}">

@@ -25,6 +25,8 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private bool   _notifyOnStop      = true;
     [ObservableProperty] private bool   _notifyOnCrash     = true;
     [ObservableProperty] private bool   _notifyOnUpdate    = true;
+    [ObservableProperty] private bool   _notifyOnPlayerJoin  = false;
+    [ObservableProperty] private bool   _notifyOnPlayerLeave = false;
 
     // ── Discord remote-control bot ────────────────────────────────────────────
     [ObservableProperty] private bool   _botEnabled;
@@ -128,6 +130,8 @@ public partial class SettingsViewModel : BaseViewModel
         NotifyOnStop       = s.NotifyOnStop;
         NotifyOnCrash      = s.NotifyOnCrash;
         NotifyOnUpdate     = s.NotifyOnUpdate;
+        NotifyOnPlayerJoin  = s.NotifyOnPlayerJoin;
+        NotifyOnPlayerLeave = s.NotifyOnPlayerLeave;
         BotEnabled         = s.BotEnabled;
         BotToken           = s.BotToken        ?? string.Empty;
         BotChannelId       = s.BotChannelId    ?? string.Empty;
@@ -171,6 +175,8 @@ public partial class SettingsViewModel : BaseViewModel
         s.NotifyOnStop      = NotifyOnStop;
         s.NotifyOnCrash     = NotifyOnCrash;
         s.NotifyOnUpdate    = NotifyOnUpdate;
+        s.NotifyOnPlayerJoin  = NotifyOnPlayerJoin;
+        s.NotifyOnPlayerLeave = NotifyOnPlayerLeave;
         s.BotEnabled        = BotEnabled;
         s.BotToken          = BotToken;
         s.BotChannelId      = BotChannelId;
