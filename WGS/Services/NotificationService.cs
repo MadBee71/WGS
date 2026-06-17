@@ -203,21 +203,22 @@ public class NotificationService
             await NotifyAsync(title, description, color!);
     }
 
-    public async Task NotifyPlayerEventAsync(GameServer server, string playerName, bool joined)
+    public async Task NotifyPlayerEventAsync(GameServer server, string playerName, bool joined, int currentPlayerCount)
     {
         if (!server.DiscordAlertsEnabled) return;
         if (joined  && !_settings.NotifyOnPlayerJoin)  return;
         if (!joined && !_settings.NotifyOnPlayerLeave) return;
 
-        var name  = string.IsNullOrWhiteSpace(playerName) ? "A player" : playerName;
-        var title = joined ? $"🟢 {name} joined {server.DisplayName}" : $"🔴 {name} left {server.DisplayName}";
-        var color = joined ? "#3FB950" : "#8B949E";
+        var name        = string.IsNullOrWhiteSpace(playerName) ? "A player" : playerName;
+        var title       = joined ? $"🟢 {name} joined {server.DisplayName}" : $"🔴 {name} left {server.DisplayName}";
+        var color       = joined ? "#3FB950" : "#8B949E";
+        var description = $"Players online: {currentPlayerCount}";
 
         var serverWebhook = server.DiscordWebhookUrl?.Trim();
         if (!string.IsNullOrEmpty(serverWebhook))
-            await SendDiscordAsync(title, "", color, serverWebhook);
+            await SendDiscordAsync(title, description, color, serverWebhook);
         else
-            await NotifyAsync(title, "", color);
+            await NotifyAsync(title, description, color);
     }
 
     private static string GameRegistry_GameName(string gameId)
