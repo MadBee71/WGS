@@ -799,6 +799,7 @@
                                     <RowDefinition Height="Auto"/><RowDefinition Height="12"/>
                                     <RowDefinition Height="Auto"/><RowDefinition Height="12"/>
                                     <RowDefinition Height="Auto"/><RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="12"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
@@ -811,14 +812,17 @@
                                 <TextBlock Grid.Row="4" Text="Steam App ID" Style="{StaticResource FieldLabel}"/>
                                 <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Plugin.SteamAppId}"/>
 
-                                <TextBlock Grid.Row="6" Text="Default port" Style="{StaticResource FieldLabel}"/>
-                                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Plugin.DefaultPort}"/>
+                                <TextBlock Grid.Row="6" Text="This server's port" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Server.ServerPort}" FontWeight="SemiBold"/>
 
-                                <TextBlock Grid.Row="8" Text="RCON" Style="{StaticResource FieldLabel}"/>
-                                <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Plugin.HasRcon}"/>
+                                <TextBlock Grid.Row="8" Text="Game's default port" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Plugin.DefaultPort}" Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                <TextBlock Grid.Row="10" Text="Description" Style="{StaticResource FieldLabel}"/>
-                                <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding Plugin.Description}"
+                                <TextBlock Grid.Row="10" Text="RCON supported" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding Plugin.HasRcon}"/>
+
+                                <TextBlock Grid.Row="12" Text="Description" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding Plugin.Description}"
                                            TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </Grid>
                         </Border>
