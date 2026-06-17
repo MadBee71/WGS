@@ -963,6 +963,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WpfApplication.Current?.Dispatcher?.Invoke(() => PerfPlot = _perfModel);
     }
 
+    [RelayCommand]
+    private void RefreshChart() => UpdatePerfChart();
+
     private void UpdatePerfChart()
     {
         var cutoff  = DateTime.Now.AddMinutes(-PerfRangeMinutes);

@@ -1365,6 +1365,8 @@
                             <ComboBox ItemsSource="{Binding PerfRangeOptions}"
                                       SelectedItem="{Binding PerfRangeMinutes}"
                                       Style="{StaticResource DarkComboBox}" Width="100"/>
+                            <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
+                                    Command="{Binding RefreshChartCommand}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Border>
                     <oxy:PlotView Grid.Row="1" Model="{Binding PerfPlot}"
