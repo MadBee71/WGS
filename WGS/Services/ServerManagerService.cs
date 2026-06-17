@@ -126,14 +126,34 @@ public class ServerManagerService
         try { Directory.CreateDirectory(server.InstallPath); } catch { }
         await plugin.PreStartAsync(server);
 
-        // Pre-flight: kill any zombie instance of the same executable
+        // Pre-flight: kill any zombie instance of THIS server's own executable.
+        // Must match on the resolved install-path exe, not just process name â€” two
+        // servers running the same game (e.g. two Palworld instances) share a process
+        // name, and killing by name alone would kill the other server's process.
         var inst0 = new ServerInstance(server);
         _running[server.Id] = inst0;
         var exeName = Path.GetFileNameWithoutExtension(plugin.Executable);
         if (!string.IsNullOrEmpty(exeName))
         {
+            var expectedExePath = Path.Combine(server.InstallPath, plugin.Executable);
+            var otherRunningPids = _running.Values
+                .Where(i => i.Server.Id != server.Id)
+                .Select(i => i.Process?.Id ?? 0)
+                .ToHashSet();
+
             var zombies = Process.GetProcessesByName(exeName)
-                                 .Where(p => { try { return !p.HasExited; } catch { return false; } })
+                                 .Where(p =>
+                                 {
+                                     try
+                                     {
+                                         if (p.HasExited || otherRunningPids.Contains(p.Id)) return false;
+                                         var path = p.MainModule?.FileName;
+                                         return path != null &&
+                                                string.Equals(Path.GetFullPath(path), Path.GetFullPath(expectedExePath),
+                                                    StringComparison.OrdinalIgnoreCase);
+                                     }
+                                     catch { return false; }
+                                 })
                                  .ToList();
             foreach (var z in zombies)
             {
@@ -141,7 +161,7 @@ public class ServerManagerService
                 {
                     z.Kill(entireProcessTree: true);
                     z.WaitForExit(3000);
-                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] ðŸ—‘ Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
+                    var msg = new ConsoleMessage { Text = $"[PRE-FLIGHT] Killed leftover process {exeName} (PID {z.Id})", Type = ConsoleMessageType.Warning };
                     inst0.AddToLog(msg);
                     LogReceived?.Invoke(server.Id, msg);
                 }
