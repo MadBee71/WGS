@@ -121,6 +121,9 @@ public class ServerManagerService
         var plugin = GameRegistry.Get(server.GameId);
         if (plugin == null) throw new InvalidOperationException("Unknown game: " + server.GameId);
 
+        var validationError = plugin.ValidateBeforeStart(server);
+        if (validationError != null) throw new InvalidOperationException(validationError);
+
         SetStatus(server, ServerStatus.Starting);
 
         try { Directory.CreateDirectory(server.InstallPath); } catch { }

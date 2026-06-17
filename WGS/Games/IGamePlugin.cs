@@ -37,6 +37,13 @@ public interface IGamePlugin
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
 
+    /// <summary>
+    /// Returns an error message if the server's settings would prevent it from starting
+    /// correctly (e.g. a password too short for the game's own requirements), or null if
+    /// everything checks out. Checked right before launching the process.
+    /// </summary>
+    string? ValidateBeforeStart(GameServer server);
+
     // Player management via RCON (optional — return null if not supported)
     string? GetKickCommand(string playerName);
     string? GetKickCommand(string playerName, string reason);
