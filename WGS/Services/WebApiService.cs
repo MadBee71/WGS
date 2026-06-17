@@ -44,6 +44,7 @@ public class WebApiService : IDisposable
     public Func<string, IEnumerable<(string fileName, string sizeText, DateTime createdAt)>>? GetBackups { get; set; }
     /// <summary>Restores a backup by filename for a server. Returns error message or null on success.</summary>
     public Func<string, string, Task<string?>>? RestoreBackup { get; set; }
+    public Func<string, int, IEnumerable<(DateTime time, double cpu, long memMb)>>? GetPerfSamples { get; set; }
 
     /// <summary>True when listener bound to all interfaces (reachable from network); false = localhost only.</summary>
     public bool BoundToAllInterfaces { get; private set; }
@@ -248,6 +249,18 @@ public class WebApiService : IDisposable
                 int.TryParse(req.QueryString["offset"], out var offset);
                 var result = GetLog?.Invoke(serverId, offset) ?? (new List<string>(), new List<string>(), offset);
                 await SendJson(resp, new { lines = result.lines, types = result.types, nextOffset = result.nextOffset });
+                return;
+            }
+
+            // GET /api/servers/{id}/perf?minutes=N
+            if (req.HttpMethod == "GET" && logParts.Length == 4
+                && logParts[0] == "api" && logParts[1] == "servers" && logParts[3] == "perf")
+            {
+                var serverId = logParts[2];
+                int.TryParse(req.QueryString["minutes"], out var minutes);
+                if (minutes <= 0) minutes = 5;
+                var samples = GetPerfSamples?.Invoke(serverId, minutes) ?? [];
+                await SendJson(resp, samples.Select(s => new { t = s.time, cpu = Math.Round(s.cpu, 1), mem = s.memMb }));
                 return;
             }
 
@@ -456,6 +469,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 /* Section header */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .sec-hdr h2{font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.sortsel{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer}
 /* Server grid */
 .srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
 .srv{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;transition:border-color .15s}
@@ -475,6 +489,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .srv-stats{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
 .stat{font-size:11px;color:#8b949e;display:flex;flex-direction:column;gap:2px}
 .stat span{color:#e6edf3;font-weight:600;font-size:13px}
+/* Mini perf sparkline */
+.spark{width:100%;height:28px;margin-top:8px;display:none}
 /* Player pills */
 .players-row{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;min-height:0}
 .player-pill{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9}
@@ -551,6 +567,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
     <!-- Servers -->
     <div class="sec-hdr">
       <h2>Servers</h2>
+      <select class="sortsel" id="sortSel" onchange="setSortMode(this.value)">
+        <option value="name-asc">A → Z</option>
+        <option value="name-desc">Z → A</option>
+        <option value="game-asc">Game</option>
+        <option value="status">Status</option>
+      </select>
     </div>
     <div class="srv-grid" id="srvGrid"></div>
   </div>
@@ -590,6 +612,8 @@ async function loadAll(){
     document.getElementById('conBadge').className='badge ok';
     document.getElementById('authWrap').style.display='none';
     document.getElementById('appWrap').style.display='';
+    const sortSel=document.getElementById('sortSel');
+    if(sortSel&&sortSel.value!==sortMode)sortSel.value=sortMode;
     renderSys(sys,sv);
     renderServers(sv);
     document.getElementById('refreshTxt').textContent='Updated '+new Date().toLocaleTimeString('en');
@@ -622,13 +646,36 @@ function statusLabel(s){return{Running:'Running',Stopped:'Stopped',NotInstalled:
   Error:'Error',Starting:'Starting…',Stopping:'Stopping…',
   Installing:'Installing…',Updating:'Updating…'}[s]||s;}
 
+let sortMode=localStorage.getItem('wgsSortMode')||'name-asc';
+function setSortMode(v){sortMode=v;localStorage.setItem('wgsSortMode',v);if(lastServerList)renderServers(lastServerList);}
+
+const statusOrder={Running:0,Starting:1,Updating:1,Installing:1,Stopping:2,Stopped:3,Error:4,NotInstalled:5};
+function sortServers(list){
+  const arr=[...list];
+  switch(sortMode){
+    case 'name-desc': arr.sort((a,b)=>b.DisplayName.localeCompare(a.DisplayName)); break;
+    case 'game-asc':  arr.sort((a,b)=>a.GameId.localeCompare(b.GameId)); break;
+    case 'status':    arr.sort((a,b)=>(statusOrder[a.Status]??9)-(statusOrder[b.Status]??9)); break;
+    default:          arr.sort((a,b)=>a.DisplayName.localeCompare(b.DisplayName));
+  }
+  return arr;
+}
+
+let lastServerList=null;
 function renderServers(list){
+  lastServerList=list;
+  const sorted=sortServers(list);
   const grid=document.getElementById('srvGrid');
   const existing=new Set([...grid.querySelectorAll('.srv')].map(el=>el.dataset.id));
-  const incoming=new Set(list.map(s=>s.Id));
+  const incoming=new Set(sorted.map(s=>s.Id));
   // Remove stale cards
   existing.forEach(id=>{if(!incoming.has(id))document.querySelector('.srv[data-id="'+id+'"]')?.remove();});
-  list.forEach(s=>upsertCard(s));
+  sorted.forEach(s=>upsertCard(s));
+  // Reorder DOM to match sort order (appendChild moves existing nodes)
+  sorted.forEach(s=>{
+    const card=grid.querySelector('.srv[data-id="'+s.Id+'"]');
+    if(card)grid.appendChild(card);
+  });
 }
 
 function upsertCard(s){
@@ -655,6 +702,7 @@ function upsertCard(s){
     <div class="stat"><span id="pl_${s.Id}">${s.CurrentPlayers}/${s.MaxPlayers}</span>Players</div>
     <div class="stat"><span>${s.ServerPort}</span>Port</div>
   </div>
+  <svg class="spark" id="spark_${s.Id}" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
   <div class="players-row" id="plrow_${s.Id}"></div>
 </div>
 <div class="srv-btns">
@@ -690,7 +738,8 @@ function upsertCard(s){
   const btnRestart=document.getElementById('btn_restart_'+s.Id);
   if(btnRestart)btnRestart.disabled=!isRun;
 
-  if(isRun)fetchDetail(s.Id);
+  if(isRun){fetchDetail(s.Id);fetchPerf(s.Id);}
+  else{const sp=document.getElementById('spark_'+s.Id);if(sp)sp.style.display='none';}
   if(isNew&&logOpen[s.Id])openLog(s.Id);
 }
 
@@ -708,6 +757,24 @@ async function fetchDetail(id){
         `<span class="player-pill">${esc(p.Name)}<span class="ping"> ${p.Ping>0?p.Ping+'ms':''}</span></span>`
       ).join('');
     }
+  }catch(e){}
+}
+
+// ── Mini CPU sparkline ────────────────────────────────────────────────────
+async function fetchPerf(id){
+  try{
+    const samples=await api('servers/'+id+'/perf?minutes=5');
+    const sp=document.getElementById('spark_'+id);
+    if(!sp)return;
+    if(!samples||samples.length<2){sp.style.display='none';return;}
+    sp.style.display='block';
+    const w=100,h=28,n=samples.length;
+    const pts=samples.map((s,i)=>{
+      const x=n>1?(i/(n-1))*w:0;
+      const y=h-(Math.max(0,Math.min(100,s.cpu))/100)*h;
+      return x.toFixed(1)+','+y.toFixed(1);
+    }).join(' ');
+    sp.innerHTML=`<polyline points="${pts}" fill="none" stroke="#58a6ff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
   }catch(e){}
 }
 
