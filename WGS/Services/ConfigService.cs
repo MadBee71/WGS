@@ -24,6 +24,7 @@ public class ConfigService
     public string SlaveName              { get; set; } = "This Machine";
     public bool   CrashPredictionDiscord { get; set; } = false;
     public bool   EnableUPnP             { get; set; } = false;
+    public string SortMode               { get; set; } = "name-asc";
 
     /// <summary>True when the Web API must be started — either by user choice or slave mode.</summary>
     public bool WebApiRequired => WebApiEnabled || SlaveMode;
@@ -52,7 +53,8 @@ public class ConfigService
         bool   SlaveMode               = false,
         string SlaveName               = "This Machine",
         bool   CrashPredictionDiscord  = false,
-        bool   EnableUPnP             = false);
+        bool   EnableUPnP             = false,
+        string SortMode               = "name-asc");
 
     private void LoadSettings()
     {
@@ -76,6 +78,7 @@ public class ConfigService
             SlaveName              = string.IsNullOrEmpty(d.SlaveName) ? "This Machine" : d.SlaveName;
             CrashPredictionDiscord = d.CrashPredictionDiscord;
             EnableUPnP             = d.EnableUPnP;
+            SortMode               = string.IsNullOrEmpty(d.SortMode) ? "name-asc" : d.SortMode;
         }
         catch { }
     }
@@ -87,7 +90,7 @@ public class ConfigService
             : EncryptionService.Encrypt(SteamPassword);
         var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
-            EnableUPnP);
+            EnableUPnP, SortMode);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

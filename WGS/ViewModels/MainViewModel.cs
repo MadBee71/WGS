@@ -155,6 +155,7 @@ public partial class MainViewModel : BaseViewModel
         UPnPService upnp, WakeOnDemandService wakeOnDemand)
     {
         _config          = config;
+        _sortMode        = config.SortMode; // restore last-used sort order without triggering a save
         _manager         = manager;
         _steamCmd        = steamCmd;
         _backup          = backup;
@@ -596,6 +597,8 @@ public partial class MainViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(SortedServers));
         OnPropertyChanged(nameof(SortedRemoteServers));
+        _config.SortMode = value;
+        _config.Save();
     }
     partial void OnNewServerGameChanged(IGamePlugin? value)
     {
