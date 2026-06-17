@@ -985,7 +985,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _memSeries!.Points.Clear();
         if (samples.Count == 0)
         {
-            WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(false));
+            WpfApplication.Current?.Dispatcher?.Invoke(() => _perfModel!.InvalidatePlot(true));
             return;
         }
         foreach (var s in samples)
