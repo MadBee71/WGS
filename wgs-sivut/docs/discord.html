@@ -36,6 +36,9 @@
         .cmd-table td:first-child code { font-size: 0.88rem; }
         .info-box { background: rgba(0,173,255,0.06); border: 1px solid rgba(0,173,255,0.3); padding: 16px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 0.92rem; }
         .info-box strong { color: var(--accent-color); }
+        .new-tag { display: inline-block; background: rgba(0,173,255,0.15); color: var(--accent-color);
+                   font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+                   margin-left: 8px; vertical-align: middle; }
         ol { padding-left: 22px; margin: 10px 0 0; }
         ol li { margin-bottom: 8px; font-size: 0.93rem; }
         footer { text-align: center; margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--border-color); color: #8b949e; font-size: 0.88rem; }
@@ -105,6 +108,8 @@
             <li>Server <strong>stopped</strong></li>
             <li>Server <strong>crashed</strong> (unexpected exit)</li>
             <li>Server <strong>updated</strong> via SteamCMD</li>
+            <li>Player <strong>joined</strong> <span class="new-tag">v1.2.4</span> — off by default, includes current player count</li>
+            <li>Player <strong>left</strong> <span class="new-tag">v1.2.4</span> — off by default, includes current player count</li>
         </ul>
         <p style="margin-top:10px;">Notifications are sent via a Discord <strong>Webhook URL</strong> (separate from the bot). Set a global webhook in <strong>Settings → Discord Notifications → Webhook URL</strong>.</p>
         <p>Since v1.2.3, each server can also have its own webhook URL set in its individual <strong>Settings → Discord alerts</strong> tab — useful for routing different servers to different Discord channels. The per-server URL takes priority; the global URL is used as fallback.</p>
