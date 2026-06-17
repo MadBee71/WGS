@@ -184,17 +184,25 @@
             </TabControl.Resources>
 
             <!-- ── CONSOLE ── -->
-            <TabItem Header="{Binding Loc.TabConsole}"
-                     Visibility="{Binding UseNativeConsole, Converter={StaticResource InvBoolToVis}}">
+            <TabItem Header="{Binding Loc.TabConsole}">
                 <Grid Background="{StaticResource BgDeepBrush}">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
+                    <!-- Native console notice -->
+                    <Border Grid.Row="0" Background="{StaticResource BgSurface2Brush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
+                            Visibility="{Binding UseNativeConsole, Converter={StaticResource BoolToVis}}">
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Text="⚠ This game runs in its own console window, so live game output isn't shown here. WGS status messages (port checks, backups, scheduled tasks...) still appear below, and the command box still works if this game supports remote commands."/>
+                    </Border>
+
                     <!-- Filter bar -->
-                    <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
+                    <Border Grid.Row="1" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -219,7 +227,7 @@
                     </Border>
 
                     <!-- Log output -->
-                    <ScrollViewer Grid.Row="1" x:Name="LogScroller"
+                    <ScrollViewer Grid.Row="2" x:Name="LogScroller"
                                   Background="{StaticResource BgDeepBrush}"
                                   VerticalScrollBarVisibility="Auto" Padding="8"
                                   ScrollChanged="LogScroller_ScrollChanged">
@@ -265,7 +273,7 @@
                     </ScrollViewer>
 
                     <!-- Command input -->
-                    <Border Grid.Row="2" Background="{StaticResource BgSurfaceBrush}"
+                    <Border Grid.Row="3" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
