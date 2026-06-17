@@ -909,8 +909,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // every already-connected player would fire a spurious "joined" notification.
         if (_playersFetchedOnce)
         {
-            foreach (var p in joined) _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: true);
-            foreach (var p in left)   _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: false);
+            foreach (var p in joined) _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: true, parsed.Count);
+            foreach (var p in left)   _ = _notifications.NotifyPlayerEventAsync(Server, p.Name, joined: false, parsed.Count);
         }
         _playersFetchedOnce = true;
 
@@ -1370,6 +1370,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
     }
 
+    /// <summary>
+    /// Stops live monitoring for this ViewModel. Does NOT clear recorded history â€” this
+    /// runs whenever the ViewModel is disposed (e.g. switching servers, closing WGS), which
+    /// must not erase history for a server that's still actually running.
+    /// </summary>
     private void StopPerfMonitoring()
     {
         lock (_perfLock)
@@ -1379,7 +1384,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             _perfTimer = null;
         }
         _perfMonitor.Untrack(Server.Id);
-        _perfHistory.Clear(Server.Id);
         _perfModel  = null;
         _cpuSeries  = null;
         _memSeries  = null;
@@ -1432,6 +1436,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             WpfApplication.Current?.Dispatcher?.Invoke(() =>
             {
                 StopPerfMonitoring();
+                _perfHistory.Clear(Server.Id);
                 StopPlayerRefresh();
                 OnlinePlayers = [];
                 if (!Server.AutoRestart)
