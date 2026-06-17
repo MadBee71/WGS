@@ -967,14 +967,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _perfModel.Axes.Add(new OxyPlot.Axes.LinearAxis
         {
             Key = "mem", Position = OxyPlot.Axes.AxisPosition.Right, Title = "RAM MB", Minimum = 0,
+            MaximumPadding = 0.15, // headroom so peak usage doesn't look pinned to the top edge
         });
         _perfModel.Series.Add(_cpuSeries);
         _perfModel.Series.Add(_memSeries);
         WpfApplication.Current?.Dispatcher?.Invoke(() => PerfPlot = _perfModel);
     }
-
-    [RelayCommand]
-    private void RefreshChart() => UpdatePerfChart();
 
     private void UpdatePerfChart()
     {
