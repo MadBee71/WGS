@@ -184,6 +184,16 @@
     </div>
 
     <div class="issue-card">
+        <h2>No In-Game Warning Before Automatic Restart</h2>
+        <p>Daily Restart, Scheduled Restart and Auto-update don't show a countdown message to connected players.</p>
+        <div class="solution">
+            <strong>Cause:</strong> WGS broadcasts the warning through the game's own console/RCON/REST command, and not every game has a known one. It currently works for Rust, Source-engine games (CS2, Garry's Mod, TF2, L4D2, Insurgency: Sandstorm, Black Mesa, Day of Defeat: Source and more), Minecraft, ARK: Survival Evolved, Palworld, DayZ and 7 Days to Die.
+            <br><br>
+            <strong>What still works:</strong> For games without a known broadcast command (e.g. Valheim, Conan Exiles, Wreckfest, The Forest), the restart itself still happens normally — only the advance warning is skipped.
+        </div>
+    </div>
+
+    <div class="issue-card">
         <h2>Backup Not Created</h2>
         <p>Scheduled or manual backups fail silently or do not appear in the backup list.</p>
         <div class="solution">
