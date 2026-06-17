@@ -53,3 +53,6 @@ desktop.ini
 # Sensitive
 *.pfx
 *.p12
+
+# Website is hosted separately on Cloudflare Pages, not part of this app repo
+wgs-sivut/
