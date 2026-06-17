@@ -22,6 +22,11 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 10;
     protected override bool FilterUnityShaderNoise => true;
 
+    public override string? ValidateBeforeStart(GameServer server)
+        => string.IsNullOrEmpty(server.ServerPassword) || server.ServerPassword.Length < 5
+            ? "Valheim requires a server password of at least 5 characters, or the server will reject all connections. Set one in Settings → Password."
+            : null;
+
     public override string BuildStartArguments(GameServer s)
     {
         var name   = S(s, "serverName", "MyValheim");
@@ -46,7 +51,7 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
         fields.AddRange([
             new() { Key = "worldName",  Label = "World name",  FieldType = ConfigFieldType.Text,   DefaultValue = "Dedicated" },
             new() { Key = "crossplay",  Label = "Crossplay",      FieldType = ConfigFieldType.Toggle, DefaultValue = "false" },
-            new() { Key = "public",     Label = "Julkinen lista",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
+            new() { Key = "public",     Label = "Public listing",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
         ]);
         return fields;
     }
