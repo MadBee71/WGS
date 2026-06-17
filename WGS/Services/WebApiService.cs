@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -164,6 +165,12 @@ public class WebApiService : IDisposable
 
         var path = req.Url?.AbsolutePath.TrimEnd('/') ?? "/";
 
+        if (req.HttpMethod == "GET" && path == "/logo.png")
+        {
+            await SendLogoAsync(resp);
+            return;
+        }
+
         // Serve UI page — only when dashboard is explicitly enabled
         if (path == "" || path == "/" || path == "/ui")
         {
@@ -178,9 +185,9 @@ public class WebApiService : IDisposable
         }
 
         // Auth check for API
-        // Hyväksytään kaksi tapaa:
-        //   1. Konfiguraatio-API-token (Token-property) → täysi pääsy (master↔slave, legacy)
-        //   2. Käyttäjätietokannan token → roolikohtainen pääsy (web-dashboard)
+        // Two accepted forms:
+        //   1. Config API token (Token property) → full access (master↔slave, legacy)
+        //   2. User-database token → role-based access (web dashboard)
         WgsUser? authedUser = null;
         if (path.StartsWith("/api"))
         {
@@ -196,10 +203,10 @@ public class WebApiService : IDisposable
                 await SendJson(resp, new { error = "Unauthorized" });
                 return;
             }
-            // isApiToken → authedUser == null → täysi pääsy (ei Viewer-rajoitusta)
+            // isApiToken → authedUser == null → full access (no Viewer restriction)
         }
 
-        // Viewer-rooli ei saa muuttaa palvelimen tilaa (koskee vain käyttäjätunnus-kirjautumisia)
+        // Viewer role can't change server state (only applies to user-account logins)
         bool isViewer = authedUser?.Role == UserRole.Viewer;
 
         try
@@ -369,6 +376,39 @@ public class WebApiService : IDisposable
         resp.Close();
     }
 
+    private static byte[]? _logoBytes;
+
+    private static async Task SendLogoAsync(HttpListenerResponse resp)
+    {
+        try
+        {
+            _logoBytes ??= ReadLogoBytes();
+            if (_logoBytes == null) { resp.StatusCode = 404; resp.Close(); return; }
+            resp.ContentType     = "image/png";
+            resp.ContentLength64 = _logoBytes.Length;
+            resp.Headers["Cache-Control"] = "public, max-age=86400";
+            await resp.OutputStream.WriteAsync(_logoBytes);
+            resp.Close();
+        }
+        catch { resp.StatusCode = 500; resp.Close(); }
+    }
+
+    private static byte[]? ReadLogoBytes()
+    {
+        // wgs.png ships as a WPF "Resource" (pack URI), bundled inside the exe rather than
+        // copied to the publish folder as a loose file.
+        try
+        {
+            var uri    = new Uri("pack://application:,,,/wgs.png", UriKind.Absolute);
+            var stream = System.Windows.Application.GetResourceStream(uri)?.Stream;
+            if (stream == null) return null;
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return ms.ToArray();
+        }
+        catch { return null; }
+    }
+
     private static async Task SendHtml(HttpListenerResponse resp, string html)
     {
         var bytes = Encoding.UTF8.GetBytes(html);
@@ -478,7 +518,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 </head>
 <body>
 <div class="hdr">
-  <div class="hdr-title">WGS Dashboard</div>
+  <div class="hdr-title"><img src="/logo.png" alt="WGS" style="height:28px;vertical-align:middle;margin-right:8px"/>Dashboard</div>
   <div class="hdr-right">
     <span id="refreshTxt"></span>
     <span class="badge" id="conBadge">Connecting…</span>
@@ -488,7 +528,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 <!-- Auth screen -->
 <div id="authWrap" class="auth-wrap">
   <div class="auth-card">
-    <h2>WGS Dashboard</h2>
+    <h2><img src="/logo.png" alt="WGS" style="height:32px;vertical-align:middle;margin-right:8px"/>Dashboard</h2>
     <div class="field"><label>Access Token</label>
       <input type="password" id="tokInp" placeholder="Enter token…"
              onkeydown="if(event.key==='Enter')connect()">
@@ -546,7 +586,7 @@ async function api(path,method,body){
 async function loadAll(){
   try{
     const[sv,sys]=await Promise.all([api('servers'),api('system')]);
-    document.getElementById('conBadge').textContent='Yhdistetty';
+    document.getElementById('conBadge').textContent='Connected';
     document.getElementById('conBadge').className='badge ok';
     document.getElementById('authWrap').style.display='none';
     document.getElementById('appWrap').style.display='';
