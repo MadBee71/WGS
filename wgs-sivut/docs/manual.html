@@ -359,6 +359,9 @@ dotnet publish -c Release -o publish</code></pre>
         </tbody>
     </table></div>
 
+    <h2 class="subsection-title">Player warnings before automatic restarts <span class="new-tag">v1.2.4</span></h2>
+    <p>Before a <strong>Daily Restart</strong>, WGS broadcasts an in-game warning at 10, 5 and 1 minute before the restart. Scheduled Restart tasks (<a href="#s21">section 21</a>) and Auto-update restarts warn once, 1 minute beforehand. Messages are sent through the game's own console/RCON/REST broadcast command — no setup needed. This works out of the box for Rust, Source-engine games (CS2, Garry's Mod, TF2, L4D2, Insurgency: Sandstorm, Black Mesa, Day of Defeat: Source and more), Minecraft, ARK: Survival Evolved, Palworld, DayZ and 7 Days to Die. Games without a known broadcast command (e.g. Valheim, Conan Exiles, Wreckfest) restart without a warning — everything else about the restart still works normally.</p>
+
     <h2 class="subsection-title">Crash loop detection</h2>
     <p>WGS counts crashes within a rolling 10-minute window. If the count exceeds <strong>Max Retries</strong>, auto-restart is disabled and the status switches to Error. To re-enable, fix the underlying problem and start the server manually — the counter resets on a successful start.</p>
 
@@ -561,7 +564,7 @@ dotnet publish -c Release -o publish</code></pre>
     <p>The <strong>Workshop</strong> tab is visible for games that support Steam Workshop (e.g. Arma Reforger). It uses SteamCMD to download Workshop items.</p>
     <ol class="steps">
         <li><span class="step-num">1</span><div class="step-body"><strong>Find the item ID</strong> — Open the Workshop page in a browser. The ID is the number in the URL: <code>steamcommunity.com/sharedfiles/filedetails/?id=XXXXXXXXX</code></div></li>
-        <li><span class="step-num">2</span><div class="step-body"><strong>Enter the ID</strong> — Paste the Workshop item ID into the input field in the Workshop tab.</div></li>
+        <li><span class="step-num">2</span><div class="step-body"><strong>Enter the ID</strong> — Paste the Workshop item ID into the input field in the Workshop tab. <span class="new-tag">v1.2.4</span> The mod's actual title appears below the field after about half a second, so you can confirm it's the right item before downloading.</div></li>
         <li><span class="step-num">3</span><div class="step-body"><strong>Download</strong> — Click Download. WGS runs SteamCMD and shows progress in the console.</div></li>
         <li><span class="step-num">4</span><div class="step-body"><strong>Done</strong> — The item appears in the Installed Items list with its local folder path.</div></li>
     </ol>
@@ -665,8 +668,11 @@ dotnet publish -c Release -o publish</code></pre>
             <tr><td>Server stopped</td><td>Status → Stopped</td><td>⚫ Grey</td></tr>
             <tr><td>Server crashed</td><td>Status → Error</td><td>🔴 Red</td></tr>
             <tr><td>Update started</td><td>Status → Updating</td><td>🔵 Blue</td></tr>
+            <tr><td>Player joined <span class="new-tag">v1.2.4</span></td><td>New player detected on poll (off by default)</td><td>🟢 Green</td></tr>
+            <tr><td>Player left <span class="new-tag">v1.2.4</span></td><td>Player disappears from the list (off by default)</td><td>⚫ Grey</td></tr>
         </tbody>
     </table></div>
+    <p>Player join/leave alerts include the current player count and are checked every 15 seconds along with the live player list. They're off by default to avoid noisy channels on busy servers — enable "Player joined" / "Player left" in the event checklist above.</p>
     <ol class="steps">
         <li><span class="step-num">1</span><div class="step-body"><strong>Create webhook</strong> — Discord: channel Settings → Integrations → Webhooks → New Webhook → Copy URL.</div></li>
         <li><span class="step-num">2</span><div class="step-body"><strong>Paste URL</strong> — WGS Settings → Discord Notifications → paste into "Webhook URL".</div></li>
@@ -716,6 +722,8 @@ dotnet publish -c Release -o publish</code></pre>
         <li><span class="step-num">4</span><div class="step-body"><strong>Browser UI</strong> — Navigate to <code>http://localhost:8765/ui</code> — dashboard with server controls and a real-time log viewer.</div></li>
         <li><span class="step-num">5</span><div class="step-body"><strong>Remote access</strong> — Use your LAN IP from other devices. For internet access, add port forwarding.</div></li>
     </ol>
+    <h2 class="sub-title">Dashboard features <span class="new-tag">v1.2.4</span></h2>
+    <p>The server grid can be sorted (A→Z, Z→A, by game or by status) using the dropdown above the grid — your choice is remembered in the browser. Each running server's card shows a live mini CPU graph covering the last 5 minutes.</p>
     <h2 class="sub-title">REST endpoints</h2>
     <div class="tbl-wrap"><table>
         <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
@@ -728,6 +736,7 @@ dotnet publish -c Release -o publish</code></pre>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/update</code></td><td>Run Install/Update</td></tr>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/backup</code></td><td>Create a backup</td></tr>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/cmd</code></td><td>Send console command — body: <code>{"command":"..."}</code></td></tr>
+            <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}/perf?minutes=N</code></td><td><span class="new-tag">v1.2.4</span> CPU/RAM history samples for the last N minutes</td></tr>
             <tr><td><span class="badge get">GET</span></td><td><code>/api/system</code></td><td>System metrics — CPU, RAM, drives, network I/O</td></tr>
         </tbody>
     </table></div>
@@ -775,6 +784,7 @@ dotnet publish -c Release -o publish</code></pre>
         <li><strong>Master machine</strong>: Settings → Remote Machines → Add Machine → enter URL and token</li>
         <li>The master polls each slave every few seconds and shows all remote servers in the <strong>Machines</strong> sidebar tab</li>
         <li>Click a remote server to open its detail view with console, controls and metrics</li>
+        <li><span class="new-tag">v1.2.4</span> The REMOTE section has its own sort dropdown (A→Z, Z→A, by game or by status), same as the local server list</li>
     </ul>
 </section>
 

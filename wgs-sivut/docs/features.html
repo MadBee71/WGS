@@ -267,6 +267,46 @@
         <p>WGS now automatically opens the Steam networking port (TCP + UDP) in Windows Firewall for games that use a dedicated Steam port separate from the game port (e.g. Wreckfest 2 port 30200).</p>
     </div>
 
+    <div class="feature-block">
+        <h3>📢 Player Warnings Before Automatic Restarts <span class="new-tag">v1.2.4</span></h3>
+        <p>Daily Restart now warns connected players 10, 5 and 1 minute before the server restarts. Scheduled Restart tasks and Auto-Update restarts warn 1 minute beforehand. Messages are broadcast through each game's own console/RCON/REST command — supported out of the box for Rust, Source-engine games (CS2, Garry's Mod, TF2, L4D2 and more), Minecraft, ARK, Palworld, DayZ and 7 Days to Die. Games with no known broadcast command simply restart without a warning.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🔔 Discord Player Join/Leave Alerts <span class="new-tag">v1.2.4</span></h3>
+        <p>Optional Discord notifications whenever a player connects or disconnects, including the current player count. Off by default — enable "Player joined" / "Player left" in Settings → Discord Webhooks.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🔍 Steam Workshop ID Preview <span class="new-tag">v1.2.4</span></h3>
+        <p>Typing a Workshop item ID into the "Install by ID" field now looks up and shows the mod's actual title before you install it, so you can confirm it's the right item.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🌐 Web Dashboard — Sorting &amp; Live CPU Graph <span class="new-tag">v1.2.4</span></h3>
+        <p>The web dashboard's server grid can now be sorted (A→Z, Z→A, by game or by status) and shows a live mini CPU graph on each running server's card. The dashboard header also now displays the WGS logo.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🖥️ Remote Server List Sorting <span class="new-tag">v1.2.4</span></h3>
+        <p>The REMOTE section of the sidebar (servers running on other machines) can now be sorted the same way as the local server list.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>📈 Performance Chart Reliability Fixes <span class="new-tag">v1.2.4</span></h3>
+        <p>The performance chart now updates live instead of freezing, keeps collecting history when switching between servers or restarting WGS, and starts tracking immediately for servers that were already running when WGS launched. Tooltip contrast was also fixed.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>🛡️ Fixed: Starting One Server Could Kill Another <span class="new-tag">v1.2.4</span></h3>
+        <p>Starting a second server of the same game (e.g. two Rust or two Palworld instances) no longer kills the other one's already-running process. The pre-flight zombie-process check now matches the exact server instance instead of every process with the same name.</p>
+    </div>
+
+    <div class="feature-block">
+        <h3>👥 Player History &amp; Statistics Auto-Refresh <span class="new-tag">v1.2.4</span></h3>
+        <p>Player session history and per-player statistics now update automatically every 15 seconds along with the live player list, instead of only on manual refresh.</p>
+    </div>
+
     <footer>
         <p>&copy; 2026 MadBee71 / Windows Game Server &mdash; <a href="https://wgsserver.com" style="color:#8b949e;text-decoration:none;">wgsserver.com</a> &mdash; Released under the MIT License.</p>
     </footer>

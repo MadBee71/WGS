@@ -55,6 +55,15 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual string? GetPlayersCommand()                              => null;
     public virtual string  EngineFamily                                     => string.Empty;
 
+    public virtual string? GetBroadcastCommand(string message) => EngineFamily switch
+    {
+        SourceRcon.Family    => SourceRcon.Broadcast(message),
+        RustRcon.Family      => RustRcon.Broadcast(message),
+        MinecraftRcon.Family => MinecraftRcon.Broadcast(message),
+        ArkRcon.Family       => ArkRcon.Broadcast(message),
+        _                    => null, // no known broadcast syntax for this engine family
+    };
+
     public override string ToString() => $"{GameName}  ({Category})";
 
     /// <summary>Writes content to path only if the file does not yet exist.</summary>

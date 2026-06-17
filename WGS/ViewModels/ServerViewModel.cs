@@ -643,6 +643,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             // Temporarily disable AutoRestart so we don't get an auto-restart
             // during the stop → update → start cycle
             Server.AutoRestart = false;
+            await _manager.WarnPlayersAsync(Server, "Server restarting for an update in 1 minute");
+            await Task.Delay(60_000);
             await _manager.StopAsync(Server);
             // StopPerfMonitoring called by OnStatusChanged
 

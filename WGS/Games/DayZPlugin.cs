@@ -19,6 +19,8 @@ public class DayZPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 60;
     public override bool   HasRcon          => true;
     public override bool   RequiresSteamLogin => true;
+    // BattlEye RCON global broadcast (-1 = all players)
+    public override string? GetBroadcastCommand(string message) => $"say -1 \"{message}\"";
 
     // IWorkshopPlugin
     public string ModTargetDirectory => string.Empty;

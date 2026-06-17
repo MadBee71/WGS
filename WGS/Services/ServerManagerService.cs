@@ -484,7 +484,7 @@ public class ServerManagerService
         if (server.DailyRestartEnabled)
             _ = RunDailyRestartAsync(server, inst);
 
-        // RekisterÃ¶i kaistaseurantaan
+        // Register with bandwidth tracking
         _network.RegisterServer(server.Id, proc.Id);
 
         // Add firewall rules
@@ -628,6 +628,33 @@ public class ServerManagerService
         catch { }
     }
 
+    private static readonly (int minutesBefore, string label)[] RestartWarnings =
+    [
+        (10, "10 minutes"),
+        (5,  "5 minutes"),
+        (1,  "1 minute"),
+    ];
+
+    /// <summary>
+    /// Sends a broadcast message to in-game players via the game's console/RCON/REST
+    /// broadcast command, if supported. No-ops silently for games with no known way to
+    /// broadcast (most plugins' GetBroadcastCommand returns null in that case).
+    /// </summary>
+    public async Task WarnPlayersAsync(GameServer server, string message)
+    {
+        var plugin = GameRegistry.Get(server.GameId);
+        var cmd = plugin?.GetBroadcastCommand(message);
+        if (cmd == null) return;
+        try { await SendCommandAsync(server.Id, cmd); } catch { }
+
+        if (_running.TryGetValue(server.Id, out var inst))
+        {
+            var msg = new ConsoleMessage { Text = $"[WGS] {message}", Type = ConsoleMessageType.Warning };
+            inst.AddToLog(msg);
+            LogReceived?.Invoke(server.Id, msg);
+        }
+    }
+
     private async Task RunDailyRestartAsync(GameServer server, ServerInstance inst)
     {
         while (_running.TryGetValue(server.Id, out var current) && current == inst && server.DailyRestartEnabled)
@@ -637,8 +664,22 @@ public class ServerManagerService
             if (target <= now)
                 target = target.AddDays(1);
 
-            var delay = target - now;
-            try { await Task.Delay(delay, inst.DailyRestartCts.Token); }
+            try
+            {
+                foreach (var (minutesBefore, label) in RestartWarnings)
+                {
+                    var warnAt = target.AddMinutes(-minutesBefore);
+                    if (warnAt <= DateTime.Now) continue;
+                    await Task.Delay(warnAt - DateTime.Now, inst.DailyRestartCts.Token);
+                    if (!_running.TryGetValue(server.Id, out var c1) || c1 != inst || !server.DailyRestartEnabled)
+                        return;
+                    await WarnPlayersAsync(server, $"Server restarting in {label}");
+                }
+
+                var finalDelay = target - DateTime.Now;
+                if (finalDelay > TimeSpan.Zero)
+                    await Task.Delay(finalDelay, inst.DailyRestartCts.Token);
+            }
             catch (TaskCanceledException) { return; }
 
             if (!_running.TryGetValue(server.Id, out var c) || c != inst || !server.DailyRestartEnabled)

@@ -17,6 +17,7 @@ public class SevenDaysToDiePlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 8;
     public override bool   HasRcon        => true;
     public override bool   SupportsOxide  => true;
+    public override string? GetBroadcastCommand(string message) => $"say \"{message}\"";
     protected override bool FilterUnityShaderNoise => true;
 
     public string ModTargetDirectory => "Mods";

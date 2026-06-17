@@ -46,6 +46,12 @@ public interface IGamePlugin
     string? GetPlayersCommand();
 
     /// <summary>
+    /// Returns the console command to broadcast a message to all connected players,
+    /// or null if this game has no known way to do that. Used for restart warnings.
+    /// </summary>
+    string? GetBroadcastCommand(string message);
+
+    /// <summary>
     /// Tunniste RCON-vastauksen parserille.
     /// Arvot: "source" | "rust" | "minecraft" | "ark" | "unreal" | ""
     /// </summary>
