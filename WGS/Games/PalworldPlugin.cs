@@ -30,6 +30,7 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
     public override int    DefaultPort      => 8211;
     public override int    DefaultQueryPort => 8212;
     public override int    DefaultMaxPlayers => 32;
+    public override string? GetBroadcastCommand(string message) => $"broadcast {message}";
     public override string BuildStartArguments(GameServer s)
     {
         var args = $"-port={s.ServerPort} -queryport={s.QueryPort} -players={s.MaxPlayers} " +

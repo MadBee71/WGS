@@ -104,8 +104,9 @@ public class ScheduledTaskService : IDisposable
 
         if (due.Count == 0) return;
 
-        foreach (var task in due)
-            await ExecuteTaskAsync(task);
+        // Run concurrently — a Restart task now waits ~60s to warn players first, and
+        // that must not delay other due tasks (e.g. other servers' restarts/backups).
+        await Task.WhenAll(due.Select(ExecuteTaskAsync));
 
         lock (_lock)
         {
@@ -131,6 +132,8 @@ public class ScheduledTaskService : IDisposable
             switch (task.Action)
             {
                 case ScheduledActionType.Restart:
+                    await _manager.WarnPlayersAsync(server, "Server restarting in 1 minute");
+                    await Task.Delay(60_000);
                     await _manager.StopAsync(server);
                     await Task.Delay(3000);
                     await _manager.StartAsync(server);

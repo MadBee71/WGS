@@ -11,6 +11,7 @@ internal static class SourceRcon
     public static string? Ban(string p, string reason)    => $"banid 0 \"{p}\" kick; say \"{reason}\"";
     public static string? Unban(string p)                 => $"removeid \"{p}\"";
     public static string? Players()                       => "status";
+    public static string? Broadcast(string msg)            => $"say \"{msg}\"";
 }
 
 internal static class RustRcon
@@ -22,6 +23,7 @@ internal static class RustRcon
     public static string? Ban(string p, string reason)    => $"ban \"{p}\" \"{reason}\"";
     public static string? Unban(string p)                 => $"unban \"{p}\"";
     public static string? Players()                       => "playerlist";
+    public static string? Broadcast(string msg)            => $"say \"{msg}\"";
 }
 
 internal static class MinecraftRcon
@@ -33,6 +35,7 @@ internal static class MinecraftRcon
     public static string? Ban(string p, string reason)    => $"ban {p} {reason}";
     public static string? Unban(string p)                 => $"pardon {p}";
     public static string? Players()                       => "list";
+    public static string? Broadcast(string msg)            => $"say {msg}";
 }
 
 internal static class ArkRcon
@@ -44,6 +47,7 @@ internal static class ArkRcon
     public static string? Ban(string p, string reason)    => $"BanPlayer {p}";
     public static string? Unban(string p)                 => $"UnBanPlayer {p}";
     public static string? Players()                       => "ListPlayers";
+    public static string? Broadcast(string msg)            => $"Broadcast {msg}";
 }
 
 internal static class UnrealRcon
