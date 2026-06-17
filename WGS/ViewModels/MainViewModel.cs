@@ -194,25 +194,21 @@ public partial class MainViewModel : BaseViewModel
                 _tray.SetStatus(RunningCount, TotalServers);
             });
 
-            // UPnP — add port mappings when server starts, remove when stopped/error
-            if (_config.EnableUPnP)
+            var server = Servers.FirstOrDefault(v => v.Server.Id == id)?.Server;
+            if (server != null)
             {
-                var server = Servers.FirstOrDefault(v => v.Server.Id == id)?.Server;
-                if (server != null)
+                if (status == ServerStatus.Running)
                 {
-                    if (status == ServerStatus.Running)
-                    {
-                        _ = _upnp.AddPortsForServerAsync(server);
-                        _crashPrediction.RegisterServerStart(id);
-                        _wakeOnDemand.Disarm(id);
-                        _wakeOnDemand.ArmIdleShutdown(server);
-                    }
-                    else if (status is ServerStatus.Stopped or ServerStatus.Error)
-                    {
-                        _ = _upnp.RemovePortsForServerAsync(server);
-                        _wakeOnDemand.DisarmIdleShutdown(id);
-                        _wakeOnDemand.Arm(server);
-                    }
+                    if (_config.EnableUPnP) _ = _upnp.AddPortsForServerAsync(server);
+                    _crashPrediction.RegisterServerStart(id);
+                    _wakeOnDemand.Disarm(id);
+                    _wakeOnDemand.ArmIdleShutdown(server);
+                }
+                else if (status is ServerStatus.Stopped or ServerStatus.Error)
+                {
+                    if (_config.EnableUPnP) _ = _upnp.RemovePortsForServerAsync(server);
+                    _wakeOnDemand.DisarmIdleShutdown(id);
+                    _wakeOnDemand.Arm(server);
                 }
             }
         };

@@ -903,7 +903,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
         }
 
-        // Vertaa edelliseen listaan → session logging
+        // Keep the model in sync — used by Shut-down-when-empty and the web dashboard's
+        // server list (the detail endpoint already gets a live count separately).
+        Server.CurrentPlayers = parsed.Count;
+
+        // Compare against the previous list → session logging
         var prev = OnlinePlayers.ToList();
         var currNames  = parsed.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
         var prevNames  = prev.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
@@ -1453,6 +1457,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 _perfHistory.Clear(Server.Id);
                 StopPlayerRefresh();
                 OnlinePlayers = [];
+                Server.CurrentPlayers = 0;
                 if (!Server.AutoRestart)
                     StopUpdateTimer();
             });
