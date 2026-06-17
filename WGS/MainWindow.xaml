@@ -152,9 +152,26 @@
                         <StackPanel>
                             <!-- Remote servers section -->
                             <StackPanel Visibility="{Binding RemoteServers.Count, Converter={StaticResource ZeroToInvVis}, Mode=OneWay}">
-                                <TextBlock Text="REMOTE" FontSize="10" FontWeight="Bold" Margin="16,12,8,4"
-                                           Foreground="{StaticResource AccentBlueBrush}"/>
-                                <ListBox ItemsSource="{Binding RemoteServers}"
+                                <Grid Margin="16,12,8,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="REMOTE" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" SelectedValue="{Binding SortMode}"
+                                              SelectedValuePath="Tag"
+                                              FontSize="11" Width="90" Height="22"
+                                              Background="{StaticResource BgSurface2Brush}"
+                                              Foreground="{StaticResource TextSecondaryBrush}"
+                                              BorderThickness="0">
+                                        <ComboBoxItem Content="A → Z"  Tag="name-asc"/>
+                                        <ComboBoxItem Content="Z → A"  Tag="name-desc"/>
+                                        <ComboBoxItem Content="Game"   Tag="game-asc"/>
+                                        <ComboBoxItem Content="Status" Tag="status"/>
+                                    </ComboBox>
+                                </Grid>
+                                <ListBox ItemsSource="{Binding SortedRemoteServers}"
                                          SelectedItem="{Binding SelectedRemoteServer}"
                                          Background="Transparent" BorderThickness="0"
                                          ItemContainerStyle="{StaticResource ServerListItem}">

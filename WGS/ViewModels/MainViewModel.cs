@@ -126,6 +126,17 @@ public partial class MainViewModel : BaseViewModel
         _            => Servers.OrderBy(s => s.Server.DisplayName),
     };
 
+    public IEnumerable<RemoteServerViewModel> SortedRemoteServers => SortMode switch
+    {
+        "name-desc"  => RemoteServers.OrderByDescending(s => s.DisplayName),
+        "game-asc"   => RemoteServers.OrderBy(s => s.GameId),
+        "status"     => RemoteServers.OrderByDescending(s => RemoteStatusRank(s.Status)),
+        _            => RemoteServers.OrderBy(s => s.DisplayName),
+    };
+
+    private static int RemoteStatusRank(string status)
+        => Enum.TryParse<ServerStatus>(status, out var s) ? (int)s : -1;
+
     public IEnumerable<IGamePlugin> AvailableGames => GameRegistry.All.OrderBy(g => g.GameName);
 
     public int TotalServers  => Servers.Count;
@@ -206,6 +217,7 @@ public partial class MainViewModel : BaseViewModel
         };
 
         Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedServers));
+        RemoteServers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedRemoteServers));
         LoadServers();
         _ = CheckForUpdateAsync();
 
@@ -273,6 +285,12 @@ public partial class MainViewModel : BaseViewModel
             : null;
         _webApi.GetOnlinePlayers = id =>
             FindServer(id)?.OnlinePlayers ?? [];
+        _webApi.GetPerfSamples = (id, minutes) =>
+        {
+            var cutoff = DateTime.Now.AddMinutes(-minutes);
+            return _perfHistory.Get(id).Where(s => s.Time >= cutoff)
+                .Select(s => (s.Time, s.Cpu, s.MemMb));
+        };
         _webApi.GetBackups = id =>
         {
             GameServer? srv = null;
@@ -574,7 +592,11 @@ public partial class MainViewModel : BaseViewModel
             newValue.StartPolling();
         }
     }
-    partial void OnSortModeChanged(string value) => OnPropertyChanged(nameof(SortedServers));
+    partial void OnSortModeChanged(string value)
+    {
+        OnPropertyChanged(nameof(SortedServers));
+        OnPropertyChanged(nameof(SortedRemoteServers));
+    }
     partial void OnNewServerGameChanged(IGamePlugin? value)
     {
         UpdateInstallPath();
