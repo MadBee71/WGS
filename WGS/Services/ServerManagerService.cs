@@ -702,6 +702,10 @@ public class ServerManagerService
 
     private void SetStatus(GameServer server, ServerStatus status)
     {
+        // Stop/Kill set Stopped explicitly, and the process's own Exited handler also sets
+        // Stopped when it fires (race ordering varies) — skip the no-op transition so only
+        // one StatusChanged event (and one Discord notification) fires per real change.
+        if (server.Status == status) return;
         server.Status = status;
         StatusChanged?.Invoke(server.Id, status);
     }
