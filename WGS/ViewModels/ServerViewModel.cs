@@ -302,6 +302,16 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         RefreshStatus();
         RefreshBackups();
+
+        // If the server was already running when this ViewModel was created (e.g. reattached
+        // to a process that survived a WGS restart), the StatusChanged(Running) event already
+        // fired before we subscribed to it. Start monitoring directly in that case.
+        if (IsRunning)
+        {
+            StartPerfMonitoring();
+            StartPlayerRefresh();
+            StartUpdateTimer();
+        }
     }
 
     // ── Start / Stop / Restart ──────────────────────────────────────────────
