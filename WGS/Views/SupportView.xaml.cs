@@ -16,6 +16,16 @@ public partial class SupportView : System.Windows.Controls.UserControl
         OpenUrl("https://ko-fi.com/madbee71");
     }
 
+    private void GitHubButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenUrl("https://github.com/MadBee71/WGS");
+    }
+
+    private void GitHubLink_Click(object sender, MouseButtonEventArgs e)
+    {
+        OpenUrl("https://github.com/MadBee71/WGS");
+    }
+
     private void KoFiLink_Click(object sender, MouseButtonEventArgs e)
     {
         OpenUrl("https://ko-fi.com/madbee71");
