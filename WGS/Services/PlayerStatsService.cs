@@ -214,4 +214,69 @@ public class PlayerStatsService
     // Yhteensopivuus vanhojen kutsujen kanssa
     public Dictionary<string, TimeSpan> GetTotalPlaytime(string serverId)
         => GetPlayerStats(serverId).ToDictionary(s => s.PlayerName, s => s.TotalTime);
+
+    /// <summary>Join-count per hour of day (0-23, local time) — a cheap proxy for "when is this
+    /// server busiest", useful for scheduling restarts/updates during quiet hours.</summary>
+    public int[] GetHourlyActivity(string serverId)
+    {
+        var buckets = new int[24];
+        if (!_available) return buckets;
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "SELECT join_time FROM sessions WHERE server_id=$s";
+            cmd.Parameters.AddWithValue("$s", serverId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var t = DateTime.Parse(r.GetString(0), null, System.Globalization.DateTimeStyles.RoundtripKind).ToLocalTime();
+                buckets[t.Hour]++;
+            }
+        }
+        catch { }
+        return buckets;
+    }
+
+    /// <summary>Most active players within the last N days, by total playtime.</summary>
+    public List<PlayerStats> GetMostActivePlayers(string serverId, int sinceDays = 30, int limit = 10)
+    {
+        if (!_available) return [];
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = """
+                SELECT
+                    player_name,
+                    MAX(steam_id),
+                    COUNT(*) AS sessions,
+                    SUM(CAST(
+                        (julianday(COALESCE(leave_time, datetime('now')))
+                         - julianday(join_time)) * 86400 AS INTEGER)) AS total_secs,
+                    MAX(join_time) AS last_seen
+                FROM sessions
+                WHERE server_id = $s AND join_time >= $since
+                GROUP BY player_name
+                ORDER BY total_secs DESC
+                LIMIT $l
+                """;
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$since", DateTime.UtcNow.AddDays(-sinceDays).ToString("o"));
+            cmd.Parameters.AddWithValue("$l", limit);
+            var result = new List<PlayerStats>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                result.Add(new PlayerStats
+                {
+                    PlayerName   = r.GetString(0),
+                    SteamId      = r.IsDBNull(1) ? "" : r.GetString(1),
+                    SessionCount = (int)r.GetInt64(2),
+                    TotalTime    = TimeSpan.FromSeconds(r.IsDBNull(3) ? 0 : r.GetDouble(3)),
+                    LastSeen     = DateTime.Parse(r.GetString(4)),
+                });
+            return result;
+        }
+        catch { return []; }
+    }
 }
