@@ -185,6 +185,18 @@ public class WebApiService : IDisposable
             return;
         }
 
+        // Public, read-only, shareable status page — no auth token needed (no controls on it),
+        // gated by the same DashboardEnabled flag since it's the same "I want this exposed" choice.
+        var statusMatch = System.Text.RegularExpressions.Regex.Match(path, @"^/status/([^/]+)$");
+        if (req.HttpMethod == "GET" && statusMatch.Success)
+        {
+            if (!DashboardEnabled) { resp.StatusCode = 403; resp.Close(); return; }
+            var srv = GetServers?.Invoke().FirstOrDefault(s => s.Id == statusMatch.Groups[1].Value);
+            if (srv == null) { resp.StatusCode = 404; await SendHtml(resp, "<html><body style='background:#0d1117;color:#8b949e;font-family:sans-serif'>Server not found.</body></html>"); return; }
+            await SendHtml(resp, BuildStatusHtml(srv));
+            return;
+        }
+
         // Auth check for API
         // Two accepted forms:
         //   1. Config API token (Token property) → full access (master↔slave, legacy)
@@ -429,6 +441,54 @@ public class WebApiService : IDisposable
         resp.ContentLength64 = bytes.Length;
         await resp.OutputStream.WriteAsync(bytes);
         resp.Close();
+    }
+
+    /// <summary>Simple, read-only, shareable status page — no controls, safe to post in Discord.</summary>
+    private string BuildStatusHtml(Models.GameServer srv)
+    {
+        var plugin   = Games.GameRegistry.Get(srv.GameId);
+        var gameName = plugin?.GameName ?? srv.GameId;
+        var isRunning = srv.Status == Models.ServerStatus.Running;
+        var uptime   = isRunning ? (GetUptime?.Invoke(srv.Id) ?? "--:--:--") : null;
+        var players  = isRunning ? (GetOnlinePlayers?.Invoke(srv.Id)?.ToList() ?? []) : [];
+        string Esc(string s) => System.Net.WebUtility.HtmlEncode(s);
+
+        var playerRows = players.Count > 0
+            ? string.Join("", players.Select(p => $"<li>{Esc(p.Name)}</li>"))
+            : "<li style=\"color:#8b949e\">No players online</li>";
+
+        return $$"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{Esc(srv.DisplayName)}} — Server Status</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:40px 16px;display:flex;justify-content:center}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:28px 32px;max-width:420px;width:100%}
+h1{font-size:20px;margin:0 0 4px;color:#f0f6fc}
+.sub{color:#8b949e;font-size:13px;margin-bottom:18px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:{{(isRunning ? "#3fb950" : "#6e7681")}}}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #21262d;font-size:14px}
+ul{list-style:none;padding:0;margin:10px 0 0}
+li{padding:4px 0;font-size:13px;color:#e6edf3}
+.footer{margin-top:18px;font-size:11px;color:#6e7681;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>{{Esc(srv.DisplayName)}}</h1>
+  <div class="sub">{{Esc(gameName)}}</div>
+  <div class="stat"><span><span class="dot"></span>Status</span><span>{{(isRunning ? "Online" : "Offline")}}</span></div>
+  {{(isRunning ? $"""<div class="stat"><span>Uptime</span><span>{uptime}</span></div>""" : "")}}
+  <div class="stat"><span>Players</span><span>{{players.Count}}/{{srv.MaxPlayers}}</span></div>
+  <ul>{{playerRows}}</ul>
+  <div class="footer">Powered by Windows Game Server</div>
+</div>
+</body>
+</html>
+""";
     }
 
     private string BuildUiHtml() => $$"""

@@ -29,6 +29,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly TemplateService           _templates;
     private readonly UserService               _users;
     private readonly ServerGroupService        _groups;
+    private readonly GroupBanListService       _groupBans;
     private readonly WebApiService             _webApi;
     private readonly ScheduledTaskService      _scheduler;
     private readonly RemoteMachineService      _remoteMachines;
@@ -152,8 +153,9 @@ public partial class MainViewModel : BaseViewModel
         NetworkMonitorService network, TemplateService templates, UserService users,
         ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
         RemoteMachineService remoteMachines, CrashPredictionService crashPrediction,
-        UPnPService upnp, WakeOnDemandService wakeOnDemand)
+        UPnPService upnp, WakeOnDemandService wakeOnDemand, GroupBanListService groupBans)
     {
+        _groupBans = groupBans;
         _config          = config;
         _sortMode        = config.SortMode; // restore last-used sort order without triggering a save
         _manager         = manager;
@@ -325,11 +327,17 @@ public partial class MainViewModel : BaseViewModel
         _crashPrediction.GetRunningServers = () =>
             WpfApplication.Current?.Dispatcher?.Invoke(() =>
                 Servers.Where(v => v.Server.Status == ServerStatus.Running)
-                       .Select(v => (v.Server.Id, v.Server.DisplayName))
+                       .Select(v => (v.Server.Id, v.Server.DisplayName, v.Server.CurrentPlayers))
                        .ToList()
                        .AsEnumerable()
             ) ?? [];
         _crashPrediction.PredictionRaised += OnCrashPrediction;
+        manager.LogReceived += (id, msg) =>
+        {
+            var name = WpfApplication.Current?.Dispatcher?.Invoke(() =>
+                Servers.FirstOrDefault(v => v.Server.Id == id)?.Server.DisplayName);
+            if (name != null) _crashPrediction.CheckLogLine(id, name, msg.Text);
+        };
     }
 
     private void OnMachineUpdated(string machineId, List<Services.RemoteServerInfo> servers)
@@ -549,7 +557,8 @@ public partial class MainViewModel : BaseViewModel
     private ServerViewModel MakeVm(GameServer srv)
     {
         var vm = new ServerViewModel(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
-               _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler, _network);
+               _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler, _network,
+               _groupBans);
         vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));
         return vm;
     }

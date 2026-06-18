@@ -25,6 +25,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly TemplateService        _templates;
     private readonly ScheduledTaskService   _scheduler;
     private readonly NetworkMonitorService  _network;
+    private readonly GroupBanListService    _groupBans;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -117,6 +118,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     partial void OnBackupRetentionChanged(int value) => Server.BackupRetention = value;
     [ObservableProperty] private int _backupMaxAgeDays;
     partial void OnBackupMaxAgeDaysChanged(int value) => Server.BackupMaxAgeDays = value;
+    [ObservableProperty] private bool _useIncrementalBackups;
+    partial void OnUseIncrementalBackupsChanged(bool value) => Server.UseIncrementalBackups = value;
+    [ObservableProperty] private int _fullBackupEveryN;
+    partial void OnFullBackupEveryNChanged(int value) => Server.FullBackupEveryN = value;
 
     public bool HasWorkshop => _workshop.SupportsWorkshop(Plugin);
     public bool HasPlayerCommands => Plugin?.GetPlayersCommand() != null
@@ -248,7 +253,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ConfigService config, ModManagerService mods,
         ConfigEditorService configEditor, PlayerStatsService playerStats,
         PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
-        TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network)
+        TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network,
+        GroupBanListService groupBans)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -267,6 +273,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _templates     = templates;
         _scheduler     = scheduler;
         _network       = network;
+        _groupBans     = groupBans;
 
         _network.ServerStatsUpdated += OnServerStatsUpdated;
         FileBrowser.Initialize(server.InstallPath);
@@ -302,6 +309,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
         _backupRetention   = Server.BackupRetention;
         _backupMaxAgeDays  = Server.BackupMaxAgeDays;
+        _useIncrementalBackups = Server.UseIncrementalBackups;
+        _fullBackupEveryN  = Server.FullBackupEveryN;
 
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
@@ -1174,6 +1183,25 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         catch (Exception ex) { AppendLog($"[Connect] {ex.Message}", ConsoleMessageType.Error); }
     }
 
+    public bool HasShareableStatusLink => _config.WebApiRequired && _config.WebApiPort > 0;
+
+    [RelayCommand]
+    private void CopyStatusLink()
+    {
+        if (!HasShareableStatusLink)
+        {
+            AppendLog("[Status] Enable the Web Dashboard in Settings to get a shareable link.", ConsoleMessageType.Warning);
+            return;
+        }
+        var link = $"http://<your-ip>:{_config.WebApiPort}/status/{Server.Id}";
+        try
+        {
+            System.Windows.Clipboard.SetText(link);
+            AppendLog($"[Status] Copied: {link} (replace <your-ip> with your machine's address)", ConsoleMessageType.System);
+        }
+        catch (Exception ex) { AppendLog($"[Status] {ex.Message}", ConsoleMessageType.Error); }
+    }
+
     // ── Player Management ─────────────────────────────────────────────────────
 
     // Vanhanmallinen tekstisyöttö (yhteensopivuus)
@@ -1196,13 +1224,31 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task BanPlayerAsync()
     {
         if (string.IsNullOrWhiteSpace(PlayerInput) || Plugin == null) return;
-        var cmd = Plugin.GetBanCommand(PlayerInput,
-            string.IsNullOrWhiteSpace(BanReason) ? "Banned by admin" : BanReason);
+        var reason = string.IsNullOrWhiteSpace(BanReason) ? "Banned by admin" : BanReason;
+        var cmd = Plugin.GetBanCommand(PlayerInput, reason);
         if (cmd == null) { AppendLog("[Players] Ban not supported.", ConsoleMessageType.Warning); return; }
         await SendRconOrConsole(cmd);
         AppendLog($"[Players] Banned: {PlayerInput}", ConsoleMessageType.System);
+        await SyncBanToGroupAsync(PlayerInput, reason);
         BanReason = string.Empty;
         _ = FetchOnlinePlayersAsync();
+    }
+
+    /// <summary>Records a ban in the server's group ban list and replays it on the group's
+    /// other currently-running servers of the same game.</summary>
+    private async Task SyncBanToGroupAsync(string target, string reason)
+    {
+        if (string.IsNullOrEmpty(Server.GroupId) || Plugin == null) return;
+        _groupBans.AddBan(Server.GroupId, Server.GameId, target, reason);
+
+        foreach (var sibling in _manager.GetRunningGroupSiblings(Server))
+        {
+            var cmd = Plugin.GetBanCommand(target, reason);
+            if (cmd == null) continue;
+            try { await _manager.SendCommandAsync(sibling.Id, cmd); }
+            catch { }
+        }
+        AppendLog($"[Group Ban] Synced to {Server.GroupId}.", ConsoleMessageType.System);
     }
 
     // Kick/Ban suoraan pelaajan kortista
@@ -1230,6 +1276,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (cmd == null) { AppendLog("[Players] Ban not supported.", ConsoleMessageType.Warning); return; }
         await SendRconOrConsole(cmd);
         AppendLog($"[Players] Banned {player.Name} ({reason})", ConsoleMessageType.System);
+        await SyncBanToGroupAsync(target, reason);
         BanReason = string.Empty;
         _ = FetchOnlinePlayersAsync();
     }
@@ -1241,6 +1288,26 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var cmd = Plugin.GetPlayersCommand();
         if (cmd == null) { AppendLog("[Players] Player list not supported.", ConsoleMessageType.Warning); return; }
         await SendRconOrConsole(cmd);
+    }
+
+    /// <summary>Re-applies this group's bans (for this game) a few seconds after start, in
+    /// case this server missed bans issued while it wasn't running. Ban commands are
+    /// idempotent for every supported game, so re-sending an existing ban is harmless.</summary>
+    private async Task ReplayGroupBansAsync()
+    {
+        if (string.IsNullOrEmpty(Server.GroupId) || Plugin == null) return;
+        await Task.Delay(10_000);
+        if (!IsRunning) return;
+
+        var bans = _groupBans.GetBans(Server.GroupId, Server.GameId);
+        foreach (var ban in bans)
+        {
+            var cmd = Plugin.GetBanCommand(ban.Target, ban.Reason);
+            if (cmd == null) continue;
+            try { await SendRconOrConsole(cmd); } catch { }
+        }
+        if (bans.Count > 0)
+            AppendLog($"[Group Ban] Re-applied {bans.Count} group ban(s).", ConsoleMessageType.System);
     }
 
     private async Task SendRconOrConsole(string cmd)
@@ -1486,6 +1553,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 StartPlayerRefresh();
                 if (_updateTimer == null) StartUpdateTimer();
             });
+            _ = ReplayGroupBansAsync();
         }
         else if (status == ServerStatus.Stopped || status == ServerStatus.Error)
         {

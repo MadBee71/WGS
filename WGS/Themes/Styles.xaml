@@ -15,6 +15,7 @@
     <conv:CountToVisibilityConverter       x:Key="CountToVis"/>
     <conv:FieldTypeToPasswordVisConverter  x:Key="FieldTypeToPasswordVis"/>
     <conv:FieldTypeToTextVisConverter      x:Key="FieldTypeToTextVis"/>
+    <conv:BoolToIncrementalLabelConverter  x:Key="BoolToIncrementalLabel"/>
 
     <!-- Scrollbar -->
     <Style x:Key="DarkScrollBar" TargetType="ScrollBar">

@@ -158,6 +158,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<NetworkMonitorService>();
         s.AddSingleton<UserService>();
         s.AddSingleton<ServerGroupService>();
+        s.AddSingleton<GroupBanListService>();
         s.AddSingleton<WebApiService>();
         s.AddSingleton<RemoteMachineService>();
         s.AddSingleton<CrashPredictionService>();

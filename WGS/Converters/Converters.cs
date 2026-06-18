@@ -96,6 +96,13 @@ public class FieldTypeToTextVisConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+public class BoolToIncrementalLabelConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is true ? "Incremental" : "Full";
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 /// <summary>
 /// Palauttaa GridLength "*" kun bool on true, "0" kun false.
 /// Käytetään editoripaneelin leveyden toggle-näyttöön ilman erillistä näkyvyys-saraketta.

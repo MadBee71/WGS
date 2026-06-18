@@ -769,6 +769,20 @@
                                         Command="{Binding CleanupBackupsNowCommand}"
                                         ToolTip="Permanently delete backups that exceed the limits above, right now"/>
                             </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <CheckBox IsChecked="{Binding UseIncrementalBackups}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Incremental backups" Margin="0,0,16,0"
+                                          ToolTip="Only changed files are zipped after the first backup — much faster and smaller for large worlds"/>
+                                <TextBlock Text="Full backup every" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"
+                                           Visibility="{Binding UseIncrementalBackups, Converter={StaticResource BoolToVis}}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="40"
+                                         Text="{Binding FullBackupEveryN, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="{Binding UseIncrementalBackups, Converter={StaticResource BoolToVis}}"/>
+                                <TextBlock Text="backups" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0"
+                                           Visibility="{Binding UseIncrementalBackups, Converter={StaticResource BoolToVis}}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -785,6 +799,9 @@
                                             <StackPanel>
                                                 <TextBlock FontWeight="SemiBold" FontSize="13">
                                                     <Run Text="{Binding CreatedAt, StringFormat='dd.MM.yyyy HH:mm:ss', Mode=OneWay}"/>
+                                                    <Run Text=" · "/>
+                                                    <Run Text="{Binding IsIncremental, Converter={StaticResource BoolToIncrementalLabel}, Mode=OneWay}"
+                                                         Foreground="{StaticResource TextMutedBrush}" FontWeight="Normal" FontSize="11"/>
                                                 </TextBlock>
                                                 <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="12">
                                                     <Run Text="{Binding SizeText, Mode=OneWay}"/>
@@ -852,6 +869,16 @@
                                 <TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding Plugin.Description}"
                                            TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </Grid>
+                        </Border>
+
+                        <TextBlock Text="Share" Style="{StaticResource SectionHeader}" Margin="0,20,0,0"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Generates a read-only status link (player count, uptime) safe to post in Discord or on a website — no controls, no login needed."
+                                           TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,10"/>
+                                <Button Content="🔗 Copy shareable status link" Style="{StaticResource GhostButton}"
+                                        HorizontalAlignment="Left" Command="{Binding CopyStatusLinkCommand}"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
