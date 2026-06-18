@@ -280,7 +280,10 @@ MIT License — see the [LICENSE](LICENSE) file.
 ---
 
 ## Support
-If you find WGS useful, you can support my work here:
+
+The biggest help is completely free: if WGS is useful to you, **⭐ star this repo** — it's the main way other people find the project.
+
+If you'd also like to chip in financially, that's entirely optional and never expected — it goes toward keeping development going, not "buying" features or support:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/madbee71)
 
