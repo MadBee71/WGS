@@ -23,6 +23,10 @@ public class ConfigService
     public bool   SlaveMode              { get; set; } = false;
     public string SlaveName              { get; set; } = "This Machine";
     public bool   CrashPredictionDiscord { get; set; } = false;
+    /// <summary>When true, skip the per-server CPU/RAM heuristics and only warn when system-wide RAM is critically low.</summary>
+    public bool   CrashPredictionLowMemOnly { get; set; } = false;
+    /// <summary>Free-RAM percentage below which the low-memory warning fires.</summary>
+    public double CrashPredictionLowMemPercent { get; set; } = 5.0;
     public bool   EnableUPnP             { get; set; } = false;
     public string SortMode               { get; set; } = "name-asc";
 
@@ -54,7 +58,9 @@ public class ConfigService
         string SlaveName               = "This Machine",
         bool   CrashPredictionDiscord  = false,
         bool   EnableUPnP             = false,
-        string SortMode               = "name-asc");
+        string SortMode               = "name-asc",
+        bool   CrashPredictionLowMemOnly = false,
+        double CrashPredictionLowMemPercent = 5.0);
 
     private void LoadSettings()
     {
@@ -79,6 +85,8 @@ public class ConfigService
             CrashPredictionDiscord = d.CrashPredictionDiscord;
             EnableUPnP             = d.EnableUPnP;
             SortMode               = string.IsNullOrEmpty(d.SortMode) ? "name-asc" : d.SortMode;
+            CrashPredictionLowMemOnly = d.CrashPredictionLowMemOnly;
+            CrashPredictionLowMemPercent = d.CrashPredictionLowMemPercent > 0 ? d.CrashPredictionLowMemPercent : 5.0;
         }
         catch { }
     }
@@ -90,7 +98,7 @@ public class ConfigService
             : EncryptionService.Encrypt(SteamPassword);
         var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
-            EnableUPnP, SortMode);
+            EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

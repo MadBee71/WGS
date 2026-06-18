@@ -82,9 +82,26 @@ public class BackupService
 
     public void ApplyRetentionPolicy(GameServer server, int maxKeep)
     {
-        if (maxKeep <= 0) return;
-        foreach (var old in GetBackupsForServer(server).Skip(maxKeep))
+        foreach (var old in GetBackupsToDelete(server, maxKeep))
             DeleteBackup(old.FilePath);
+    }
+
+    /// <summary>Backups that would be removed by the current retention policy (count + max age), without deleting them.</summary>
+    public List<BackupEntry> GetBackupsToDelete(GameServer server, int maxKeep)
+    {
+        var backups = GetBackupsForServer(server);
+        var toDelete = new List<BackupEntry>();
+
+        if (maxKeep > 0)
+            toDelete.AddRange(backups.Skip(maxKeep));
+
+        if (server.BackupMaxAgeDays > 0)
+        {
+            var cutoff = DateTime.Now.AddDays(-server.BackupMaxAgeDays);
+            toDelete.AddRange(backups.Where(b => b.CreatedAt < cutoff && !toDelete.Contains(b)));
+        }
+
+        return toDelete;
     }
 
     public async Task RestoreBackupAsync(GameServer server, string zipPath)

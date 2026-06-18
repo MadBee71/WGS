@@ -12,8 +12,11 @@ public class CrashPrediction
 public class CrashPredictionService : IDisposable
 {
     private readonly PerfHistoryService _perfHistory;
+    private readonly SystemMetricsService _systemMetrics;
+    private readonly ConfigService _config;
     private readonly Dictionary<string, DateTime> _lastFired  = new();
     private readonly Dictionary<string, DateTime> _startTimes = new();
+    private DateTime _lastLowMemFired = DateTime.MinValue;
     private CancellationTokenSource? _cts;
     private Task? _task;
 
@@ -28,9 +31,11 @@ public class CrashPredictionService : IDisposable
     private static readonly TimeSpan WindowSize  = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan SustainedCpuWindow = TimeSpan.FromMinutes(2);
 
-    public CrashPredictionService(PerfHistoryService perfHistory)
+    public CrashPredictionService(PerfHistoryService perfHistory, SystemMetricsService systemMetrics, ConfigService config)
     {
-        _perfHistory = perfHistory;
+        _perfHistory   = perfHistory;
+        _systemMetrics = systemMetrics;
+        _config        = config;
         // Start() called via Initialize() from App.xaml.cs after DI is fully built
     }
 
@@ -57,9 +62,28 @@ public class CrashPredictionService : IDisposable
 
     private void Analyze()
     {
+        AnalyzeSystemMemory();
+
+        if (_config.CrashPredictionLowMemOnly) return; // skip the noisier per-server heuristics
+
         var servers = GetRunningServers?.Invoke() ?? [];
         foreach (var (id, name) in servers)
             AnalyzeServer(id, name);
+    }
+
+    private void AnalyzeSystemMemory()
+    {
+        var now = DateTime.Now;
+        if (now - _lastLowMemFired < Cooldown) return;
+        if (_systemMetrics.RamTotalMb <= 0) return;
+
+        var freeMb      = _systemMetrics.RamTotalMb - _systemMetrics.RamUsedMb;
+        var freePercent = freeMb / (double)_systemMetrics.RamTotalMb * 100.0;
+        if (freePercent > _config.CrashPredictionLowMemPercent) return;
+
+        _lastLowMemFired = now;
+        var pred = Make("__system__", "System", $"System RAM critically low — {freeMb} MB free ({freePercent:F1}%)", 2, now);
+        PredictionRaised?.Invoke("__system__", pred);
     }
 
     private void AnalyzeServer(string serverId, string serverName)

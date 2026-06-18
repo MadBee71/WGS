@@ -745,11 +745,30 @@
 
                     <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="{Binding Loc.BackupCreate}" Style="{StaticResource PrimaryButton}"
-                                    Command="{Binding CreateBackupCommand}" Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding Backups.Count, Mode=OneWay, StringFormat='{}{0} backups'}"
-                                       VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="{Binding Loc.BackupCreate}" Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding CreateBackupCommand}" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding Backups.Count, Mode=OneWay, StringFormat='{}{0} backups'}"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <TextBlock Text="Keep at most" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                                         Text="{Binding BackupRetention, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="backups (0 = unlimited)" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,24,0"/>
+                                <TextBlock Text="Delete backups older than" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                                         Text="{Binding BackupMaxAgeDays, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="days (0 = off)" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,16,0"/>
+                                <Button Content="🗑 Clean up now" Style="{StaticResource GhostButton}"
+                                        Command="{Binding CleanupBackupsNowCommand}"
+                                        ToolTip="Permanently delete backups that exceed the limits above, right now"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
