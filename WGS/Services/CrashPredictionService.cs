@@ -17,6 +17,8 @@ public class CrashPredictionService : IDisposable
     private readonly Dictionary<string, DateTime> _lastFired  = new();
     private readonly Dictionary<string, DateTime> _startTimes = new();
     private DateTime _lastLowMemFired = DateTime.MinValue;
+    private DateTime _lastHighCpuFired = DateTime.MinValue;
+    private readonly List<(DateTime Time, double Cpu)> _systemCpuSamples = new();
     private CancellationTokenSource? _cts;
     private Task? _task;
 
@@ -63,6 +65,7 @@ public class CrashPredictionService : IDisposable
     private void Analyze()
     {
         AnalyzeSystemMemory();
+        if (_config.CrashPredictionHighCpuOnly) AnalyzeSystemCpu();
 
         if (_config.CrashPredictionLowMemOnly) return; // skip the noisier per-server heuristics
 
@@ -98,6 +101,38 @@ public class CrashPredictionService : IDisposable
         }
 
         var pred = Make("__system__", "System", $"System RAM critically low — {freeMb} MB free ({freePercent:F1}%).{suggestion}", 2, now);
+        PredictionRaised?.Invoke("__system__", pred);
+    }
+
+    private void AnalyzeSystemCpu()
+    {
+        var now = DateTime.Now;
+
+        // Track a rolling window of samples so a brief spike doesn't trigger a false alarm —
+        // only fire once usage has stayed above the threshold for the full sustained window.
+        _systemCpuSamples.Add((now, _systemMetrics.CpuPercent));
+        _systemCpuSamples.RemoveAll(s => now - s.Time > SustainedCpuWindow);
+
+        if (now - _lastHighCpuFired < Cooldown) return;
+
+        var oldestSample = _systemCpuSamples[0].Time;
+        if (now - oldestSample < SustainedCpuWindow) return; // window not full yet
+        if (_systemCpuSamples.Any(s => s.Cpu < _config.CrashPredictionHighCpuPercent)) return;
+
+        _lastHighCpuFired = now;
+        var cpu = _systemMetrics.CpuPercent;
+
+        // Suggest a candidate to stop: the running server with the fewest players, so the
+        // warning is actionable instead of just "CPU is high".
+        var servers = GetRunningServers?.Invoke().ToList() ?? [];
+        string suggestion = "";
+        if (servers.Count > 0)
+        {
+            var candidate = servers.OrderBy(s => s.players).First();
+            suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players) to free up CPU.";
+        }
+
+        var pred = Make("__system__", "System", $"System CPU critically high — {cpu:F0}%.{suggestion}", 2, now);
         PredictionRaised?.Invoke("__system__", pred);
     }
 

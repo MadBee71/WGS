@@ -173,8 +173,21 @@
                         <TextBlock Text="% of total RAM" VerticalAlignment="Center"
                                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0"/>
                     </StackPanel>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"
                                Text="When checked, skips the per-server RAM-growth/CPU heuristics above (which can be noisy on servers that legitimately use a lot of CPU or take a while to load) and only alerts when overall system memory availability gets critically low. Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
+                    <CheckBox IsChecked="{Binding CrashPredictionHighCpuOnly}" Style="{StaticResource DarkCheckBox}"
+                              Content="Also warn when system CPU is critically high" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                Visibility="{Binding CrashPredictionHighCpuOnly, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Warn when total CPU usage rises above" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="60" TextAlignment="Center"
+                                 Text="{Binding CrashPredictionHighCpuPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="%" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"
+                               Text="Independent of the low-RAM option above — works whether or not the per-server heuristics are skipped. Only fires after total system CPU has stayed above the threshold for a full 2 minutes, so a brief normal spike won't trigger a false alarm."/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>
