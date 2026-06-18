@@ -75,22 +75,22 @@ public sealed class WakeOnDemandService : IDisposable
 
     private async Task ListenAsync(GameServer server, CancellationToken ct)
     {
-        TcpListener? listener = null;
+        // Game traffic on the main server port is UDP for almost every supported game
+        // (Valheim, Rust, ARK, Palworld, 7 Days to Die, DayZ...) — a TCP listener here would
+        // never see a real client's connection attempt. Wake on any inbound datagram instead.
+        UdpClient? listener = null;
         try
         {
-            listener = new TcpListener(IPAddress.Any, server.ServerPort);
-            listener.Start();
-
-            // Accept exactly one connection, then start the server
-            using var reg = ct.Register(() => listener.Stop());
-            var client = await listener.AcceptTcpClientAsync(ct);
-            client.Dispose();
+            listener = new UdpClient(server.ServerPort);
+            using var reg = ct.Register(() => listener.Dispose());
+            await listener.ReceiveAsync(ct);
         }
         catch (OperationCanceledException) { return; }
+        catch (ObjectDisposedException) { return; }
         catch { return; }
         finally
         {
-            try { listener?.Stop(); } catch { }
+            try { listener?.Dispose(); } catch { }
         }
 
         // Remove watcher entry before starting

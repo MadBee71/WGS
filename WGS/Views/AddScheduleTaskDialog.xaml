@@ -8,13 +8,19 @@
         Foreground="#e6edf3"
         BorderBrush="#30363d" BorderThickness="1"
         WindowStyle="SingleBorderWindow">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <StackPanel Margin="24">
         <TextBlock Text="Scheduled Task" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"
                    Foreground="#e6edf3"/>
 
         <TextBlock Text="Action" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
-        <ComboBox x:Name="CbAction" Margin="0,0,0,14" Padding="10,6"
-                  Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d">
+        <ComboBox x:Name="CbAction" Margin="0,0,0,14" Style="{StaticResource DarkComboBox}">
             <ComboBoxItem Content="Restart" IsSelected="True"/>
             <ComboBoxItem Content="Stop"/>
             <ComboBoxItem Content="Start"/>
@@ -23,8 +29,7 @@
         </ComboBox>
 
         <TextBlock Text="Frequency" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
-        <ComboBox x:Name="CbFreq" Margin="0,0,0,14" Padding="10,6"
-                  Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d"
+        <ComboBox x:Name="CbFreq" Margin="0,0,0,14" Style="{StaticResource DarkComboBox}"
                   SelectionChanged="CbFreq_SelectionChanged">
             <ComboBoxItem Content="Daily" IsSelected="True"/>
             <ComboBoxItem Content="Weekly"/>
@@ -32,8 +37,7 @@
 
         <StackPanel x:Name="DayPanel" Visibility="Collapsed" Margin="0,0,0,14">
             <TextBlock Text="Day of week" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
-            <ComboBox x:Name="CbDay" Padding="10,6"
-                      Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d">
+            <ComboBox x:Name="CbDay" Style="{StaticResource DarkComboBox}">
                 <ComboBoxItem Content="Monday" IsSelected="True"/>
                 <ComboBoxItem Content="Tuesday"/>
                 <ComboBoxItem Content="Wednesday"/>
