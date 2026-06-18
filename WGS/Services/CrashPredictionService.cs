@@ -23,7 +23,7 @@ public class CrashPredictionService : IDisposable
     public static readonly TimeSpan StartupGracePeriod = TimeSpan.FromMinutes(3);
 
     // Wired from MainViewModel after DI is fully built
-    public Func<IEnumerable<(string id, string name)>>? GetRunningServers { get; set; }
+    public Func<IEnumerable<(string id, string name, int players)>>? GetRunningServers { get; set; }
 
     public event Action<string, CrashPrediction>? PredictionRaised;
 
@@ -67,7 +67,7 @@ public class CrashPredictionService : IDisposable
         if (_config.CrashPredictionLowMemOnly) return; // skip the noisier per-server heuristics
 
         var servers = GetRunningServers?.Invoke() ?? [];
-        foreach (var (id, name) in servers)
+        foreach (var (id, name, _) in servers)
             AnalyzeServer(id, name);
     }
 
@@ -82,8 +82,56 @@ public class CrashPredictionService : IDisposable
         if (freePercent > _config.CrashPredictionLowMemPercent) return;
 
         _lastLowMemFired = now;
-        var pred = Make("__system__", "System", $"System RAM critically low — {freeMb} MB free ({freePercent:F1}%)", 2, now);
+
+        // Suggest a candidate to stop: the running server with the fewest players (ties broken by
+        // highest RAM usage), so the warning is actionable instead of just "memory is low".
+        var servers = GetRunningServers?.Invoke().ToList() ?? [];
+        string suggestion = "";
+        if (servers.Count > 0)
+        {
+            var candidate = servers
+                .Select(s => (s.id, s.name, s.players, ramMb: _perfHistory.Get(s.id).LastOrDefault()?.MemMb ?? 0))
+                .OrderBy(s => s.players)
+                .ThenByDescending(s => s.ramMb)
+                .First();
+            suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players, {candidate.ramMb} MB RAM) to free up memory.";
+        }
+
+        var pred = Make("__system__", "System", $"System RAM critically low — {freeMb} MB free ({freePercent:F1}%).{suggestion}", 2, now);
         PredictionRaised?.Invoke("__system__", pred);
+    }
+
+    /// <summary>Scans a single console line for known crash-precursor patterns.</summary>
+    private static readonly (string pattern, string label)[] DangerousLogPatterns =
+    [
+        ("OutOfMemoryException",        "out-of-memory exception"),
+        ("StackOverflowException",      "stack overflow exception"),
+        ("Segmentation fault",          "segmentation fault"),
+        ("Fatal error",                 "fatal error"),
+        ("Unhandled exception",         "unhandled exception"),
+        ("has stopped working",         "process reported it stopped working"),
+        ("Access violation",            "access violation"),
+        ("std::bad_alloc",              "memory allocation failure (bad_alloc)"),
+    ];
+
+    public void CheckLogLine(string serverId, string serverName, string line)
+    {
+        if (string.IsNullOrEmpty(line)) return;
+
+        var now = DateTime.Now;
+        if (_startTimes.TryGetValue(serverId, out var startedAt) && now - startedAt < StartupGracePeriod) return;
+        if (_lastFired.TryGetValue(serverId, out var last) && now - last < Cooldown) return;
+
+        foreach (var (pattern, label) in DangerousLogPatterns)
+        {
+            if (line.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                _lastFired[serverId] = now;
+                var pred = Make(serverId, serverName, $"Log shows {label} — may crash soon", 2, now);
+                PredictionRaised?.Invoke(serverId, pred);
+                return;
+            }
+        }
     }
 
     private void AnalyzeServer(string serverId, string serverName)

@@ -61,6 +61,15 @@ public class ServerManagerService
     public ServerInstance? GetInstance(string serverId)
         => _running.TryGetValue(serverId, out var i) ? i : null;
 
+    /// <summary>Other currently-running servers in the same group and of the same game, used for ban-list sync.</summary>
+    public IEnumerable<GameServer> GetRunningGroupSiblings(GameServer server)
+        => _running.Values
+            .Select(i => i.Server)
+            .Where(s => s.Id != server.Id
+                     && s.GameId == server.GameId
+                     && !string.IsNullOrEmpty(server.GroupId)
+                     && s.GroupId == server.GroupId);
+
     /// <summary>
     /// Called once at WGS startup for every saved server. If the server has a persisted
     /// RunningPid and a matching process is still alive (WGS was closed while the game

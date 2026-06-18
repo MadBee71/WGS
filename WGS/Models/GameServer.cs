@@ -42,6 +42,10 @@ public class GameServer
     public int  BackupRetention    { get; set; } = 5;
     /// <summary>Delete backups older than this many days. 0 = disabled (age-based deletion off).</summary>
     public int  BackupMaxAgeDays   { get; set; } = 0;
+    /// <summary>When true, only changed files are backed up after the first full backup.</summary>
+    public bool UseIncrementalBackups { get; set; } = false;
+    /// <summary>Force a full backup every N backups (bounds how long an incremental chain gets).</summary>
+    public int  FullBackupEveryN   { get; set; } = 7;
     /// <summary>
     /// Relative path(s) within InstallPath to backup, separated by semicolons.
     /// If empty, the game default (or full InstallPath) is used.
