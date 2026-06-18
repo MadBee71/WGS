@@ -28,6 +28,7 @@ public class GameServer
     public int  ShutDownIdleMinutes    { get; set; } = 10;
     public bool UpdateOnStart          { get; set; } = false;
     public bool BackupOnStart          { get; set; } = false;
+    public bool BackupOnShutdown       { get; set; } = false;
     public bool   DiscordAlertsEnabled    { get; set; } = true;
     /// <summary>Server-specific Discord webhook URL. Falls back to global setting when empty.</summary>
     public string DiscordWebhookUrl       { get; set; } = string.Empty;
