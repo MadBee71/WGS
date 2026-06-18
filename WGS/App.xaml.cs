@@ -52,6 +52,8 @@ public partial class App : System.Windows.Application
 
         WriteLog("=== WGS starting ===");
 
+        SelfUpdateService.CleanupLeftovers();
+
         // UI-säikeen poikkeukset
         DispatcherUnhandledException += (_, ex) =>
         {
