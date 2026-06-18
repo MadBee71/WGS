@@ -81,7 +81,7 @@ public class SteamWorkshopService
 
         progress?.Report((0, $"Downloading Workshop item {workshopItemId}..."));
 
-        await _steamCmd.RunWorkshopDownloadAsync(plugin.SteamAppId, plugin.WorkshopAppId, workshopItemId,
+        await _steamCmd.RunWorkshopDownloadAsync(server.Id, plugin.SteamAppId, plugin.WorkshopAppId, workshopItemId,
             server.InstallPath, progress);
 
         var itemPath = GetWorkshopItemPath(plugin, workshopItemId);

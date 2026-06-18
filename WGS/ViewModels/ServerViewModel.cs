@@ -432,7 +432,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         try
         {
-            await _steamCmd.InstallOrUpdateAsync(Plugin.SteamAppId, Server.InstallPath, login, password, Plugin.SteamBranch);
+            await _steamCmd.InstallOrUpdateAsync(Server.Id, Plugin.SteamAppId, Server.InstallPath, login, password, Plugin.SteamBranch);
             Server.Status = ServerStatus.Stopped;
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
             await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
@@ -1484,11 +1484,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             "#F85149");
     }
 
-    private void OnSteamOutput(string line)
-        => WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog(line, ConsoleMessageType.System));
+    private void OnSteamOutput(string serverId, string line)
+    {
+        if (serverId.Length > 0 && serverId != Server.Id) return;
+        WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog(line, ConsoleMessageType.System));
+    }
 
-    private void OnSteamProgress(int p)
-        => WpfApplication.Current?.Dispatcher?.Invoke(() => InstallProgress = p);
+    private void OnSteamProgress(string serverId, int p)
+    {
+        if (serverId.Length > 0 && serverId != Server.Id) return;
+        WpfApplication.Current?.Dispatcher?.Invoke(() => InstallProgress = p);
+    }
 
     private void AppendLog(string text, ConsoleMessageType type = ConsoleMessageType.Info)
         => WpfApplication.Current?.Dispatcher?.Invoke(() => Log.Add(new ConsoleMessage { Text = text, Type = type }));

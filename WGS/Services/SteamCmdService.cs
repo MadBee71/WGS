@@ -13,8 +13,9 @@ public class SteamCmdService
     private readonly string _steamCmdExe;
     private Process? _currentProcess;
 
-    public event Action<string>? OutputReceived;
-    public event Action<int>? ProgressChanged;
+    /// <summary>(serverId, line) — serverId is "" for messages not tied to a specific server (e.g. downloading SteamCMD itself before any install starts).</summary>
+    public event Action<string, string>? OutputReceived;
+    public event Action<string, int>? ProgressChanged;
     public event Action? Completed;
 
     public SteamCmdService(ConfigService config)
@@ -28,32 +29,32 @@ public class SteamCmdService
     /// <summary>SteamCMD downloads workshop items here: steamcmd/steamapps/workshop/content/{appId}/{itemId}</summary>
     public string WorkshopContentPath => Path.Combine(_steamCmdDir, "steamapps", "workshop", "content");
 
-    public async Task DownloadSteamCmdAsync()
+    public async Task DownloadSteamCmdAsync(string serverId = "")
     {
         try
         {
             Directory.CreateDirectory(_steamCmdDir);
             var zipPath = Path.Combine(_steamCmdDir, "steamcmd.zip");
-            OutputReceived?.Invoke("[WGS] Downloading SteamCMD...");
+            OutputReceived?.Invoke(serverId, "[WGS] Downloading SteamCMD...");
 
             var bytes = await _http.GetByteArrayAsync("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip");
             await File.WriteAllBytesAsync(zipPath, bytes);
 
-            OutputReceived?.Invoke("[WGS] Extracting SteamCMD...");
+            OutputReceived?.Invoke(serverId, "[WGS] Extracting SteamCMD...");
             System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, _steamCmdDir, overwriteFiles: true);
             File.Delete(zipPath);
-            OutputReceived?.Invoke("[WGS] SteamCMD installed.");
+            OutputReceived?.Invoke(serverId, "[WGS] SteamCMD installed.");
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
-            OutputReceived?.Invoke("[ERR] SteamCMD download failed: " + ex.Message);
+            OutputReceived?.Invoke(serverId, "[ERR] SteamCMD download failed: " + ex.Message);
             throw new InvalidOperationException("SteamCMD download failed", ex);
         }
     }
 
-    public async Task InstallOrUpdateAsync(int appId, string installPath, string? login = null, string? password = null, string? branch = null)
+    public async Task InstallOrUpdateAsync(string serverId, int appId, string installPath, string? login = null, string? password = null, string? branch = null)
     {
-        if (!IsInstalled) await DownloadSteamCmdAsync();
+        if (!IsInstalled) await DownloadSteamCmdAsync(serverId);
 
         try
         {
@@ -70,10 +71,10 @@ public class SteamCmdService
         var branchArg = string.IsNullOrEmpty(branch) ? "" : $" -beta {branch}";
 
         var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId}{branchArg} +quit";
-        await RunAsync(args, throwOnSteamError: true);
+        await RunAsync(serverId, args, throwOnSteamError: true);
     }
 
-    public async Task RunAsync(string arguments, bool throwOnSteamError = false)
+    public async Task RunAsync(string serverId, string arguments, bool throwOnSteamError = false)
     {
         var psi = new ProcessStartInfo
         {
@@ -93,12 +94,12 @@ public class SteamCmdService
         _currentProcess.OutputDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
-            ParseAndForward(e.Data);
+            ParseAndForward(serverId, e.Data);
 
             if (throwOnSteamError && e.Data.StartsWith("ERROR!", StringComparison.OrdinalIgnoreCase))
                 steamError = e.Data;
         };
-        _currentProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) OutputReceived?.Invoke("[ERR] " + e.Data); };
+        _currentProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) OutputReceived?.Invoke(serverId, "[ERR] " + e.Data); };
 
         try
         {
@@ -122,7 +123,7 @@ public class SteamCmdService
                 while (!cts.Token.IsCancellationRequested)
                 {
                     await Task.Delay(15_000, cts.Token);
-                    OutputReceived?.Invoke("[WGS] ... still working ...");
+                    OutputReceived?.Invoke(serverId, "[WGS] ... still working ...");
                 }
             }
             catch (TaskCanceledException) { }
@@ -139,16 +140,16 @@ public class SteamCmdService
             throw new InvalidOperationException(steamError);
 
         if (exitCode != 0 && steamError == null)
-            OutputReceived?.Invoke($"[WGS] SteamCMD exited with code {exitCode}");
+            OutputReceived?.Invoke(serverId, $"[WGS] SteamCMD exited with code {exitCode}");
     }
 
-    private void ParseAndForward(string line)
+    private void ParseAndForward(string serverId, string line)
     {
-        OutputReceived?.Invoke(line);
+        OutputReceived?.Invoke(serverId, line);
         if (line.Contains("Update state (0x") && line.Contains("downloading") && line.Contains("%"))
         {
             var pct = ExtractPercent(line);
-            if (pct >= 0) ProgressChanged?.Invoke(pct);
+            if (pct >= 0) ProgressChanged?.Invoke(serverId, pct);
         }
     }
 
@@ -161,10 +162,10 @@ public class SteamCmdService
         return double.TryParse(line[start..idx], out var d) ? (int)d : -1;
     }
 
-    public async Task RunWorkshopDownloadAsync(int serverAppId, int workshopAppId, ulong itemId,
+    public async Task RunWorkshopDownloadAsync(string serverId, int serverAppId, int workshopAppId, ulong itemId,
         string installPath, IProgress<(int pct, string msg)>? progress = null)
     {
-        if (!IsInstalled) await DownloadSteamCmdAsync();
+        if (!IsInstalled) await DownloadSteamCmdAsync(serverId);
 
         progress?.Report((5, "Starting SteamCMD..."));
 
@@ -176,7 +177,7 @@ public class SteamCmdService
             if (fakeProgress < 88) { fakeProgress += 8; progress?.Report((fakeProgress, "Downloading...")); }
         };
         progressTimer.Start();
-        try   { await RunAsync(args); }
+        try   { await RunAsync(serverId, args); }
         finally { progressTimer.Stop(); }
         progress?.Report((100, "Done."));
     }
