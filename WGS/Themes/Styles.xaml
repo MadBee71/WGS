@@ -16,6 +16,7 @@
     <conv:FieldTypeToPasswordVisConverter  x:Key="FieldTypeToPasswordVis"/>
     <conv:FieldTypeToTextVisConverter      x:Key="FieldTypeToTextVis"/>
     <conv:BoolToIncrementalLabelConverter  x:Key="BoolToIncrementalLabel"/>
+    <conv:FractionToHeightConverter        x:Key="FractionToHeight"/>
 
     <!-- Scrollbar -->
     <Style x:Key="DarkScrollBar" TargetType="ScrollBar">

@@ -191,6 +191,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Native console notice -->
@@ -272,8 +273,48 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <!-- Command input -->
+                    <!-- Quick commands -->
                     <Border Grid.Row="3" Background="{StaticResource BgSurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,8">
+                        <StackPanel>
+                            <WrapPanel>
+                                <ItemsControl ItemsSource="{Binding QuickCommands}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Margin="0,0,6,6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="{Binding Label}" Style="{StaticResource GhostButton}"
+                                                            Padding="8,4"
+                                                            Command="{Binding DataContext.RunQuickCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" ToolTip="{Binding Command}"/>
+                                                    <Button Content="✕" Style="{StaticResource GhostButton}" Width="22" Padding="0" FontSize="10"
+                                                            Command="{Binding DataContext.RemoveQuickCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="100" Margin="0,0,4,0"
+                                         Text="{Binding NewQuickCommandLabel, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Button label, e.g. Welcome message"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="220" Margin="0,0,4,0"
+                                         FontFamily="Consolas"
+                                         Text="{Binding NewQuickCommandCommand, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Console command, e.g. say Welcome to the server!"/>
+                                <Button Content="+ Add" Style="{StaticResource GhostButton}" Padding="10,4"
+                                        Command="{Binding AddQuickCommandCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Command input -->
+                    <Border Grid.Row="4" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -592,6 +633,18 @@
                                 </Grid>
                                 <Button Content="🔍  Check ports" Style="{StaticResource GhostButton}"
                                         HorizontalAlignment="Left" Command="{Binding CheckPortsCommand}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Server hygiene -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Server Hygiene" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"
+                                           Text="Scans for leftover log files, Unreal Engine crash report folders and stray temp files from interrupted updates. Only works while the server is stopped."/>
+                                <Button Content="🧹 Scan &amp; clean up junk files" Style="{StaticResource GhostButton}"
+                                        HorizontalAlignment="Left" Command="{Binding CleanupJunkFilesCommand}"/>
                             </StackPanel>
                         </Border>
 
@@ -1140,19 +1193,49 @@
                                       Width="280"/>
                         </StackPanel>
                     </Border>
-                    <TextBox Grid.Row="1"
-                             Text="{Binding ConfigContent, UpdateSourceTrigger=PropertyChanged}"
-                             Background="{StaticResource BgDeepBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             CaretBrush="{StaticResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             FontFamily="Cascadia Code, Consolas, Courier New"
-                             FontSize="13"
-                             AcceptsReturn="True" AcceptsTab="True"
-                             TextWrapping="NoWrap"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             Padding="16"/>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="220"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding ConfigContent, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="{StaticResource BgDeepBrush}"
+                                 Foreground="{StaticResource TextPrimaryBrush}"
+                                 CaretBrush="{StaticResource TextPrimaryBrush}"
+                                 BorderThickness="0"
+                                 FontFamily="Cascadia Code, Consolas, Courier New"
+                                 FontSize="13"
+                                 AcceptsReturn="True" AcceptsTab="True"
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 Padding="16"/>
+                        <Border Grid.Column="1" Background="{StaticResource BgSurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="History" Style="{StaticResource SectionHeader}" Margin="12,12,12,6"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding ConfigHistory}" Margin="8">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource Card}" Margin="4,0,4,6" Padding="8">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding SavedAt, StringFormat='dd.MM.yyyy HH:mm:ss'}"
+                                                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                        <Button Content="↩ Restore" Style="{StaticResource GhostButton}"
+                                                                FontSize="11" Padding="6,3" Margin="0,4,0,0" HorizontalAlignment="Left"
+                                                                Command="{Binding DataContext.RestoreConfigSnapshotCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
                     <Border Grid.Row="2" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,10">
                         <Button Content="💾 Save file" Style="{StaticResource PrimaryButton}"
@@ -1393,6 +1476,63 @@
                                                                        Foreground="{StaticResource TextMutedBrush}"/>
                                                             <TextBlock Text="{Binding LastSeen, StringFormat='dd.MM.yyyy HH:mm'}"
                                                                        FontSize="11"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- ── Aktiivisuus ── -->
+                        <TabItem Header="📈 Activity">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
+                                <StackPanel>
+                                    <TextBlock Text="Activity by hour of day" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"
+                                               Text="How many sessions started in each hour, all-time. Useful for scheduling restarts/updates during quiet hours."/>
+                                    <ItemsControl ItemsSource="{Binding HourlyActivity}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Width="24" Margin="1,0" VerticalAlignment="Bottom">
+                                                    <Border Height="80" VerticalAlignment="Bottom" Background="Transparent">
+                                                        <Border VerticalAlignment="Bottom" Background="{StaticResource AccentBlueBrush}"
+                                                                CornerRadius="2" ToolTip="{Binding Count}"
+                                                                Height="{Binding HeightFraction, Converter={StaticResource FractionToHeight}}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Label}" FontSize="8" HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="Most active players (last 30 days)" Style="{StaticResource SectionHeader}" Margin="0,24,0,0"/>
+                                    <ItemsControl ItemsSource="{Binding MostActivePlayers}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{StaticResource BgSurface2Brush}"
+                                                        CornerRadius="6" Padding="12,6" Margin="0,0,0,3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="100"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding PlayerName}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="Sessions" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                                            <TextBlock Text="{Binding SessionCount}" FontSize="13" FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                            <TextBlock Text="Play time" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                                            <TextBlock Text="{Binding TotalTimeText}" FontSize="13" FontFamily="Consolas"
+                                                                       Foreground="{StaticResource AccentGreenBrush}"/>
                                                         </StackPanel>
                                                     </Grid>
                                                 </Border>

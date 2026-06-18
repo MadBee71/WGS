@@ -57,6 +57,8 @@ public class GameServer
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastStarted { get; set; }
     public string GroupId { get; set; } = string.Empty;
+    /// <summary>Saved console command shortcuts shown as one-click buttons in the Console tab.</summary>
+    public List<QuickCommand> QuickCommands { get; set; } = [];
 
     /// <summary>
     /// PID of the launched process, persisted to disk so WGS can reattach to a still-running
@@ -72,4 +74,10 @@ public class GameServer
 
     [JsonIgnore]
     public TimeSpan Uptime { get; set; }
+}
+
+public class QuickCommand
+{
+    public string Label   { get; set; } = string.Empty;
+    public string Command { get; set; } = string.Empty;
 }

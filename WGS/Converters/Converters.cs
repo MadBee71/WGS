@@ -103,6 +103,15 @@ public class BoolToIncrementalLabelConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+/// <summary>Maps a 0..1 fraction to a pixel height for simple bar charts (min 2px so empty bars are still visible).</summary>
+public class FractionToHeightConverter : IValueConverter
+{
+    private const double MaxHeight = 80;
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is double d ? Math.Max(2, d * MaxHeight) : 2.0;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 /// <summary>
 /// Palauttaa GridLength "*" kun bool on true, "0" kun false.
 /// Käytetään editoripaneelin leveyden toggle-näyttöön ilman erillistä näkyvyys-saraketta.

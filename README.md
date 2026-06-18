@@ -3,7 +3,7 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-1.2.4-blue)
+  ![Version](https://img.shields.io/badge/version-1.2.5-blue)
   ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
@@ -71,6 +71,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📊 **System dashboard** | Global CPU, RAM and disk usage across all running servers |
 | 📈 **Per-server performance charts** | CPU and RAM history graphs up to 1 hour, with selectable time range |
 | 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
+| 📈 **Activity heatmap & top players** | Hourly activity chart (useful for scheduling restarts during quiet hours) and a most-active-players-in-30-days view |
 | 🌐 **Bandwidth & connections** | Live network in/out and active connection count per server |
 | ⚠️ **Crash prediction** | Warns before a likely crash from RAM growth, sustained high CPU or memory leaks — or switch to a simpler "low system memory only" mode with a configurable threshold |
 
@@ -101,7 +102,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 ### Configuration & mods
 | Feature | Description |
 |---|---|
-| 📝 **Config editor** | Browse and edit any server config file directly inside WGS |
+| 📝 **Config editor** | Browse and edit any server config file directly inside WGS, with automatic version history and one-click restore |
 | 🗂️ **Steam Workshop** | Install and manage Workshop mods for supported games via SteamCMD, with a live title preview when entering an item ID |
 | 📁 **File manager** | Browse, upload, download and delete server files without leaving WGS |
 
@@ -109,6 +110,8 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Feature | Description |
 |---|---|
 | 🛡️ **Firewall management** | Windows Firewall rules opened/closed automatically on start and stop |
+| 🧹 **Server hygiene** | Scans for and cleans up leftover log files, crash report folders and stray temp files while a server is stopped |
+| ⚡ **Quick commands** | Save up to a handful of console command shortcuts (e.g. a welcome message) as one-click buttons |
 | ⚙️ **CPU affinity, priority & RAM limit** | Per-server core pinning, process priority and hard RAM cap via Windows Job Objects |
 | 🔧 **Custom Plugin Creator** | Graphical tool to add any game server — no code required |
 | 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |

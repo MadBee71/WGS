@@ -26,6 +26,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly ScheduledTaskService   _scheduler;
     private readonly NetworkMonitorService  _network;
     private readonly GroupBanListService    _groupBans;
+    private readonly ServerHygieneService   _hygiene;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -59,6 +60,26 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private List<Models.OnlinePlayer>    _onlinePlayers  = [];
     [ObservableProperty] private List<Services.PlayerSession> _playerHistory  = [];
     [ObservableProperty] private List<Services.PlayerStats>   _playerStatsList = [];
+    [ObservableProperty] private List<Services.PlayerStats>   _mostActivePlayers = [];
+    [ObservableProperty] private List<HourBar> _hourlyActivity = [];
+
+    public class HourBar
+    {
+        public int Hour    { get; set; }
+        public int Count   { get; set; }
+        public double HeightFraction { get; set; } // 0..1, relative to the busiest hour
+        public string Label => $"{Hour:D2}";
+    }
+
+    private void RefreshActivityStats()
+    {
+        MostActivePlayers = _playerStats.GetMostActivePlayers(Server.Id, 30, 10);
+        var hourly = _playerStats.GetHourlyActivity(Server.Id);
+        var max = Math.Max(1, hourly.Max());
+        HourlyActivity = Enumerable.Range(0, 24)
+            .Select(h => new HourBar { Hour = h, Count = hourly[h], HeightFraction = hourly[h] / (double)max })
+            .ToList();
+    }
     [ObservableProperty] private bool   _playersBusy;
     [ObservableProperty] private string _kickReason  = string.Empty;
     [ObservableProperty] private string _banReason   = string.Empty;
@@ -254,7 +275,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ConfigEditorService configEditor, PlayerStatsService playerStats,
         PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
         TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network,
-        GroupBanListService groupBans)
+        GroupBanListService groupBans, ServerHygieneService hygiene)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -274,6 +295,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _scheduler     = scheduler;
         _network       = network;
         _groupBans     = groupBans;
+        _hygiene       = hygiene;
 
         _network.ServerStatsUpdated += OnServerStatsUpdated;
         FileBrowser.Initialize(server.InstallPath);
@@ -311,6 +333,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _backupMaxAgeDays  = Server.BackupMaxAgeDays;
         _useIncrementalBackups = Server.UseIncrementalBackups;
         _fullBackupEveryN  = Server.FullBackupEveryN;
+        foreach (var qc in Server.QuickCommands) QuickCommands.Add(qc);
 
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
@@ -488,6 +511,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (string.IsNullOrWhiteSpace(ConsoleInput)) return;
         var cmd = ConsoleInput;
         ConsoleInput = string.Empty;
+        await RunCommandTextAsync(cmd);
+    }
+
+    [RelayCommand]
+    private async Task RunQuickCommandAsync(QuickCommand? qc)
+    {
+        if (qc == null || string.IsNullOrWhiteSpace(qc.Command)) return;
+        await RunCommandTextAsync(qc.Command);
+    }
+
+    private async Task RunCommandTextAsync(string cmd)
+    {
         AppendLog("> " + cmd, ConsoleMessageType.Input);
 
         if (RconConnected)
@@ -512,6 +547,31 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     [RelayCommand]
     private void ClearConsole() => Log.Clear();
+
+    // ── Quick commands ───────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _newQuickCommandLabel   = string.Empty;
+    [ObservableProperty] private string _newQuickCommandCommand = string.Empty;
+    public ObservableCollection<QuickCommand> QuickCommands { get; } = [];
+
+    [RelayCommand]
+    private void AddQuickCommand()
+    {
+        if (string.IsNullOrWhiteSpace(NewQuickCommandLabel) || string.IsNullOrWhiteSpace(NewQuickCommandCommand)) return;
+        var qc = new QuickCommand { Label = NewQuickCommandLabel, Command = NewQuickCommandCommand };
+        QuickCommands.Add(qc);
+        Server.QuickCommands.Add(qc);
+        NewQuickCommandLabel   = string.Empty;
+        NewQuickCommandCommand = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveQuickCommand(QuickCommand? qc)
+    {
+        if (qc == null) return;
+        QuickCommands.Remove(qc);
+        Server.QuickCommands.Remove(qc);
+    }
 
     partial void OnConsoleFilterChanged(string value) => OnPropertyChanged(nameof(FilteredLog));
 
@@ -876,8 +936,42 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (SelectedConfigFile == null) return;
         SelectedConfigFile.Content = ConfigContent;
-        try { _configEditor.Save(SelectedConfigFile); AppendLog("[Config] File saved.", ConsoleMessageType.System); }
+        try
+        {
+            _configEditor.Save(Server.Id, SelectedConfigFile);
+            AppendLog("[Config] File saved.", ConsoleMessageType.System);
+            RefreshConfigHistory();
+        }
         catch (Exception ex) { AppendLog($"[Config] Save failed: {ex.Message}", ConsoleMessageType.Error); }
+    }
+
+    [ObservableProperty] private List<Services.ConfigSnapshot> _configHistory = [];
+
+    private void RefreshConfigHistory()
+    {
+        ConfigHistory = SelectedConfigFile == null ? [] : _configEditor.GetHistory(Server.Id, SelectedConfigFile.Path);
+    }
+
+    [RelayCommand]
+    private void RestoreConfigSnapshot(Services.ConfigSnapshot? snap)
+    {
+        if (snap == null || SelectedConfigFile == null) return;
+        var result = WpfMsgBox.Show(
+            $"Restore the version from {snap.SavedAt:dd.MM.yyyy HH:mm:ss}? The current content will be overwritten " +
+            "(but is itself saved to history first, so you can undo this too).",
+            "Restore config version", WpfMsgBoxButton.YesNo, WpfMsgBoxImage.Warning);
+        if (result != WpfMsgBoxResult.Yes) return;
+
+        var content = _configEditor.ReadSnapshot(snap.FilePath);
+        SelectedConfigFile.Content = content;
+        ConfigContent = content;
+        try
+        {
+            _configEditor.Save(Server.Id, SelectedConfigFile);
+            AppendLog($"[Config] Restored version from {snap.SavedAt:dd.MM.yyyy HH:mm:ss}.", ConsoleMessageType.System);
+            RefreshConfigHistory();
+        }
+        catch (Exception ex) { AppendLog($"[Config] Restore failed: {ex.Message}", ConsoleMessageType.Error); }
     }
 
     partial void OnSelectedConfigFileChanged(Services.ConfigFileEntry? value)
@@ -885,6 +979,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (value == null) return;
         _configEditor.LoadContent(value);
         ConfigContent = value.Content;
+        RefreshConfigHistory();
     }
 
     // ── Players ──────────────────────────────────────────────────────────────
@@ -916,6 +1011,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
             PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+            RefreshActivityStats();
         });
     }
 
@@ -982,6 +1078,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             OnlinePlayers = parsed;
             PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
             PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+            RefreshActivityStats();
         });
     }
 
@@ -1184,6 +1281,40 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     public bool HasShareableStatusLink => _config.WebApiRequired && _config.WebApiPort > 0;
+
+    [RelayCommand]
+    private void CleanupJunkFiles()
+    {
+        if (IsRunning)
+        {
+            WpfMsgBox.Show("Stop the server first — junk cleanup only scans/deletes files while it's not running.",
+                "Server hygiene", WpfMsgBoxButton.OK, WpfMsgBoxImage.Warning);
+            return;
+        }
+
+        var junk = _hygiene.ScanJunk(Server);
+        if (junk.Count == 0)
+        {
+            WpfMsgBox.Show("No leftover log files, crash reports or temp files found.",
+                "Server hygiene", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
+            return;
+        }
+
+        var totalSize = junk.Sum(j => j.SizeBytes);
+        var sizeText  = totalSize >= 1024 * 1024 * 1024
+            ? $"{totalSize / (1024.0 * 1024 * 1024):F2} GB"
+            : $"{totalSize / (1024.0 * 1024):F1} MB";
+        var byType = junk.GroupBy(j => j.Description).Select(g => $"{g.Count()} {g.Key.ToLowerInvariant()}(s)");
+
+        var result = WpfMsgBox.Show(
+            $"Found {junk.Count} item(s) totaling {sizeText}:\n{string.Join(", ", byType)}\n\n" +
+            "This will permanently delete them. Continue?",
+            "Server hygiene", WpfMsgBoxButton.YesNo, WpfMsgBoxImage.Warning);
+        if (result != WpfMsgBoxResult.Yes) return;
+
+        _hygiene.DeleteJunk(junk);
+        AppendLog($"[Hygiene] Deleted {junk.Count} junk item(s) ({sizeText}).", ConsoleMessageType.System);
+    }
 
     [RelayCommand]
     private void CopyStatusLink()
