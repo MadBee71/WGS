@@ -3,9 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using WGS.Services;
-using WpfMsgBox       = System.Windows.MessageBox;
-using WpfMsgBoxButton = System.Windows.MessageBoxButton;
-using WpfMsgBoxImage  = System.Windows.MessageBoxImage;
 
 namespace WGS.ViewModels;
 
@@ -66,6 +63,8 @@ public partial class SettingsViewModel : BaseViewModel
 
     // ── Crash Prediction ──────────────────────────────────────────────────────
     [ObservableProperty] private bool   _crashPredictionDiscord;
+    [ObservableProperty] private bool   _crashPredictionLowMemOnly;
+    [ObservableProperty] private double _crashPredictionLowMemPercent = 5.0;
 
     // ── UPnP ─────────────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _enableUPnP;
@@ -161,6 +160,8 @@ public partial class SettingsViewModel : BaseViewModel
         SlaveMode                = _config.SlaveMode;
         SlaveName                = _config.SlaveName;
         CrashPredictionDiscord   = _config.CrashPredictionDiscord;
+        CrashPredictionLowMemOnly = _config.CrashPredictionLowMemOnly;
+        CrashPredictionLowMemPercent = _config.CrashPredictionLowMemPercent;
         EnableUPnP               = _config.EnableUPnP;
         StartWithWindows         = GetStartWithWindows();
     }
@@ -203,6 +204,8 @@ public partial class SettingsViewModel : BaseViewModel
         _config.SlaveMode              = SlaveMode;
         _config.SlaveName              = SlaveName;
         _config.CrashPredictionDiscord = CrashPredictionDiscord;
+        _config.CrashPredictionLowMemOnly = CrashPredictionLowMemOnly;
+        _config.CrashPredictionLowMemPercent = CrashPredictionLowMemPercent > 0 ? CrashPredictionLowMemPercent : 5.0;
         _config.EnableUPnP             = EnableUPnP;
         if (!EnableUPnP) { UpnpStatus = "Stopped"; OnPropertyChanged(nameof(UpnpIsFound)); }
         _config.Save(); // single save — all settings written atomically

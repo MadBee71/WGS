@@ -162,8 +162,19 @@
                     </TextBlock>
                     <CheckBox IsChecked="{Binding CrashPredictionDiscord}" Style="{StaticResource DarkCheckBox}"
                               Content="Send crash predictions to Discord" Margin="0,0,0,8"/>
+                    <CheckBox IsChecked="{Binding CrashPredictionLowMemOnly}" Style="{StaticResource DarkCheckBox}"
+                              Content="Only warn when system RAM is critically low" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                Visibility="{Binding CrashPredictionLowMemOnly, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Warn when free RAM drops below" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                                 Text="{Binding CrashPredictionLowMemPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="% of total RAM" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0"/>
+                    </StackPanel>
                     <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"
-                               Text="Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
+                               Text="When checked, skips the per-server RAM-growth/CPU heuristics above (which can be noisy on servers that legitimately use a lot of CPU or take a while to load) and only alerts when overall system memory availability gets critically low. Requires Discord Notifications to be enabled above. Warnings always appear in the server console."/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>

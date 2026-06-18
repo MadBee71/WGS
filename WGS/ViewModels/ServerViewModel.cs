@@ -112,6 +112,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private long _maxRamMb;
     partial void OnMaxRamMbChanged(long value) => Server.MaxRamMb = value;
 
+    // Backup retention
+    [ObservableProperty] private int _backupRetention;
+    partial void OnBackupRetentionChanged(int value) => Server.BackupRetention = value;
+    [ObservableProperty] private int _backupMaxAgeDays;
+    partial void OnBackupMaxAgeDaysChanged(int value) => Server.BackupMaxAgeDays = value;
+
     public bool HasWorkshop => _workshop.SupportsWorkshop(Plugin);
     public bool HasPlayerCommands => Plugin?.GetPlayersCommand() != null
                                   || Plugin?.GetKickCommand("") != null;
@@ -294,6 +300,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
 
         _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
+        _backupRetention   = Server.BackupRetention;
+        _backupMaxAgeDays  = Server.BackupMaxAgeDays;
 
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
@@ -552,6 +560,36 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             RefreshBackups();
         }
         catch (Exception ex) { AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error); }
+    }
+
+    [RelayCommand]
+    private void CleanupBackupsNow()
+    {
+        var toDelete = _backup.GetBackupsToDelete(Server, Server.BackupRetention);
+        if (toDelete.Count == 0)
+        {
+            WpfMsgBox.Show("No backups currently match the retention/age limits — nothing to delete.",
+                "Clean up backups", WpfMsgBoxButton.OK, WpfMsgBoxImage.Information);
+            return;
+        }
+
+        var totalSize = toDelete.Sum(b => b.SizeBytes);
+        var sizeText  = totalSize >= 1024 * 1024 * 1024
+            ? $"{totalSize / (1024.0 * 1024 * 1024):F2} GB"
+            : $"{totalSize / (1024.0 * 1024):F1} MB";
+
+        var result = WpfMsgBox.Show(
+            $"This will permanently delete {toDelete.Count} backup(s) totaling {sizeText}, based on the current " +
+            $"\"Keep at most {Server.BackupRetention}\" / \"older than {Server.BackupMaxAgeDays} days\" settings.\n\n" +
+            "This cannot be undone. Continue?",
+            "Clean up backups", WpfMsgBoxButton.YesNo, WpfMsgBoxImage.Warning);
+        if (result != WpfMsgBoxResult.Yes) return;
+
+        foreach (var b in toDelete)
+            _backup.DeleteBackup(b.FilePath);
+
+        AppendLog($"[Backup] Cleaned up {toDelete.Count} old backup(s) ({sizeText}).", ConsoleMessageType.System);
+        RefreshBackups();
     }
 
     [RelayCommand]
