@@ -79,7 +79,7 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | Feature | Description |
 |---|---|
 | 🗓️ **Task scheduler** | Schedule start, stop, restart, update or backup — once, daily or weekly |
-| 💾 **Automatic backups** | Zip backups of world saves before updates, retention by count and/or age with a manual cleanup option, optional incremental backups for large worlds, selective backup paths per server |
+| 💾 **Automatic backups** | Zip backups of world saves before updates, retention by count and/or age with a manual cleanup option, optional incremental backups for large worlds, selective backup paths per server — scheduled backups are skipped automatically if the server hasn't run in the last 24 hours |
 | 🔗 **Group ban-list sync** | Ban a player on one server and it's automatically applied to every other running server in the same group (same game) — and replayed on group servers that were offline when the ban happened |
 | 📋 **Shareable status page** | A read-only, no-login link per server showing live player count and uptime — safe to post in Discord or on a website |
 | 📜 **Log-based crash detection** | Scans console output for known crash-precursor patterns (out-of-memory, fatal errors, access violations) in addition to the CPU/RAM heuristics |

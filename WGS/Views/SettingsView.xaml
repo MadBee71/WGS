@@ -168,7 +168,7 @@
                                 Visibility="{Binding CrashPredictionLowMemOnly, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="Warn when free RAM drops below" VerticalAlignment="Center"
                                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
-                        <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="60" TextAlignment="Center"
                                  Text="{Binding CrashPredictionLowMemPercent, UpdateSourceTrigger=PropertyChanged}"/>
                         <TextBlock Text="% of total RAM" VerticalAlignment="Center"
                                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0"/>

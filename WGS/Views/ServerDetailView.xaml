@@ -489,7 +489,7 @@
                                             Visibility="{Binding Server.ShutDownWhenEmpty, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="Idle timeout:" VerticalAlignment="Center" Foreground="#8B949E" FontSize="12" Margin="0,0,8,0"/>
                                     <TextBox Text="{Binding Server.ShutDownIdleMinutes, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource DarkTextBox}" Width="50" FontSize="12"
+                                             Style="{StaticResource DarkTextBox}" Width="60" FontSize="12" TextAlignment="Center"
                                              ToolTip="Minutes with zero players before the server is stopped"/>
                                     <TextBlock Text="min" VerticalAlignment="Center" Foreground="#8B949E" FontSize="12" Margin="4,0,0,0"/>
                                 </StackPanel>
@@ -808,13 +808,13 @@
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="Keep at most" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
-                                <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="60" TextAlignment="Center"
                                          Text="{Binding BackupRetention, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Text="backups (0 = unlimited)" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,24,0"/>
                                 <TextBlock Text="Delete backups older than" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"/>
-                                <TextBox Style="{StaticResource DarkTextBox}" Width="50"
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="60" TextAlignment="Center"
                                          Text="{Binding BackupMaxAgeDays, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Text="days (0 = off)" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="8,0,16,0"/>
@@ -829,7 +829,7 @@
                                 <TextBlock Text="Full backup every" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,8,0"
                                            Visibility="{Binding UseIncrementalBackups, Converter={StaticResource BoolToVis}}"/>
-                                <TextBox Style="{StaticResource DarkTextBox}" Width="40"
+                                <TextBox Style="{StaticResource DarkTextBox}" Width="60" TextAlignment="Center"
                                          Text="{Binding FullBackupEveryN, UpdateSourceTrigger=PropertyChanged}"
                                          Visibility="{Binding UseIncrementalBackups, Converter={StaticResource BoolToVis}}"/>
                                 <TextBlock Text="backups" VerticalAlignment="Center"

@@ -50,7 +50,10 @@ public static class SelfUpdateService
             entry.ExtractToFile(newExePath);
             Report(progress, 80, "Preparing update script...");
 
-            // 3 — write bat: wait for this process to exit, swap exe, restart, clean up
+            // 3 — write bat: wait for this process to exit, swap exe, restart.
+            // Leftover bat/zip files are cleaned up by CleanupLeftovers() on the next startup
+            // instead of self-deleting here — a script that deletes itself right after a silent
+            // exe swap is a classic AV heuristic trigger.
             var pid = Environment.ProcessId;
             var bat = $@"@echo off
 :wait
@@ -60,9 +63,8 @@ if not errorlevel 1 (
     goto wait
 )
 move /y ""{newExePath}"" ""{exePath}""
-start """" ""{exePath}""
 del ""{tempZip}"" 2>nul
-del ""%~f0""
+start """" ""{exePath}""
 ";
             await File.WriteAllTextAsync(batPath, bat);
             Report(progress, 100, "Ready — restarting...");
@@ -91,10 +93,28 @@ del ""%~f0""
         {
             FileName        = batPath,
             UseShellExecute = true,
-            WindowStyle     = ProcessWindowStyle.Hidden,
+            WindowStyle     = ProcessWindowStyle.Minimized,
         });
 
         System.Windows.Application.Current.Shutdown();
+    }
+
+    /// <summary>Removes leftover update files from a previous run. Call once on startup.</summary>
+    public static void CleanupLeftovers()
+    {
+        var exeDir = Path.GetDirectoryName(
+            Environment.ProcessPath
+            ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe"))!;
+
+        foreach (var name in new[] { "_wgs_update.bat", "_wgs_update.zip", "_wgs_new.exe" })
+        {
+            try
+            {
+                var path = Path.Combine(exeDir, name);
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
+        }
     }
 
     private static void Report(IProgress<(int, string)>? p, int pct, string msg)

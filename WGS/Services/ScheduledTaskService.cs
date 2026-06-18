@@ -145,6 +145,12 @@ public class ScheduledTaskService : IDisposable
                     await _manager.StartAsync(server);
                     break;
                 case ScheduledActionType.Backup:
+                    if (!_manager.IsRunning(server.Id) &&
+                        (server.LastStarted == null || server.LastStarted < DateTime.Now.AddHours(-24)))
+                    {
+                        TaskExecuted?.Invoke(task, "Skipped — server hasn't run in the last 24h, nothing new to back up");
+                        return;
+                    }
                     await _backup.CreateBackupAsync(server);
                     break;
                 case ScheduledActionType.Update:
