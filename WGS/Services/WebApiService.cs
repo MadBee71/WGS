@@ -15,6 +15,8 @@ public class WebApiService : IDisposable
     private HttpListener?  _listener;
     private CancellationTokenSource? _cts;
     private Task?          _serverTask;
+    private readonly Dictionary<string, DateTime> _lastPublicWake = new();
+    private static readonly TimeSpan PublicWakeCooldown = TimeSpan.FromSeconds(60);
 
     public bool   IsRunning   { get; private set; }
     public int    Port        { get; private set; } = 8765;
@@ -194,6 +196,37 @@ public class WebApiService : IDisposable
             var srv = GetServers?.Invoke().FirstOrDefault(s => s.Id == statusMatch.Groups[1].Value);
             if (srv == null) { resp.StatusCode = 404; await SendHtml(resp, "<html><body style='background:#0d1117;color:#8b949e;font-family:sans-serif'>Server not found.</body></html>"); return; }
             await SendHtml(resp, BuildStatusHtml(srv));
+            return;
+        }
+
+        // Public "wake server" trigger from the status page — no auth, but gated by the
+        // server's own WakeOnDemand opt-in flag, only works while stopped, and rate-limited
+        // per server so the unauthenticated link can't be used to spam start/stop.
+        var wakeMatch = System.Text.RegularExpressions.Regex.Match(path, @"^/status/([^/]+)/wake$");
+        if (req.HttpMethod == "POST" && wakeMatch.Success)
+        {
+            if (!DashboardEnabled) { resp.StatusCode = 403; await SendJson(resp, new { error = "Disabled" }); return; }
+            var id  = wakeMatch.Groups[1].Value;
+            var srv = GetServers?.Invoke().FirstOrDefault(s => s.Id == id);
+            if (srv == null) { resp.StatusCode = 404; await SendJson(resp, new { error = "Not found" }); return; }
+            if (!srv.WakeOnDemand) { resp.StatusCode = 403; await SendJson(resp, new { error = "Wake on demand is not enabled for this server" }); return; }
+            if (srv.Status != ServerStatus.Stopped) { await SendJson(resp, new { ok = true, alreadyRunning = true }); return; }
+
+            bool tooSoon;
+            lock (_lastPublicWake)
+            {
+                tooSoon = _lastPublicWake.TryGetValue(id, out var last) && DateTime.UtcNow - last < PublicWakeCooldown;
+                if (!tooSoon) _lastPublicWake[id] = DateTime.UtcNow;
+            }
+            if (tooSoon)
+            {
+                resp.StatusCode = 429;
+                await SendJson(resp, new { error = "Please wait a moment before trying again" });
+                return;
+            }
+
+            await (StartServer?.Invoke(id) ?? Task.CompletedTask);
+            await SendJson(resp, new { ok = true });
             return;
         }
 
@@ -457,6 +490,9 @@ public class WebApiService : IDisposable
             ? string.Join("", players.Select(p => $"<li>{Esc(p.Name)}</li>"))
             : "<li style=\"color:#8b949e\">No players online</li>";
 
+        var showWakeButton = !isRunning && srv.WakeOnDemand;
+        var wakeButtonHtml = showWakeButton ? BuildWakeButtonHtml(srv.Id) : "";
+
         return $$"""
 <!DOCTYPE html>
 <html lang="en">
@@ -474,6 +510,9 @@ h1{font-size:20px;margin:0 0 4px;color:#f0f6fc}
 ul{list-style:none;padding:0;margin:10px 0 0}
 li{padding:4px 0;font-size:13px;color:#e6edf3}
 .footer{margin-top:18px;font-size:11px;color:#6e7681;text-align:center}
+.wake-btn{width:100%;margin-top:16px;background:#1f6feb;border:none;border-radius:6px;padding:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.wake-btn:disabled{background:#30363d;color:#8b949e;cursor:default}
+.wake-msg{margin-top:8px;font-size:12px;color:#8b949e;text-align:center;min-height:16px}
 </style>
 </head>
 <body>
@@ -484,10 +523,33 @@ li{padding:4px 0;font-size:13px;color:#e6edf3}
   {{(isRunning ? $"""<div class="stat"><span>Uptime</span><span>{uptime}</span></div>""" : "")}}
   <div class="stat"><span>Players</span><span>{{players.Count}}/{{srv.MaxPlayers}}</span></div>
   <ul>{{playerRows}}</ul>
+  {{wakeButtonHtml}}
   <div class="footer">Powered by Windows Game Server</div>
 </div>
 </body>
 </html>
+""";
+    }
+
+    private static string BuildWakeButtonHtml(string serverId)
+    {
+        var escId = System.Net.WebUtility.HtmlEncode(serverId);
+        return $$"""
+  <button class="wake-btn" id="wakeBtn" onclick="wake()">Wake server</button>
+  <div class="wake-msg" id="wakeMsg"></div>
+  <script>
+  function wake(){
+    var btn=document.getElementById('wakeBtn'), msg=document.getElementById('wakeMsg');
+    btn.disabled=true; btn.textContent='Starting...';
+    fetch('/status/{{escId}}/wake',{method:'POST'})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+      .then(function(res){
+        if(res.ok){msg.textContent='Starting up — give it a minute, then connect normally.';}
+        else{btn.disabled=false; btn.textContent='Wake server'; msg.textContent=res.j.error||'Could not start the server.';}
+      })
+      .catch(function(){btn.disabled=false; btn.textContent='Wake server'; msg.textContent='Request failed.';});
+  }
+  </script>
 """;
     }
 
