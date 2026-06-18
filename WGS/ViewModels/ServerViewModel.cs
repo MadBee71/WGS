@@ -411,6 +411,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             StopUpdateTimer();
             await _manager.StopAsync(Server);
             // StopPerfMonitoring() called from OnStatusChanged(Stopped)
+
+            if (Server.BackupOnShutdown)
+            {
+                try
+                {
+                    AppendLog("[WGS] Creating backup after shutdown...", ConsoleMessageType.System);
+                    await _backup.CreateBackupAsync(Server);
+                    AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
+                }
+                catch (Exception ex) { AppendLog($"[WGS] Backup after shutdown failed: {ex.Message}", ConsoleMessageType.Warning); }
+            }
         }
         catch (Exception ex) { AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error); }
     }

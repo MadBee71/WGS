@@ -502,6 +502,11 @@
                                 <CheckBox IsChecked="{Binding Server.BackupOnStart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Backup before each start" Margin="0,0,0,8"/>
 
+                                <!-- Backup on Shutdown -->
+                                <CheckBox IsChecked="{Binding Server.BackupOnShutdown}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Backup after each shutdown" Margin="0,0,0,8"
+                                          ToolTip="Creates a backup right after the server stops, once everything has been saved to disk — captures whatever changed during that session."/>
+
                                 <!-- Backup Save Path -->
                                 <TextBlock Text="Backup paths (relative to install, semicolon-separated)" Style="{StaticResource FieldLabel}"/>
                                 <TextBox Text="{Binding Server.BackupSavePath, UpdateSourceTrigger=PropertyChanged}"

@@ -135,11 +135,13 @@ public class ScheduledTaskService : IDisposable
                     await _manager.WarnPlayersAsync(server, "Server restarting in 1 minute");
                     await Task.Delay(60_000);
                     await _manager.StopAsync(server);
+                    if (server.BackupOnShutdown) { try { await _backup.CreateBackupAsync(server); } catch { } }
                     await Task.Delay(3000);
                     await _manager.StartAsync(server);
                     break;
                 case ScheduledActionType.Stop:
                     await _manager.StopAsync(server);
+                    if (server.BackupOnShutdown) { try { await _backup.CreateBackupAsync(server); } catch { } }
                     break;
                 case ScheduledActionType.Start:
                     await _manager.StartAsync(server);
