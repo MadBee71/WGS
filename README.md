@@ -72,32 +72,34 @@ WGS is designed for home lab hosts, small community server admins and anyone who
 | 📈 **Per-server performance charts** | CPU and RAM history graphs up to 1 hour, with selectable time range |
 | 👥 **Player statistics** | Session tracking and total playtime per player, stored in SQLite |
 | 🌐 **Bandwidth & connections** | Live network in/out and active connection count per server |
+| ⚠️ **Crash prediction** | Warns before a likely crash from RAM growth, sustained high CPU or memory leaks — or switch to a simpler "low system memory only" mode with a configurable threshold |
 
 ### Automation
 | Feature | Description |
 |---|---|
 | 🗓️ **Task scheduler** | Schedule start, stop, restart, update or backup — once, daily or weekly |
-| 💾 **Automatic backups** | Zip backups of world saves before updates, configurable retention policy, selective backup paths per server |
+| 💾 **Automatic backups** | Zip backups of world saves before updates, retention by count and/or age with a manual cleanup option, selective backup paths per server |
+| 📢 **Restart warnings** | Players get an in-game warning before daily, scheduled or auto-update restarts — works for Rust, Source-engine games, Minecraft, ARK, Palworld, DayZ and 7 Days to Die |
 
 ### Remote access
 | Feature | Description |
 |---|---|
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
 | 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
-| 🌐 **REST API** | Built-in HTTP server for external integrations — start/stop/status/metrics/backup/restore endpoints |
+| 🌐 **REST API & web dashboard** | Built-in HTTP server for external integrations — start/stop/status/metrics/backup/restore endpoints, plus a sortable browser dashboard with a live per-server CPU graph |
 | 🖥️ **Remote machine support** | Manage servers running on other PCs from a single master panel |
 
 ### Notifications
 | Feature | Description |
 |---|---|
-| 🔔 **Discord webhooks** | Get notified on start, stop, crash and update events in Discord — global or per-server webhook URL |
+| 🔔 **Discord webhooks** | Get notified on start, stop, crash, update and player join/leave events in Discord — global or per-server webhook URL |
 | 📧 **Email notifications (SMTP)** | Receive the same alerts by email — configurable per server |
 
 ### Configuration & mods
 | Feature | Description |
 |---|---|
 | 📝 **Config editor** | Browse and edit any server config file directly inside WGS |
-| 🗂️ **Steam Workshop** | Install and manage Workshop mods for supported games via SteamCMD |
+| 🗂️ **Steam Workshop** | Install and manage Workshop mods for supported games via SteamCMD, with a live title preview when entering an item ID |
 | 📁 **File manager** | Browse, upload, download and delete server files without leaving WGS |
 
 ### System & extensibility
