@@ -65,6 +65,8 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private bool   _crashPredictionDiscord;
     [ObservableProperty] private bool   _crashPredictionLowMemOnly;
     [ObservableProperty] private double _crashPredictionLowMemPercent = 5.0;
+    [ObservableProperty] private bool   _crashPredictionHighCpuOnly;
+    [ObservableProperty] private double _crashPredictionHighCpuPercent = 98.0;
 
     // ── UPnP ─────────────────────────────────────────────────────────────────
     [ObservableProperty] private bool   _enableUPnP;
@@ -162,6 +164,8 @@ public partial class SettingsViewModel : BaseViewModel
         CrashPredictionDiscord   = _config.CrashPredictionDiscord;
         CrashPredictionLowMemOnly = _config.CrashPredictionLowMemOnly;
         CrashPredictionLowMemPercent = _config.CrashPredictionLowMemPercent;
+        CrashPredictionHighCpuOnly = _config.CrashPredictionHighCpuOnly;
+        CrashPredictionHighCpuPercent = _config.CrashPredictionHighCpuPercent;
         EnableUPnP               = _config.EnableUPnP;
         StartWithWindows         = GetStartWithWindows();
     }
@@ -206,6 +210,8 @@ public partial class SettingsViewModel : BaseViewModel
         _config.CrashPredictionDiscord = CrashPredictionDiscord;
         _config.CrashPredictionLowMemOnly = CrashPredictionLowMemOnly;
         _config.CrashPredictionLowMemPercent = CrashPredictionLowMemPercent > 0 ? CrashPredictionLowMemPercent : 5.0;
+        _config.CrashPredictionHighCpuOnly = CrashPredictionHighCpuOnly;
+        _config.CrashPredictionHighCpuPercent = CrashPredictionHighCpuPercent > 0 ? CrashPredictionHighCpuPercent : 98.0;
         _config.EnableUPnP             = EnableUPnP;
         if (!EnableUPnP) { UpnpStatus = "Stopped"; OnPropertyChanged(nameof(UpnpIsFound)); }
         _config.Save(); // single save — all settings written atomically

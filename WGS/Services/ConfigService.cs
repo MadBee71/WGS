@@ -27,6 +27,10 @@ public class ConfigService
     public bool   CrashPredictionLowMemOnly { get; set; } = false;
     /// <summary>Free-RAM percentage below which the low-memory warning fires.</summary>
     public double CrashPredictionLowMemPercent { get; set; } = 5.0;
+    /// <summary>When true, also warns when overall system CPU usage is critically high.</summary>
+    public bool   CrashPredictionHighCpuOnly { get; set; } = false;
+    /// <summary>System CPU percentage above which the high-CPU warning fires.</summary>
+    public double CrashPredictionHighCpuPercent { get; set; } = 98.0;
     public bool   EnableUPnP             { get; set; } = false;
     public string SortMode               { get; set; } = "name-asc";
 
@@ -60,7 +64,9 @@ public class ConfigService
         bool   EnableUPnP             = false,
         string SortMode               = "name-asc",
         bool   CrashPredictionLowMemOnly = false,
-        double CrashPredictionLowMemPercent = 5.0);
+        double CrashPredictionLowMemPercent = 5.0,
+        bool   CrashPredictionHighCpuOnly = false,
+        double CrashPredictionHighCpuPercent = 98.0);
 
     private void LoadSettings()
     {
@@ -87,6 +93,8 @@ public class ConfigService
             SortMode               = string.IsNullOrEmpty(d.SortMode) ? "name-asc" : d.SortMode;
             CrashPredictionLowMemOnly = d.CrashPredictionLowMemOnly;
             CrashPredictionLowMemPercent = d.CrashPredictionLowMemPercent > 0 ? d.CrashPredictionLowMemPercent : 5.0;
+            CrashPredictionHighCpuOnly = d.CrashPredictionHighCpuOnly;
+            CrashPredictionHighCpuPercent = d.CrashPredictionHighCpuPercent > 0 ? d.CrashPredictionHighCpuPercent : 98.0;
         }
         catch { }
     }
@@ -98,7 +106,8 @@ public class ConfigService
             : EncryptionService.Encrypt(SteamPassword);
         var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
-            EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent);
+            EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent,
+            CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 
