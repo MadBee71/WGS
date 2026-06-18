@@ -642,7 +642,7 @@
                                 <TextBlock Text="Server Hygiene" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"
-                                           Text="Scans for leftover log files, Unreal Engine crash report folders and stray temp files from interrupted updates. Only works while the server is stopped."/>
+                                           Text="Scans for leftover log files, Unreal Engine crash report folders and stray temp files from interrupted updates. Mod loader folders (BepInEx, MelonLoader, SML2) are skipped so their own logs never show up here. Only works while the server is stopped."/>
                                 <Button Content="🧹 Scan &amp; clean up junk files" Style="{StaticResource GhostButton}"
                                         HorizontalAlignment="Left" Command="{Binding CleanupJunkFilesCommand}"/>
                             </StackPanel>

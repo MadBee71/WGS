@@ -31,6 +31,7 @@ public class ServerHygieneService
             // Old log files
             foreach (var f in Directory.EnumerateFiles(server.InstallPath, "*.log", SearchOption.AllDirectories))
             {
+                if (IsInModFolder(f)) continue;
                 var fi = new FileInfo(f);
                 items.Add(new JunkItem { Path = f, SizeBytes = fi.Length, Description = "Log file" });
             }
@@ -44,6 +45,7 @@ public class ServerHygieneService
             // Stray crash dumps
             foreach (var f in Directory.EnumerateFiles(server.InstallPath, "*.dmp", SearchOption.AllDirectories))
             {
+                if (IsInModFolder(f)) continue;
                 var fi = new FileInfo(f);
                 items.Add(new JunkItem { Path = f, SizeBytes = fi.Length, Description = "Crash dump" });
             }
@@ -51,6 +53,7 @@ public class ServerHygieneService
             // Stray SteamCMD temp files left behind by an interrupted update
             foreach (var f in Directory.EnumerateFiles(server.InstallPath, "*.tmp", SearchOption.AllDirectories))
             {
+                if (IsInModFolder(f)) continue;
                 var fi = new FileInfo(f);
                 items.Add(new JunkItem { Path = f, SizeBytes = fi.Length, Description = "Leftover temp file" });
             }
@@ -58,6 +61,18 @@ public class ServerHygieneService
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
 
         return items;
+    }
+
+    // Known mod-loader folder names whose own logs/temp files should never be flagged as junk —
+    // BepInEx (Valheim, Subnautica, etc.), Melon/MelonLoader, SML2 (Satisfactory) all write
+    // their own *.log files that would otherwise be wrongly caught by the patterns above.
+    private static readonly string[] ModFolderNames = ["BepInEx", "MelonLoader", "SML2"];
+
+    private static bool IsInModFolder(string filePath)
+    {
+        var dir = System.IO.Path.GetDirectoryName(filePath) ?? "";
+        return ModFolderNames.Any(name =>
+            dir.Contains($"{System.IO.Path.DirectorySeparatorChar}{name}", StringComparison.OrdinalIgnoreCase));
     }
 
     public void DeleteJunk(IEnumerable<JunkItem> items)
