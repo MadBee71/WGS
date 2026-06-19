@@ -60,7 +60,7 @@ public partial class ServerDetailView : System.Windows.Controls.UserControl
     {
         if (DataContext is not ServerViewModel vm) return;
 
-        var dlg = new AddScheduleTaskDialog { Owner = Window.GetWindow(this) };
+        var dlg = new AddScheduleTaskDialog(vm.Server.QuickCommands) { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.Result == null) return;
 
         vm.AddScheduledTaskCommand.Execute(dlg.Result);

@@ -21,19 +21,32 @@
                    Foreground="#e6edf3"/>
 
         <TextBlock Text="Action" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
-        <ComboBox x:Name="CbAction" Margin="0,0,0,14" Style="{StaticResource DarkComboBox}">
+        <ComboBox x:Name="CbAction" Margin="0,0,0,14" Style="{StaticResource DarkComboBox}"
+                  SelectionChanged="CbAction_SelectionChanged">
             <ComboBoxItem Content="Restart" IsSelected="True"/>
             <ComboBoxItem Content="Stop"/>
             <ComboBoxItem Content="Start"/>
             <ComboBoxItem Content="Backup"/>
             <ComboBoxItem Content="Update"/>
+            <ComboBoxItem Content="Quick Command"/>
         </ComboBox>
+
+        <StackPanel x:Name="CommandPanel" Visibility="Collapsed" Margin="0,0,0,14">
+            <TextBlock Text="Saved quick command (optional)" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
+            <ComboBox x:Name="CbQuickCommand" Margin="0,0,0,8" Style="{StaticResource DarkComboBox}"
+                      DisplayMemberPath="Label" SelectionChanged="CbQuickCommand_SelectionChanged"/>
+            <TextBlock Text="Console command to send" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
+            <TextBox x:Name="TbCommand" Margin="0,0,0,0" Padding="10,6"
+                     Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d"
+                     FontFamily="Consolas"/>
+        </StackPanel>
 
         <TextBlock Text="Frequency" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
         <ComboBox x:Name="CbFreq" Margin="0,0,0,14" Style="{StaticResource DarkComboBox}"
                   SelectionChanged="CbFreq_SelectionChanged">
             <ComboBoxItem Content="Daily" IsSelected="True"/>
             <ComboBoxItem Content="Weekly"/>
+            <ComboBoxItem Content="Every X minutes/hours"/>
         </ComboBox>
 
         <StackPanel x:Name="DayPanel" Visibility="Collapsed" Margin="0,0,0,14">
@@ -49,10 +62,30 @@
             </ComboBox>
         </StackPanel>
 
-        <TextBlock Text="Time (HH:mm)" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
-        <TextBox x:Name="TbTime" Text="04:00" Margin="0,0,0,20" Padding="10,6"
-                 Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d"
-                 FontFamily="Consolas"/>
+        <StackPanel x:Name="IntervalPanel" Visibility="Collapsed" Margin="0,0,0,14">
+            <TextBlock Text="Repeat every" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="140"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TbInterval" Grid.Column="0" Text="60" Padding="10,6"
+                         Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d"
+                         FontFamily="Consolas"/>
+                <ComboBox x:Name="CbIntervalUnit" Grid.Column="2" Style="{StaticResource DarkComboBox}">
+                    <ComboBoxItem Content="Minutes" IsSelected="True"/>
+                    <ComboBoxItem Content="Hours"/>
+                </ComboBox>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel x:Name="TimePanel" Margin="0,0,0,20">
+            <TextBlock Text="Time (HH:mm)" Foreground="#8b949e" FontSize="12" Margin="0,0,0,4"/>
+            <TextBox x:Name="TbTime" Text="04:00" Padding="10,6"
+                     Background="#161b22" Foreground="#e6edf3" BorderBrush="#30363d"
+                     FontFamily="Consolas"/>
+        </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" Margin="0,0,8,0"
