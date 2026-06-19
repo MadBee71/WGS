@@ -52,6 +52,9 @@ public class DiscordBotService : IDisposable
     /// Persisted to disk so a WGS restart edits the same message instead of leaving it behind and posting a new one.</summary>
     private readonly Dictionary<string, string> _statusMessageIds = new();
     private readonly string _statusMessageIdsFile;
+    /// <summary>Tracks which (channel, HTTP status) error combos have already been reported, so a
+    /// persistent problem (e.g. missing permissions) doesn't spam StatusChanged every 60 seconds.</summary>
+    private readonly HashSet<string> _reportedStatusErrors = new();
 
     // ── Gateway (for button interactions only — everything else uses REST polling) ──
     private Task?  _gatewayLoop;
@@ -230,19 +233,45 @@ public class DiscordBotService : IDisposable
                 $"https://discord.com/api/v10/channels/{channelId}/messages/{messageId}",
                 new StringContent(payload, Encoding.UTF8, "application/json"), ct);
 
-            if (editResp.IsSuccessStatusCode) return;
-            if (editResp.StatusCode != System.Net.HttpStatusCode.NotFound) return; // transient error, retry next tick
+            if (editResp.IsSuccessStatusCode) { _reportedStatusErrors.RemoveWhere(k => k.StartsWith(channelId + ":")); return; }
+            if (editResp.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                await ReportStatusMessageErrorAsync("edit", channelId, editResp, ct);
+                return; // transient error, retry next tick
+            }
             _statusMessageIds.Remove(channelId); // message was deleted — fall through and post a new one
         }
 
         var postResp = await _http.PostAsync(
             $"https://discord.com/api/v10/channels/{channelId}/messages",
             new StringContent(payload, Encoding.UTF8, "application/json"), ct);
-        if (!postResp.IsSuccessStatusCode) return;
+        if (!postResp.IsSuccessStatusCode)
+        {
+            await ReportStatusMessageErrorAsync("post", channelId, postResp, ct);
+            return;
+        }
 
         var json = await postResp.Content.ReadAsStringAsync(ct);
         var newId = JObject.Parse(json)["id"]?.ToString();
-        if (newId != null) { _statusMessageIds[channelId] = newId; SaveStatusMessageIds(); }
+        if (newId != null)
+        {
+            _statusMessageIds[channelId] = newId;
+            SaveStatusMessageIds();
+            _reportedStatusErrors.RemoveWhere(k => k.StartsWith(channelId + ":"));
+        }
+    }
+
+    private async Task ReportStatusMessageErrorAsync(string action, string channelId, HttpResponseMessage resp, CancellationToken ct)
+    {
+        var key = $"{channelId}:{(int)resp.StatusCode}";
+        if (!_reportedStatusErrors.Add(key)) return; // already reported, don't spam every minute
+
+        var detail = "";
+        try { detail = await resp.Content.ReadAsStringAsync(ct); } catch { }
+        var reason = resp.StatusCode == System.Net.HttpStatusCode.Forbidden
+            ? "missing permissions — check the bot can View Channel and Send Messages there"
+            : detail;
+        StatusChanged?.Invoke($"⚠ Discord status {action} failed for channel {channelId}: {(int)resp.StatusCode} {resp.StatusCode} — {reason}");
     }
 
     private static object BuildStatusEmbed(List<Models.GameServer> servers)
