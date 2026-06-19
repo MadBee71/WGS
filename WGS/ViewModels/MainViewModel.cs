@@ -38,6 +38,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly UPnPService               _upnp;
     private readonly WakeOnDemandService       _wakeOnDemand;
     private readonly System.Timers.Timer       _autoSaveTimer;
+    private readonly System.Timers.Timer       _updateCheckTimer;
 
     public SettingsViewModel Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -222,6 +223,12 @@ public partial class MainViewModel : BaseViewModel
         RemoteServers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedRemoteServers));
         LoadServers();
         _ = CheckForUpdateAsync();
+
+        // Re-check for updates periodically — the startup-only check meant anyone leaving
+        // WGS running for days never saw the "update available" badge until next restart.
+        _updateCheckTimer = new System.Timers.Timer(TimeSpan.FromHours(4).TotalMilliseconds) { AutoReset = true };
+        _updateCheckTimer.Elapsed += async (_, _) => await CheckForUpdateAsync();
+        _updateCheckTimer.Start();
 
         // Auto-save server settings periodically so changes survive app restart
         // without requiring the user to press the Save button.
@@ -490,11 +497,25 @@ public partial class MainViewModel : BaseViewModel
     private async Task CheckForUpdateAsync()
     {
         var (hasUpdate, latest, url) = await Services.UpdateCheckerService.CheckAsync();
-        if (hasUpdate)
+        if (!hasUpdate) return;
+
+        var isNewlyDetected = !UpdateAvailable || LatestVersion != latest;
+        UpdateAvailable   = true;
+        LatestVersion     = latest;
+        UpdateDownloadUrl = url;
+
+        // Only notify once per newly-seen version — the periodic re-check would otherwise
+        // spam the same "update available" message every 4 hours.
+        if (isNewlyDetected)
         {
-            UpdateAvailable      = true;
-            LatestVersion        = latest;
-            UpdateDownloadUrl    = url;
+            try
+            {
+                await _notifications.NotifyAsync(
+                    $"⬆️ WGS {latest} is available",
+                    "A new version of Windows Game Server has been released. Open WGS to update.",
+                    "#58A6FF");
+            }
+            catch { }
         }
     }
 
