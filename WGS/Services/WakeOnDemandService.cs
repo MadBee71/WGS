@@ -12,13 +12,15 @@ namespace WGS.Services;
 public sealed class WakeOnDemandService : IDisposable
 {
     private readonly ServerManagerService _manager;
+    private readonly BackupService _backup;
     private readonly Dictionary<string, CancellationTokenSource> _watchers  = new();
     private readonly Dictionary<string, CancellationTokenSource> _idleWatchers = new();
     private readonly object _lock = new();
 
-    public WakeOnDemandService(ServerManagerService manager)
+    public WakeOnDemandService(ServerManagerService manager, BackupService backup)
     {
         _manager = manager;
+        _backup  = backup;
     }
 
     /// <summary>Start wake-on-demand listener for a stopped server.</summary>
@@ -124,6 +126,10 @@ public sealed class WakeOnDemandService : IDisposable
                 {
                     lock (_lock) { _idleWatchers.Remove(server.Id); }
                     try { await _manager.StopAsync(server); } catch { }
+                    if (server.BackupOnShutdown)
+                    {
+                        try { await _backup.CreateBackupAsync(server); } catch { }
+                    }
                     return;
                 }
             }
