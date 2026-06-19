@@ -48,8 +48,10 @@ public class DiscordBotService : IDisposable
     private Task?                   _loop;
     private Task?                   _statusLoop;
     private string                  _lastMessageId = "0";
-    /// <summary>Live status message ID per channel — lets each server optionally have its own board in its own channel. Kept in memory only, a fresh message is posted after a restart.</summary>
+    /// <summary>Live status message ID per channel — lets each server optionally have its own board in its own channel.
+    /// Persisted to disk so a WGS restart edits the same message instead of leaving it behind and posting a new one.</summary>
     private readonly Dictionary<string, string> _statusMessageIds = new();
+    private readonly string _statusMessageIdsFile;
 
     // ── Gateway (for button interactions only — everything else uses REST polling) ──
     private Task?  _gatewayLoop;
@@ -68,7 +70,11 @@ public class DiscordBotService : IDisposable
     public Func<string, Task>?            BackupServer  { get; set; }
     public Func<string, string, Task>?    SendCmd       { get; set; }
 
-    public DiscordBotService() { }
+    public DiscordBotService(ConfigService config)
+    {
+        _statusMessageIdsFile = System.IO.Path.Combine(config.AppDataPath, "discord_status_messages.json");
+        LoadStatusMessageIds();
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -80,11 +86,32 @@ public class DiscordBotService : IDisposable
         _loop = Task.Run(() => PollLoop(_cts.Token));
         if (StatusEnabled)
         {
-            _statusMessageIds.Clear(); // post fresh messages this run instead of guessing old ones are still valid
+            // Re-use whatever message IDs we last knew about (loaded from disk) instead of
+            // clearing them — otherwise every WGS restart abandons the old message in Discord
+            // and posts a brand new one, leaving duplicates piling up in the channel.
             _statusLoop  = Task.Run(() => StatusUpdateLoop(_cts.Token));
             _gatewayLoop = Task.Run(() => GatewayLoop(_cts.Token));
         }
         StatusChanged?.Invoke("✅ Discord bot started");
+    }
+
+    private void LoadStatusMessageIds()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(_statusMessageIdsFile)) return;
+            var loaded = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                System.IO.File.ReadAllText(_statusMessageIdsFile));
+            if (loaded == null) return;
+            foreach (var (k, v) in loaded) _statusMessageIds[k] = v;
+        }
+        catch { }
+    }
+
+    private void SaveStatusMessageIds()
+    {
+        try { System.IO.File.WriteAllText(_statusMessageIdsFile, JsonConvert.SerializeObject(_statusMessageIds)); }
+        catch { }
     }
 
     public void Stop()
@@ -184,6 +211,7 @@ public class DiscordBotService : IDisposable
             }
             catch { }
             _statusMessageIds.Remove(oldChannelId);
+            SaveStatusMessageIds();
         }
 
         foreach (var (channelId, channelServers) in groups)
@@ -214,7 +242,7 @@ public class DiscordBotService : IDisposable
 
         var json = await postResp.Content.ReadAsStringAsync(ct);
         var newId = JObject.Parse(json)["id"]?.ToString();
-        if (newId != null) _statusMessageIds[channelId] = newId;
+        if (newId != null) { _statusMessageIds[channelId] = newId; SaveStatusMessageIds(); }
     }
 
     private static object BuildStatusEmbed(List<Models.GameServer> servers)
