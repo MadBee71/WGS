@@ -371,6 +371,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                     AppendLog("[WGS] Creating backup before start...", ConsoleMessageType.System);
                     await _backup.CreateBackupAsync(Server);
                     AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
+                    RefreshBackups();
                 }
                 catch (Exception ex) { AppendLog($"[WGS] Backup before start failed: {ex.Message}", ConsoleMessageType.Warning); }
             }
@@ -419,6 +420,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                     AppendLog("[WGS] Creating backup after shutdown...", ConsoleMessageType.System);
                     await _backup.CreateBackupAsync(Server);
                     AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
+                    RefreshBackups();
                 }
                 catch (Exception ex) { AppendLog($"[WGS] Backup after shutdown failed: {ex.Message}", ConsoleMessageType.Warning); }
             }
@@ -477,7 +479,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // Auto-backup before update (only when there is something to back up)
         if (Server.BackupEnabled && Server.Status != ServerStatus.NotInstalled)
         {
-            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); }
+            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); RefreshBackups(); }
             catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
         }
 
@@ -1004,7 +1006,14 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _playerRefreshTimer.Elapsed  += (_, _) => _ = FetchOnlinePlayersAsync();
         _playerRefreshTimer.AutoReset = true;
         _playerRefreshTimer.Start();
-        _ = FetchOnlinePlayersAsync(); // ensimmäinen heti
+
+        // REST-based player plugins (e.g. Palworld) need a few seconds after the process
+        // starts before their HTTP API is actually listening — fetching immediately just
+        // logs a noisy "connection refused" warning that the regular 15s poll would avoid.
+        if (Plugin is Games.IRestPlayersPlugin)
+            _ = Task.Delay(10_000).ContinueWith(_ => FetchOnlinePlayersAsync());
+        else
+            _ = FetchOnlinePlayersAsync(); // first one immediately
     }
 
     private void StopPlayerRefresh()
