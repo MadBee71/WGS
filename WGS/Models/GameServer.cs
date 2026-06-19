@@ -34,8 +34,10 @@ public class GameServer
     public string DiscordWebhookUrl       { get; set; } = string.Empty;
     /// <summary>Server-specific channel for the live Discord status message/board. Falls back to the bot's global status channel when empty.</summary>
     public string DiscordStatusChannelId  { get; set; } = string.Empty;
-    /// <summary>Adds Start/Stop/Restart/Backup/Update buttons to this server's status board. Only applies when the board has exactly this one server on it.</summary>
+    /// <summary>Enables Start/Stop/Restart/Backup/Update buttons for this server, posted to DiscordAdminChannelId — a separate, presumably restricted channel, never the public status board.</summary>
     public bool DiscordAdminControls      { get; set; } = false;
+    /// <summary>Channel for the admin control buttons. Keep this private/staff-only — anyone who can press these buttons can stop or update the server.</summary>
+    public string DiscordAdminChannelId   { get; set; } = string.Empty;
     public bool DailyRestartEnabled    { get; set; } = false;
     public TimeSpan DailyRestartTime   { get; set; } = TimeSpan.FromHours(4); // 04:00 default
     public string CustomArgs { get; set; } = string.Empty;

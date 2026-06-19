@@ -52,6 +52,10 @@ public class DiscordBotService : IDisposable
     /// Persisted to disk so a WGS restart edits the same message instead of leaving it behind and posting a new one.</summary>
     private readonly Dictionary<string, string> _statusMessageIds = new();
     private readonly string _statusMessageIdsFile;
+    /// <summary>Same idea as _statusMessageIds, but for the separate admin-controls message — kept on its
+    /// own channel/message entirely so the dangerous buttons never end up on a public status board.</summary>
+    private readonly Dictionary<string, string> _adminMessageIds = new();
+    private readonly string _adminMessageIdsFile;
     /// <summary>Tracks which (channel, HTTP status) error combos have already been reported, so a
     /// persistent problem (e.g. missing permissions) doesn't spam StatusChanged every 60 seconds.</summary>
     private readonly HashSet<string> _reportedStatusErrors = new();
@@ -81,7 +85,9 @@ public class DiscordBotService : IDisposable
     public DiscordBotService(ConfigService config)
     {
         _statusMessageIdsFile = System.IO.Path.Combine(config.AppDataPath, "discord_status_messages.json");
-        LoadStatusMessageIds();
+        _adminMessageIdsFile  = System.IO.Path.Combine(config.AppDataPath, "discord_admin_messages.json");
+        LoadMessageIds(_statusMessageIdsFile, _statusMessageIds);
+        LoadMessageIds(_adminMessageIdsFile, _adminMessageIds);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -103,22 +109,21 @@ public class DiscordBotService : IDisposable
         StatusChanged?.Invoke("✅ Discord bot started");
     }
 
-    private void LoadStatusMessageIds()
+    private static void LoadMessageIds(string file, Dictionary<string, string> target)
     {
         try
         {
-            if (!System.IO.File.Exists(_statusMessageIdsFile)) return;
-            var loaded = JsonConvert.DeserializeObject<Dictionary<string, string>>(
-                System.IO.File.ReadAllText(_statusMessageIdsFile));
+            if (!System.IO.File.Exists(file)) return;
+            var loaded = JsonConvert.DeserializeObject<Dictionary<string, string>>(System.IO.File.ReadAllText(file));
             if (loaded == null) return;
-            foreach (var (k, v) in loaded) _statusMessageIds[k] = v;
+            foreach (var (k, v) in loaded) target[k] = v;
         }
         catch { }
     }
 
-    private void SaveStatusMessageIds()
+    private static void SaveMessageIds(string file, Dictionary<string, string> source)
     {
-        try { System.IO.File.WriteAllText(_statusMessageIdsFile, JsonConvert.SerializeObject(_statusMessageIds)); }
+        try { System.IO.File.WriteAllText(file, JsonConvert.SerializeObject(source)); }
         catch { }
     }
 
@@ -188,6 +193,7 @@ public class DiscordBotService : IDisposable
             try
             {
                 await PostOrEditStatusMessage(ct);
+                await PostOrEditAdminMessage(ct);
                 await Task.Delay(60_000, ct);
             }
             catch (OperationCanceledException) { break; }
@@ -200,7 +206,7 @@ public class DiscordBotService : IDisposable
     /// bot's global status channel) and keeps one message per channel updated in place — so a
     /// server can get its own dedicated board just by setting "Status channel ID" on that server.
     /// </summary>
-    private async Task PostOrEditStatusMessage(CancellationToken ct)
+    private Task PostOrEditStatusMessage(CancellationToken ct)
     {
         var servers = GetServers?.Invoke().ToList() ?? [];
         var groups = servers
@@ -208,43 +214,78 @@ public class DiscordBotService : IDisposable
             .Where(g => !string.IsNullOrWhiteSpace(g.Key))
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        return PostOrEditBoardAsync(groups, _statusMessageIds, _statusMessageIdsFile,
+            BuildStatusEmbed, BuildWakeButtonRows, "status", ct);
+    }
+
+    /// <summary>
+    /// Same idea, but for admin control buttons — grouped strictly by DiscordAdminChannelId, which
+    /// must be set explicitly per server. Never falls back to the public status channel, since these
+    /// buttons can stop or update a server and shouldn't be reachable by anyone who happens to be
+    /// in the status channel.
+    /// </summary>
+    private Task PostOrEditAdminMessage(CancellationToken ct)
+    {
+        var servers = GetServers?.Invoke().ToList() ?? [];
+        var groups = servers
+            .Where(s => s.DiscordAdminControls && !string.IsNullOrWhiteSpace(s.DiscordAdminChannelId))
+            .GroupBy(s => s.DiscordAdminChannelId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return PostOrEditBoardAsync(groups, _adminMessageIds, _adminMessageIdsFile,
+            BuildStatusEmbed, BuildAdminButtonRows, "admin", ct);
+    }
+
+    private async Task PostOrEditBoardAsync(
+        Dictionary<string, List<Models.GameServer>> groups,
+        Dictionary<string, string> messageIds,
+        string idsFile,
+        Func<List<Models.GameServer>, object> buildEmbed,
+        Func<List<Models.GameServer>, object[]> buildComponents,
+        string kind,
+        CancellationToken ct)
+    {
         // A channel that previously had a board but no longer has any servers assigned to it
         // (e.g. the per-server override was removed) — delete its now-orphaned message.
-        foreach (var oldChannelId in _statusMessageIds.Keys.Where(c => !groups.ContainsKey(c)).ToList())
+        foreach (var oldChannelId in messageIds.Keys.Where(c => !groups.ContainsKey(c)).ToList())
         {
             try
             {
                 await _http.DeleteAsync(
-                    $"https://discord.com/api/v10/channels/{oldChannelId}/messages/{_statusMessageIds[oldChannelId]}", ct);
+                    $"https://discord.com/api/v10/channels/{oldChannelId}/messages/{messageIds[oldChannelId]}", ct);
             }
             catch { }
-            _statusMessageIds.Remove(oldChannelId);
-            SaveStatusMessageIds();
+            messageIds.Remove(oldChannelId);
+            SaveMessageIds(idsFile, messageIds);
         }
 
         foreach (var (channelId, channelServers) in groups)
-            await PostOrEditChannelMessage(channelId, channelServers, ct);
+            await PostOrEditChannelMessage(channelId, channelServers, messageIds, idsFile, buildEmbed, buildComponents, kind, ct);
     }
 
-    private async Task PostOrEditChannelMessage(string channelId, List<Models.GameServer> servers, CancellationToken ct)
+    private async Task PostOrEditChannelMessage(
+        string channelId, List<Models.GameServer> servers,
+        Dictionary<string, string> messageIds, string idsFile,
+        Func<List<Models.GameServer>, object> buildEmbed, Func<List<Models.GameServer>, object[]> buildComponents,
+        string kind, CancellationToken ct)
     {
-        var embed      = BuildStatusEmbed(servers);
-        var components = BuildWakeButtonRows(servers).Concat(BuildAdminButtonRows(servers)).Take(5).ToArray(); // Discord caps at 5 action rows
+        var embed      = buildEmbed(servers);
+        var components = buildComponents(servers);
         var payload    = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
 
-        if (_statusMessageIds.TryGetValue(channelId, out var messageId))
+        if (messageIds.TryGetValue(channelId, out var messageId))
         {
             var editResp = await _http.PatchAsync(
                 $"https://discord.com/api/v10/channels/{channelId}/messages/{messageId}",
                 new StringContent(payload, Encoding.UTF8, "application/json"), ct);
 
-            if (editResp.IsSuccessStatusCode) { _reportedStatusErrors.RemoveWhere(k => k.StartsWith(channelId + ":")); return; }
+            if (editResp.IsSuccessStatusCode) { _reportedStatusErrors.RemoveWhere(k => k.StartsWith($"{kind}:{channelId}:")); return; }
             if (editResp.StatusCode != System.Net.HttpStatusCode.NotFound)
             {
-                await ReportStatusMessageErrorAsync("edit", channelId, editResp, ct);
+                await ReportStatusMessageErrorAsync(kind, "edit", channelId, editResp, ct);
                 return; // transient error, retry next tick
             }
-            _statusMessageIds.Remove(channelId); // message was deleted — fall through and post a new one
+            messageIds.Remove(channelId); // message was deleted — fall through and post a new one
         }
 
         var postResp = await _http.PostAsync(
@@ -252,7 +293,7 @@ public class DiscordBotService : IDisposable
             new StringContent(payload, Encoding.UTF8, "application/json"), ct);
         if (!postResp.IsSuccessStatusCode)
         {
-            await ReportStatusMessageErrorAsync("post", channelId, postResp, ct);
+            await ReportStatusMessageErrorAsync(kind, "post", channelId, postResp, ct);
             return;
         }
 
@@ -260,15 +301,15 @@ public class DiscordBotService : IDisposable
         var newId = JObject.Parse(json)["id"]?.ToString();
         if (newId != null)
         {
-            _statusMessageIds[channelId] = newId;
-            SaveStatusMessageIds();
-            _reportedStatusErrors.RemoveWhere(k => k.StartsWith(channelId + ":"));
+            messageIds[channelId] = newId;
+            SaveMessageIds(idsFile, messageIds);
+            _reportedStatusErrors.RemoveWhere(k => k.StartsWith($"{kind}:{channelId}:"));
         }
     }
 
-    private async Task ReportStatusMessageErrorAsync(string action, string channelId, HttpResponseMessage resp, CancellationToken ct)
+    private async Task ReportStatusMessageErrorAsync(string kind, string action, string channelId, HttpResponseMessage resp, CancellationToken ct)
     {
-        var key = $"{channelId}:{(int)resp.StatusCode}";
+        var key = $"{kind}:{channelId}:{(int)resp.StatusCode}";
         if (!_reportedStatusErrors.Add(key)) return; // already reported, don't spam every minute
 
         var detail = "";
@@ -276,7 +317,7 @@ public class DiscordBotService : IDisposable
         var reason = resp.StatusCode == System.Net.HttpStatusCode.Forbidden
             ? "missing permissions — check the bot can View Channel and Send Messages there"
             : detail;
-        StatusChanged?.Invoke($"⚠ Discord status {action} failed for channel {channelId}: {(int)resp.StatusCode} {resp.StatusCode} — {reason}");
+        StatusChanged?.Invoke($"⚠ Discord {kind} board {action} failed for channel {channelId}: {(int)resp.StatusCode} {resp.StatusCode} — {reason}");
     }
 
     private static object BuildStatusEmbed(List<Models.GameServer> servers)
@@ -322,25 +363,27 @@ public class DiscordBotService : IDisposable
     }
 
     /// <summary>
-    /// Start/Stop/Restart/Backup/Update buttons — only added when the board has exactly one
-    /// server on it, since custom_id-per-server buttons next to a combined multi-server embed
-    /// would be ambiguous and risks the message hitting Discord's 25-component cap.
+    /// One row of Start/Stop/Restart/Backup/Update buttons per server (max 4 buttons per server,
+    /// always fits one row). These only ever get posted to a server's dedicated DiscordAdminChannelId
+    /// — never mixed into the public status board — since anyone who can see the buttons can press them.
     /// </summary>
     private static object[] BuildAdminButtonRows(List<Models.GameServer> servers)
     {
-        if (servers.Count != 1) return [];
-        var s = servers[0];
-        if (!s.DiscordAdminControls) return [];
+        var rows = new List<object>();
+        foreach (var s in servers.Where(s => s.DiscordAdminControls).Take(5)) // Discord caps at 5 action rows
+        {
+            var running = s.Status == ServerStatus.Running;
+            var name    = s.DisplayName.Length > 60 ? s.DisplayName[..60] : s.DisplayName; // keep labels under Discord's 80-char limit
+            var buttons = new List<object>();
+            if (!running) buttons.Add(new { type = 2, style = 3, label = $"Start {name}",   custom_id = AdminStartPrefix   + s.Id }); // style 3 = Success
+            if (running)  buttons.Add(new { type = 2, style = 4, label = $"Stop {name}",    custom_id = AdminStopPrefix    + s.Id }); // style 4 = Danger
+            if (running)  buttons.Add(new { type = 2, style = 1, label = $"Restart {name}", custom_id = AdminRestartPrefix + s.Id }); // style 1 = Primary
+            buttons.Add(new { type = 2, style = 2, label = $"Backup {name}", custom_id = AdminBackupPrefix + s.Id }); // style 2 = Secondary
+            buttons.Add(new { type = 2, style = 2, label = $"Update {name}", custom_id = AdminUpdatePrefix + s.Id });
 
-        var running = s.Status == ServerStatus.Running;
-        var buttons = new List<object>();
-        if (!running) buttons.Add(new { type = 2, style = 3, label = "Start",   custom_id = AdminStartPrefix   + s.Id }); // style 3 = Success
-        if (running)  buttons.Add(new { type = 2, style = 4, label = "Stop",    custom_id = AdminStopPrefix    + s.Id }); // style 4 = Danger
-        if (running)  buttons.Add(new { type = 2, style = 1, label = "Restart", custom_id = AdminRestartPrefix + s.Id }); // style 1 = Primary
-        buttons.Add(new { type = 2, style = 2, label = "Backup", custom_id = AdminBackupPrefix + s.Id }); // style 2 = Secondary
-        buttons.Add(new { type = 2, style = 2, label = "Update", custom_id = AdminUpdatePrefix + s.Id });
-
-        return [new { type = 1, components = buttons.ToArray() }]; // single row, max 5 buttons fits comfortably
+            rows.Add(new { type = 1, components = buttons.ToArray() }); // max 4 buttons per server, fits one row
+        }
+        return rows.ToArray();
     }
 
     // ── Gateway connection — only needed to receive button-click interactions ──────

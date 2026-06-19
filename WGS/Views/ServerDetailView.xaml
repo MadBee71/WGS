@@ -538,10 +538,16 @@
                                            Text="Leave empty to share the combined board from Settings → Discord Bot"/>
 
                                 <CheckBox IsChecked="{Binding Server.DiscordAdminControls}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Show admin controls (Start/Stop/Restart/Backup/Update) on its status board" Margin="0,0,0,4"
-                                          ToolTip="Adds buttons for this server's status board. Only takes effect when this server has its own dedicated board (set a Status board channel ID above) — buttons aren't shown on a combined multi-server board. Respects the bot's Allowed User IDs."/>
-                                <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
-                                           Text="Has no effect while this server shares a board with others"/>
+                                          Content="Enable admin controls (Start/Stop/Restart/Backup/Update buttons)" Margin="0,0,0,8"
+                                          ToolTip="These buttons can stop or update the server — anyone in the channel below can press them (Allowed User IDs is the only gate). Never put this on the public status channel."/>
+                                <StackPanel Visibility="{Binding Server.DiscordAdminControls, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Admin controls channel ID (required, keep this private)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Server.DiscordAdminChannelId, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource DarkTextBox}" Margin="0,0,0,4"
+                                             ToolTip="A separate, restricted/staff-only channel — never the same as the status board channel above. The buttons appear here, not on the public board."/>
+                                    <TextBlock Foreground="#F85149" FontSize="11" Margin="0,0,0,12" TextWrapping="Wrap"
+                                               Text="Use a private staff channel for this. Anyone who can see and click these buttons can stop or update the server — set Allowed User IDs in Settings → Discord Bot as an extra gate."/>
+                                </StackPanel>
 
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
