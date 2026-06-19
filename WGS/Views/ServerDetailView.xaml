@@ -537,6 +537,12 @@
                                 <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
                                            Text="Leave empty to share the combined board from Settings → Discord Bot"/>
 
+                                <CheckBox IsChecked="{Binding Server.DiscordAdminControls}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Show admin controls (Start/Stop/Restart/Backup/Update) on its status board" Margin="0,0,0,4"
+                                          ToolTip="Adds buttons for this server's status board. Only takes effect when this server has its own dedicated board (set a Status board channel ID above) — buttons aren't shown on a combined multi-server board. Respects the bot's Allowed User IDs."/>
+                                <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
+                                           Text="Has no effect while this server shares a board with others"/>
+
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-restart after crash" Margin="0,0,0,8"/>

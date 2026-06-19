@@ -59,7 +59,12 @@ public class DiscordBotService : IDisposable
     // ── Gateway (for button interactions only — everything else uses REST polling) ──
     private Task?  _gatewayLoop;
     private long?  _gatewaySeq;
-    private const string WakeButtonPrefix = "wgs_wake_";
+    private const string WakeButtonPrefix    = "wgs_wake_";
+    private const string AdminStartPrefix    = "wgs_start_";
+    private const string AdminStopPrefix     = "wgs_stop_";
+    private const string AdminRestartPrefix  = "wgs_restart_";
+    private const string AdminBackupPrefix   = "wgs_backup_";
+    private const string AdminUpdatePrefix   = "wgs_update_";
 
     public bool IsRunning => _loop is { IsCompleted: false };
     public event Action<string>? StatusChanged;
@@ -224,7 +229,7 @@ public class DiscordBotService : IDisposable
     private async Task PostOrEditChannelMessage(string channelId, List<Models.GameServer> servers, CancellationToken ct)
     {
         var embed      = BuildStatusEmbed(servers);
-        var components = BuildWakeButtonRows(servers);
+        var components = BuildWakeButtonRows(servers).Concat(BuildAdminButtonRows(servers)).Take(5).ToArray(); // Discord caps at 5 action rows
         var payload    = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
 
         if (_statusMessageIds.TryGetValue(channelId, out var messageId))
@@ -314,6 +319,28 @@ public class DiscordBotService : IDisposable
             rows.Add(new { type = 1, components = buttons.Skip(i).Take(5).ToArray() }); // 1 = Action Row
 
         return rows.ToArray();
+    }
+
+    /// <summary>
+    /// Start/Stop/Restart/Backup/Update buttons — only added when the board has exactly one
+    /// server on it, since custom_id-per-server buttons next to a combined multi-server embed
+    /// would be ambiguous and risks the message hitting Discord's 25-component cap.
+    /// </summary>
+    private static object[] BuildAdminButtonRows(List<Models.GameServer> servers)
+    {
+        if (servers.Count != 1) return [];
+        var s = servers[0];
+        if (!s.DiscordAdminControls) return [];
+
+        var running = s.Status == ServerStatus.Running;
+        var buttons = new List<object>();
+        if (!running) buttons.Add(new { type = 2, style = 3, label = "Start",   custom_id = AdminStartPrefix   + s.Id }); // style 3 = Success
+        if (running)  buttons.Add(new { type = 2, style = 4, label = "Stop",    custom_id = AdminStopPrefix    + s.Id }); // style 4 = Danger
+        if (running)  buttons.Add(new { type = 2, style = 1, label = "Restart", custom_id = AdminRestartPrefix + s.Id }); // style 1 = Primary
+        buttons.Add(new { type = 2, style = 2, label = "Backup", custom_id = AdminBackupPrefix + s.Id }); // style 2 = Secondary
+        buttons.Add(new { type = 2, style = 2, label = "Update", custom_id = AdminUpdatePrefix + s.Id });
+
+        return [new { type = 1, components = buttons.ToArray() }]; // single row, max 5 buttons fits comfortably
     }
 
     // ── Gateway connection — only needed to receive button-click interactions ──────
@@ -433,24 +460,84 @@ public class DiscordBotService : IDisposable
         await ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
     }
 
+    private static readonly (string prefix, string label, string verb)[] AdminButtonKinds =
+    [
+        (AdminStartPrefix,   "Starting",   "start"),
+        (AdminStopPrefix,    "Stopping",   "stop"),
+        (AdminRestartPrefix, "Restarting", "restart"),
+        (AdminBackupPrefix,  "Backing up", "backup"),
+        (AdminUpdatePrefix,  "Updating",   "update"),
+    ];
+
     private async Task HandleInteractionAsync(JObject? interaction, CancellationToken ct)
     {
         if (interaction == null) return;
         var customId = interaction["data"]?["custom_id"]?.ToString();
-        if (string.IsNullOrEmpty(customId) || !customId.StartsWith(WakeButtonPrefix)) return;
+        if (string.IsNullOrEmpty(customId)) return;
 
-        var serverId   = customId[WakeButtonPrefix.Length..];
-        var server     = GetServers?.Invoke().FirstOrDefault(s => s.Id == serverId);
-        var serverName = server?.DisplayName ?? "server";
-        var id         = interaction["id"]?.ToString();
-        var token      = interaction["token"]?.ToString();
+        var id    = interaction["id"]?.ToString();
+        var token = interaction["token"]?.ToString();
         if (id == null || token == null) return;
 
-        // Must ack within 3 seconds — reply immediately, start the server after.
+        if (customId.StartsWith(WakeButtonPrefix))
+        {
+            var serverId   = customId[WakeButtonPrefix.Length..];
+            var server     = GetServers?.Invoke().FirstOrDefault(s => s.Id == serverId);
+            var serverName = server?.DisplayName ?? "server";
+
+            await AckInteractionAsync(id, token, $"⏳ Starting **{serverName}**... give it a minute, then connect normally.", ct);
+            if (server != null)
+                await (StartServer?.Invoke(server.Id) ?? Task.CompletedTask);
+            return;
+        }
+
+        foreach (var (prefix, label, verb) in AdminButtonKinds)
+        {
+            if (!customId.StartsWith(prefix)) continue;
+
+            var serverId   = customId[prefix.Length..];
+            var server     = GetServers?.Invoke().FirstOrDefault(s => s.Id == serverId);
+            var serverName = server?.DisplayName ?? "server";
+
+            if (!IsInteractionUserAllowed(interaction))
+            {
+                await AckInteractionAsync(id, token, "🚫 You're not authorized to control servers from here.", ct);
+                return;
+            }
+
+            await AckInteractionAsync(id, token, $"{label} **{serverName}**...", ct);
+            if (server == null) return;
+
+            Task action = verb switch
+            {
+                "start"   => StartServer?.Invoke(server.Id)   ?? Task.CompletedTask,
+                "stop"    => StopServer?.Invoke(server.Id)    ?? Task.CompletedTask,
+                "restart" => RestartServer?.Invoke(server.Id) ?? Task.CompletedTask,
+                "backup"  => BackupServer?.Invoke(server.Id)  ?? Task.CompletedTask,
+                "update"  => UpdateServer?.Invoke(server.Id)  ?? Task.CompletedTask,
+                _ => Task.CompletedTask,
+            };
+            await action;
+            return;
+        }
+    }
+
+    private bool IsInteractionUserAllowed(JObject interaction)
+    {
+        if (string.IsNullOrWhiteSpace(AllowedUserIds)) return true;
+        var userId = interaction["member"]?["user"]?["id"]?.ToString() ?? interaction["user"]?["id"]?.ToString();
+        if (string.IsNullOrEmpty(userId)) return false;
+        var allowed = AllowedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return allowed.Contains(userId);
+    }
+
+    /// <summary>Must respond within 3 seconds of receiving the interaction — sends an ephemeral acknowledgement.</summary>
+    private async Task AckInteractionAsync(string id, string token, string content, CancellationToken ct)
+    {
         var ackPayload = JsonConvert.SerializeObject(new
         {
             type = 4, // CHANNEL_MESSAGE_WITH_SOURCE
-            data = new { content = $"⏳ Starting **{serverName}**... give it a minute, then connect normally.", flags = 64 } // 64 = ephemeral
+            data = new { content, flags = 64 } // 64 = ephemeral
         });
         try
         {
@@ -459,9 +546,6 @@ public class DiscordBotService : IDisposable
                 new StringContent(ackPayload, Encoding.UTF8, "application/json"), ct);
         }
         catch { }
-
-        if (server != null)
-            await (StartServer?.Invoke(server.Id) ?? Task.CompletedTask);
     }
 
     private async Task SeedLastMessageId(CancellationToken ct)
