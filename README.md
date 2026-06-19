@@ -34,6 +34,8 @@ Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and ma
 
 WGS is designed for home lab hosts, small community server admins and anyone who wants a clean, reliable way to keep game servers running on Windows without spending time on maintenance.
 
+Built with the help of AI coding tools, with every feature driven, tested and decided by the author.
+
 ---
 
 ## 📷 Screenshot
