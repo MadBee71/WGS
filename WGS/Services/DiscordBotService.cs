@@ -50,6 +50,8 @@ public class DiscordBotService : IDisposable
     private string                  _lastMessageId = "0";
     /// <summary>ID of the live status message, kept in memory only — a fresh message is posted after a restart.</summary>
     private string?                 _statusMessageId;
+    /// <summary>Channel the current _statusMessageId actually lives in, so a channel change can be detected and the old message cleaned up.</summary>
+    private string?                 _statusMessageChannelId;
 
     // ── Gateway (for button interactions only — everything else uses REST polling) ──
     private Task?  _gatewayLoop;
@@ -80,7 +82,8 @@ public class DiscordBotService : IDisposable
         _loop = Task.Run(() => PollLoop(_cts.Token));
         if (StatusEnabled)
         {
-            _statusMessageId = null; // post a fresh message this run instead of guessing an old one is still valid
+            _statusMessageId        = null; // post a fresh message this run instead of guessing an old one is still valid
+            _statusMessageChannelId = null;
             _statusLoop  = Task.Run(() => StatusUpdateLoop(_cts.Token));
             _gatewayLoop = Task.Run(() => GatewayLoop(_cts.Token));
         }
@@ -163,6 +166,20 @@ public class DiscordBotService : IDisposable
     private async Task PostOrEditStatusMessage(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(StatusChannelId)) return;
+
+        // If the channel was changed in Settings since the last post, the old message is left
+        // behind in the old channel forever unless we explicitly delete it here first.
+        if (_statusMessageId != null && _statusMessageChannelId != null && _statusMessageChannelId != StatusChannelId)
+        {
+            try
+            {
+                await _http.DeleteAsync(
+                    $"https://discord.com/api/v10/channels/{_statusMessageChannelId}/messages/{_statusMessageId}", ct);
+            }
+            catch { }
+            _statusMessageId = null;
+        }
+
         var embed      = BuildStatusEmbed();
         var components = BuildWakeButtonRows();
         var payload     = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
@@ -184,7 +201,8 @@ public class DiscordBotService : IDisposable
         if (!postResp.IsSuccessStatusCode) return;
 
         var json = await postResp.Content.ReadAsStringAsync(ct);
-        _statusMessageId = JObject.Parse(json)["id"]?.ToString();
+        _statusMessageId        = JObject.Parse(json)["id"]?.ToString();
+        _statusMessageChannelId = StatusChannelId;
     }
 
     private object BuildStatusEmbed()
