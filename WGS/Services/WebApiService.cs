@@ -499,6 +499,7 @@ public class WebApiService : IDisposable
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/logo.png">
 <title>{{Esc(srv.DisplayName)}} — Server Status</title>
 <style>
 body{font-family:-apple-system,Segoe UI,sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:40px 16px;display:flex;justify-content:center}
@@ -517,7 +518,7 @@ li{padding:4px 0;font-size:13px;color:#e6edf3}
 </head>
 <body>
 <div class="card">
-  <h1>{{Esc(srv.DisplayName)}}</h1>
+  <h1><img src="/logo.png" alt="WGS" style="height:24px;vertical-align:middle;margin-right:8px;border-radius:4px"/>{{Esc(srv.DisplayName)}}</h1>
   <div class="sub">{{Esc(gameName)}}</div>
   <div class="stat"><span><span class="dot"></span>Status</span><span>{{(isRunning ? "Online" : "Offline")}}</span></div>
   {{(isRunning ? $"""<div class="stat"><span>Uptime</span><span>{uptime}</span></div>""" : "")}}
@@ -559,6 +560,7 @@ li{padding:4px 0;font-size:13px;color:#e6edf3}
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="/logo.png">
 <title>WGS Dashboard</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
