@@ -48,10 +48,8 @@ public class DiscordBotService : IDisposable
     private Task?                   _loop;
     private Task?                   _statusLoop;
     private string                  _lastMessageId = "0";
-    /// <summary>ID of the live status message, kept in memory only — a fresh message is posted after a restart.</summary>
-    private string?                 _statusMessageId;
-    /// <summary>Channel the current _statusMessageId actually lives in, so a channel change can be detected and the old message cleaned up.</summary>
-    private string?                 _statusMessageChannelId;
+    /// <summary>Live status message ID per channel — lets each server optionally have its own board in its own channel. Kept in memory only, a fresh message is posted after a restart.</summary>
+    private readonly Dictionary<string, string> _statusMessageIds = new();
 
     // ── Gateway (for button interactions only — everything else uses REST polling) ──
     private Task?  _gatewayLoop;
@@ -82,8 +80,7 @@ public class DiscordBotService : IDisposable
         _loop = Task.Run(() => PollLoop(_cts.Token));
         if (StatusEnabled)
         {
-            _statusMessageId        = null; // post a fresh message this run instead of guessing an old one is still valid
-            _statusMessageChannelId = null;
+            _statusMessageIds.Clear(); // post fresh messages this run instead of guessing old ones are still valid
             _statusLoop  = Task.Run(() => StatusUpdateLoop(_cts.Token));
             _gatewayLoop = Task.Run(() => GatewayLoop(_cts.Token));
         }
@@ -163,51 +160,65 @@ public class DiscordBotService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Groups servers by their effective status channel (per-server override, falling back to the
+    /// bot's global status channel) and keeps one message per channel updated in place — so a
+    /// server can get its own dedicated board just by setting "Status channel ID" on that server.
+    /// </summary>
     private async Task PostOrEditStatusMessage(CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(StatusChannelId)) return;
+        var servers = GetServers?.Invoke().ToList() ?? [];
+        var groups = servers
+            .GroupBy(s => string.IsNullOrWhiteSpace(s.DiscordStatusChannelId) ? StatusChannelId : s.DiscordStatusChannelId)
+            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+            .ToDictionary(g => g.Key, g => g.ToList());
 
-        // If the channel was changed in Settings since the last post, the old message is left
-        // behind in the old channel forever unless we explicitly delete it here first.
-        if (_statusMessageId != null && _statusMessageChannelId != null && _statusMessageChannelId != StatusChannelId)
+        // A channel that previously had a board but no longer has any servers assigned to it
+        // (e.g. the per-server override was removed) — delete its now-orphaned message.
+        foreach (var oldChannelId in _statusMessageIds.Keys.Where(c => !groups.ContainsKey(c)).ToList())
         {
             try
             {
                 await _http.DeleteAsync(
-                    $"https://discord.com/api/v10/channels/{_statusMessageChannelId}/messages/{_statusMessageId}", ct);
+                    $"https://discord.com/api/v10/channels/{oldChannelId}/messages/{_statusMessageIds[oldChannelId]}", ct);
             }
             catch { }
-            _statusMessageId = null;
+            _statusMessageIds.Remove(oldChannelId);
         }
 
-        var embed      = BuildStatusEmbed();
-        var components = BuildWakeButtonRows();
-        var payload     = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
+        foreach (var (channelId, channelServers) in groups)
+            await PostOrEditChannelMessage(channelId, channelServers, ct);
+    }
 
-        if (_statusMessageId != null)
+    private async Task PostOrEditChannelMessage(string channelId, List<Models.GameServer> servers, CancellationToken ct)
+    {
+        var embed      = BuildStatusEmbed(servers);
+        var components = BuildWakeButtonRows(servers);
+        var payload    = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
+
+        if (_statusMessageIds.TryGetValue(channelId, out var messageId))
         {
             var editResp = await _http.PatchAsync(
-                $"https://discord.com/api/v10/channels/{StatusChannelId}/messages/{_statusMessageId}",
+                $"https://discord.com/api/v10/channels/{channelId}/messages/{messageId}",
                 new StringContent(payload, Encoding.UTF8, "application/json"), ct);
 
             if (editResp.IsSuccessStatusCode) return;
             if (editResp.StatusCode != System.Net.HttpStatusCode.NotFound) return; // transient error, retry next tick
-            _statusMessageId = null; // message was deleted — fall through and post a new one
+            _statusMessageIds.Remove(channelId); // message was deleted — fall through and post a new one
         }
 
         var postResp = await _http.PostAsync(
-            $"https://discord.com/api/v10/channels/{StatusChannelId}/messages",
+            $"https://discord.com/api/v10/channels/{channelId}/messages",
             new StringContent(payload, Encoding.UTF8, "application/json"), ct);
         if (!postResp.IsSuccessStatusCode) return;
 
         var json = await postResp.Content.ReadAsStringAsync(ct);
-        _statusMessageId        = JObject.Parse(json)["id"]?.ToString();
-        _statusMessageChannelId = StatusChannelId;
+        var newId = JObject.Parse(json)["id"]?.ToString();
+        if (newId != null) _statusMessageIds[channelId] = newId;
     }
 
-    private object BuildStatusEmbed()
+    private static object BuildStatusEmbed(List<Models.GameServer> servers)
     {
-        var servers = GetServers?.Invoke().ToList() ?? [];
         var fields = servers.Select(s =>
         {
             var online = s.Status == ServerStatus.Running;
@@ -229,14 +240,12 @@ public class DiscordBotService : IDisposable
     }
 
     /// <summary>One "Wake" button per offline, wake-on-demand-enabled server, grouped into rows of 5 (Discord's max per row).</summary>
-    private object[] BuildWakeButtonRows()
+    private static object[] BuildWakeButtonRows(List<Models.GameServer> servers)
     {
-        var servers = GetServers?.Invoke()
-            .Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand)
-            .ToList() ?? [];
-        if (servers.Count == 0) return [];
+        var wakeable = servers.Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand).ToList();
+        if (wakeable.Count == 0) return [];
 
-        var buttons = servers.Select(s =>
+        var buttons = wakeable.Select(s =>
         {
             var label = "Wake " + s.DisplayName;
             if (label.Length > 80) label = label[..80];

@@ -530,6 +530,13 @@
                                 <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
                                            Text="Leave empty to use the global webhook from Settings → Notifications"/>
 
+                                <TextBlock Text="Status board channel ID (optional)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding Server.DiscordStatusChannelId, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource DarkTextBox}" Margin="0,0,0,4"
+                                         ToolTip="If set, this server gets its own live status board in this channel instead of sharing the bot's combined status board."/>
+                                <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,0,0,12"
+                                           Text="Leave empty to share the combined board from Settings → Discord Bot"/>
+
                                 <!-- Auto Restart -->
                                 <CheckBox IsChecked="{Binding Server.AutoRestart}" Style="{StaticResource DarkCheckBox}"
                                           Content="Auto-restart after crash" Margin="0,0,0,8"/>
