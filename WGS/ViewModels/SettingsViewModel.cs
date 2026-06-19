@@ -31,6 +31,8 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _botChannelId    = string.Empty;
     [ObservableProperty] private string _botPrefix       = "!";
     [ObservableProperty] private string _botAllowedUsers = string.Empty;
+    [ObservableProperty] private bool   _botStatusEnabled;
+    [ObservableProperty] private string _botStatusChannelId = string.Empty;
     [ObservableProperty] private string _botStatus       = string.Empty;
     [ObservableProperty] private string _newBotAdminId   = string.Empty;
     [ObservableProperty] private string? _selectedBotAdmin;
@@ -138,6 +140,8 @@ public partial class SettingsViewModel : BaseViewModel
         BotChannelId       = s.BotChannelId    ?? string.Empty;
         BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
         BotAllowedUsers    = s.BotAllowedUsers ?? string.Empty;
+        BotStatusEnabled   = s.BotStatusEnabled;
+        BotStatusChannelId = s.BotStatusChannelId ?? string.Empty;
         BotAdminList.Clear();
         foreach (var id in (s.BotAllowedUsers ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             BotAdminList.Add(id);
@@ -187,6 +191,8 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotChannelId      = BotChannelId;
         s.BotPrefix         = BotPrefix;
         s.BotAllowedUsers   = string.Join(",", BotAdminList);
+        s.BotStatusEnabled   = BotStatusEnabled;
+        s.BotStatusChannelId = BotStatusChannelId;
         s.EmailEnabled      = EmailEnabled;
         s.SmtpHost          = SmtpHost;
         s.SmtpPort          = SmtpPort;

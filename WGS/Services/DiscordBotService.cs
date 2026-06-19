@@ -1,5 +1,7 @@
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.WebSockets;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -35,12 +37,24 @@ public class DiscordBotService : IDisposable
     /// <summary>Comma-separated Discord user IDs allowed to send commands. Empty = anyone in the channel.</summary>
     public string  AllowedUserIds { get; set; } = string.Empty;
     public bool    IsEnabled      { get; set; }
+    /// <summary>When true, a single message in StatusChannelId is edited in place with live status instead of posting new ones.</summary>
+    public bool    StatusEnabled    { get; set; }
+    /// <summary>Channel for the live status message. Falls back to ChannelId when empty.</summary>
+    public string  StatusChannelId  { get; set; } = string.Empty;
 
     // ── State ─────────────────────────────────────────────────────────────────
     private readonly HttpClient     _http   = new();
     private CancellationTokenSource _cts    = new();
     private Task?                   _loop;
+    private Task?                   _statusLoop;
     private string                  _lastMessageId = "0";
+    /// <summary>ID of the live status message, kept in memory only — a fresh message is posted after a restart.</summary>
+    private string?                 _statusMessageId;
+
+    // ── Gateway (for button interactions only — everything else uses REST polling) ──
+    private Task?  _gatewayLoop;
+    private long?  _gatewaySeq;
+    private const string WakeButtonPrefix = "wgs_wake_";
 
     public bool IsRunning => _loop is { IsCompleted: false };
     public event Action<string>? StatusChanged;
@@ -64,6 +78,12 @@ public class DiscordBotService : IDisposable
         Stop();
         _cts  = new CancellationTokenSource();
         _loop = Task.Run(() => PollLoop(_cts.Token));
+        if (StatusEnabled)
+        {
+            _statusMessageId = null; // post a fresh message this run instead of guessing an old one is still valid
+            _statusLoop  = Task.Run(() => StatusUpdateLoop(_cts.Token));
+            _gatewayLoop = Task.Run(() => GatewayLoop(_cts.Token));
+        }
         StatusChanged?.Invoke("✅ Discord bot started");
     }
 
@@ -71,7 +91,11 @@ public class DiscordBotService : IDisposable
     {
         _cts.Cancel();
         try { _loop?.Wait(2000); } catch { }
+        try { _statusLoop?.Wait(2000); } catch { }
+        try { _gatewayLoop?.Wait(2000); } catch { }
         _loop = null;
+        _statusLoop = null;
+        _gatewayLoop = null;
         StatusChanged?.Invoke("⛔ Discord bot stopped");
     }
 
@@ -85,6 +109,8 @@ public class DiscordBotService : IDisposable
         ChannelId      = settings.BotChannelId;
         CommandPrefix  = string.IsNullOrWhiteSpace(settings.BotPrefix) ? "!" : settings.BotPrefix;
         AllowedUserIds = settings.BotAllowedUsers;
+        StatusEnabled    = settings.BotStatusEnabled;
+        StatusChannelId  = string.IsNullOrWhiteSpace(settings.BotStatusChannelId) ? ChannelId : settings.BotStatusChannelId;
 
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bot", BotToken);
@@ -114,6 +140,244 @@ public class DiscordBotService : IDisposable
                 await Task.Delay(15000, ct); // back off on error
             }
         }
+    }
+
+    // ── Live status message ─────────────────────────────────────────────────
+    // Keeps one message in StatusChannelId updated in place (edit, not re-post) — same
+    // pattern community status bots use for device/server dashboards in a pinned message.
+
+    private async Task StatusUpdateLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await PostOrEditStatusMessage(ct);
+                await Task.Delay(60_000, ct);
+            }
+            catch (OperationCanceledException) { break; }
+            catch { await Task.Delay(60_000, ct); }
+        }
+    }
+
+    private async Task PostOrEditStatusMessage(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(StatusChannelId)) return;
+        var embed      = BuildStatusEmbed();
+        var components = BuildWakeButtonRows();
+        var payload     = JsonConvert.SerializeObject(new { embeds = new[] { embed }, components });
+
+        if (_statusMessageId != null)
+        {
+            var editResp = await _http.PatchAsync(
+                $"https://discord.com/api/v10/channels/{StatusChannelId}/messages/{_statusMessageId}",
+                new StringContent(payload, Encoding.UTF8, "application/json"), ct);
+
+            if (editResp.IsSuccessStatusCode) return;
+            if (editResp.StatusCode != System.Net.HttpStatusCode.NotFound) return; // transient error, retry next tick
+            _statusMessageId = null; // message was deleted — fall through and post a new one
+        }
+
+        var postResp = await _http.PostAsync(
+            $"https://discord.com/api/v10/channels/{StatusChannelId}/messages",
+            new StringContent(payload, Encoding.UTF8, "application/json"), ct);
+        if (!postResp.IsSuccessStatusCode) return;
+
+        var json = await postResp.Content.ReadAsStringAsync(ct);
+        _statusMessageId = JObject.Parse(json)["id"]?.ToString();
+    }
+
+    private object BuildStatusEmbed()
+    {
+        var servers = GetServers?.Invoke().ToList() ?? [];
+        var fields = servers.Select(s =>
+        {
+            var online = s.Status == ServerStatus.Running;
+            var ip     = string.IsNullOrEmpty(s.ServerIp) || s.ServerIp == "0.0.0.0" ? "127.0.0.1" : s.ServerIp;
+            var port   = s.QueryPort > 0 ? s.QueryPort : s.ServerPort;
+            var line1  = online ? $"🟢 Online — {s.CurrentPlayers}/{s.MaxPlayers} players" : "⚫ Offline";
+            var value  = $"{line1}\nConnect: `{ip}:{port}`";
+            return new { name = s.DisplayName, value, inline = true };
+        }).ToArray();
+
+        return new
+        {
+            title       = "Server Status",
+            color       = 0x1F6FEB,
+            fields,
+            footer      = new { text = "Windows Game Server · updates every minute" },
+            timestamp   = DateTime.UtcNow.ToString("o"),
+        };
+    }
+
+    /// <summary>One "Wake" button per offline, wake-on-demand-enabled server, grouped into rows of 5 (Discord's max per row).</summary>
+    private object[] BuildWakeButtonRows()
+    {
+        var servers = GetServers?.Invoke()
+            .Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand)
+            .ToList() ?? [];
+        if (servers.Count == 0) return [];
+
+        var buttons = servers.Select(s =>
+        {
+            var label = "Wake " + s.DisplayName;
+            if (label.Length > 80) label = label[..80];
+            return new { type = 2, style = 1, label, custom_id = WakeButtonPrefix + s.Id }; // type 2 = Button, style 1 = Primary
+        }).ToList();
+
+        var rows = new List<object>();
+        for (int i = 0; i < buttons.Count && rows.Count < 5; i += 5)
+            rows.Add(new { type = 1, components = buttons.Skip(i).Take(5).ToArray() }); // 1 = Action Row
+
+        return rows.ToArray();
+    }
+
+    // ── Gateway connection — only needed to receive button-click interactions ──────
+    // (everything else — commands, status edits — works over plain REST polling)
+
+    private async Task GatewayLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try { await RunGatewaySessionAsync(ct); }
+            catch (OperationCanceledException) { break; }
+            catch { }
+            if (ct.IsCancellationRequested) break;
+            try { await Task.Delay(5000, ct); } catch (OperationCanceledException) { break; } // reconnect backoff
+        }
+    }
+
+    private async Task RunGatewaySessionAsync(CancellationToken ct)
+    {
+        string gatewayUrl;
+        try
+        {
+            var json = await _http.GetStringAsync("https://discord.com/api/v10/gateway", ct);
+            gatewayUrl = JObject.Parse(json)["url"]?.ToString() ?? "wss://gateway.discord.gg";
+        }
+        catch { gatewayUrl = "wss://gateway.discord.gg"; }
+
+        using var ws = new ClientWebSocket();
+        await ws.ConnectAsync(new Uri($"{gatewayUrl}/?v=10&encoding=json"), ct);
+
+        using var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        Task? heartbeatTask = null;
+
+        try
+        {
+            var buffer = new byte[16 * 1024];
+            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
+            {
+                using var ms = new MemoryStream();
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await ws.ReceiveAsync(buffer, ct);
+                    if (result.MessageType == WebSocketMessageType.Close) return;
+                    ms.Write(buffer, 0, result.Count);
+                } while (!result.EndOfMessage);
+
+                var msg = JObject.Parse(Encoding.UTF8.GetString(ms.ToArray()));
+                var op  = msg["op"]?.Value<int>() ?? -1;
+                if (msg["s"] != null) _gatewaySeq = msg["s"]!.Value<long>();
+
+                switch (op)
+                {
+                    case 10: // Hello — start heartbeating, then identify
+                        var interval = msg["d"]?["heartbeat_interval"]?.Value<int>() ?? 41250;
+                        heartbeatTask = Task.Run(() => HeartbeatLoop(ws, interval, heartbeatCts.Token), heartbeatCts.Token);
+                        await SendIdentifyAsync(ws, ct);
+                        break;
+                    case 1: // server requests an immediate heartbeat
+                        await SendHeartbeatAsync(ws, ct);
+                        break;
+                    case 7:  // Reconnect requested
+                    case 9:  // Invalid session
+                        return; // drop and let GatewayLoop reconnect fresh
+                    case 0:  // Dispatch
+                        var t = msg["t"]?.ToString();
+                        if (t == "INTERACTION_CREATE")
+                            _ = HandleInteractionAsync(msg["d"] as JObject, ct);
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            heartbeatCts.Cancel();
+            try { if (heartbeatTask != null) await heartbeatTask; } catch { }
+        }
+    }
+
+    private async Task HeartbeatLoop(ClientWebSocket ws, int intervalMs, CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested && ws.State == WebSocketState.Open)
+            {
+                await Task.Delay(intervalMs, ct);
+                await SendHeartbeatAsync(ws, ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task SendHeartbeatAsync(ClientWebSocket ws, CancellationToken ct)
+    {
+        var payload = JsonConvert.SerializeObject(new { op = 1, d = _gatewaySeq });
+        await SendWsAsync(ws, payload, ct);
+    }
+
+    private async Task SendIdentifyAsync(ClientWebSocket ws, CancellationToken ct)
+    {
+        var payload = JsonConvert.SerializeObject(new
+        {
+            op = 2,
+            d  = new
+            {
+                token      = BotToken,
+                intents    = 0, // interaction events aren't gated by intents
+                properties = new { os = "windows", browser = "wgs", device = "wgs" },
+            }
+        });
+        await SendWsAsync(ws, payload, ct);
+    }
+
+    private static async Task SendWsAsync(ClientWebSocket ws, string json, CancellationToken ct)
+    {
+        var bytes = Encoding.UTF8.GetBytes(json);
+        await ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
+    }
+
+    private async Task HandleInteractionAsync(JObject? interaction, CancellationToken ct)
+    {
+        if (interaction == null) return;
+        var customId = interaction["data"]?["custom_id"]?.ToString();
+        if (string.IsNullOrEmpty(customId) || !customId.StartsWith(WakeButtonPrefix)) return;
+
+        var serverId   = customId[WakeButtonPrefix.Length..];
+        var server     = GetServers?.Invoke().FirstOrDefault(s => s.Id == serverId);
+        var serverName = server?.DisplayName ?? "server";
+        var id         = interaction["id"]?.ToString();
+        var token      = interaction["token"]?.ToString();
+        if (id == null || token == null) return;
+
+        // Must ack within 3 seconds — reply immediately, start the server after.
+        var ackPayload = JsonConvert.SerializeObject(new
+        {
+            type = 4, // CHANNEL_MESSAGE_WITH_SOURCE
+            data = new { content = $"⏳ Starting **{serverName}**... give it a minute, then connect normally.", flags = 64 } // 64 = ephemeral
+        });
+        try
+        {
+            await _http.PostAsync(
+                $"https://discord.com/api/v10/interactions/{id}/{token}/callback",
+                new StringContent(ackPayload, Encoding.UTF8, "application/json"), ct);
+        }
+        catch { }
+
+        if (server != null)
+            await (StartServer?.Invoke(server.Id) ?? Task.CompletedTask);
     }
 
     private async Task SeedLastMessageId(CancellationToken ct)

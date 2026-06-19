@@ -25,6 +25,10 @@ public class NotificationSettings
     public string BotChannelId    { get; set; } = string.Empty;
     public string BotPrefix       { get; set; } = "!";
     public string BotAllowedUsers { get; set; } = string.Empty;
+    /// <summary>When true, the bot keeps one message in the status channel updated with live server status instead of posting new messages each time.</summary>
+    public bool   BotStatusEnabled    { get; set; } = false;
+    /// <summary>Channel for the live status message. Falls back to BotChannelId when empty.</summary>
+    public string BotStatusChannelId  { get; set; } = string.Empty;
 
     // Email (SMTP)
     public bool   EmailEnabled    { get; set; }
@@ -52,6 +56,8 @@ file record NotificationSettingsData(
     string BotChannelId              = "",
     string BotPrefix                 = "!",
     string BotAllowedUsers           = "",
+    bool   BotStatusEnabled          = false,
+    string BotStatusChannelId        = "",
     bool   EmailEnabled              = false,
     string SmtpHost                  = "",
     int    SmtpPort                  = 587,
@@ -105,6 +111,8 @@ public class NotificationService
             _settings.BotChannelId,
             _settings.BotPrefix,
             _settings.BotAllowedUsers,
+            _settings.BotStatusEnabled,
+            _settings.BotStatusChannelId,
             _settings.EmailEnabled,
             _settings.SmtpHost,
             _settings.SmtpPort,
@@ -148,6 +156,8 @@ public class NotificationService
                     BotChannelId    = data.BotChannelId,
                     BotPrefix       = string.IsNullOrEmpty(data.BotPrefix) ? "!" : data.BotPrefix,
                     BotAllowedUsers = data.BotAllowedUsers,
+                    BotStatusEnabled   = data.BotStatusEnabled,
+                    BotStatusChannelId = data.BotStatusChannelId,
                     EmailEnabled    = data.EmailEnabled,
                     SmtpHost        = data.SmtpHost,
                     SmtpPort        = data.SmtpPort,
