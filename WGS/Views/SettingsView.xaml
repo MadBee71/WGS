@@ -277,6 +277,16 @@
                         </StackPanel>
                     </Grid>
 
+                    <CheckBox IsChecked="{Binding BotStatusEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Keep a live status message updated instead of posting new messages" Margin="0,4,0,8"
+                              ToolTip="Edits one message in place every minute with each server's online/offline state, player count and connect IP:port. Offline servers with Wake on demand enabled get a 'Wake' button right on the message — opens a live gateway connection to receive button clicks."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                Visibility="{Binding BotStatusEnabled, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Status channel ID (blank = control channel)" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="200"
+                                 Text="{Binding BotStatusChannelId, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
                         <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">
