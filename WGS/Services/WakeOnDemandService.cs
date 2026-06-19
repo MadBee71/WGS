@@ -17,6 +17,9 @@ public sealed class WakeOnDemandService : IDisposable
     private readonly Dictionary<string, CancellationTokenSource> _idleWatchers = new();
     private readonly object _lock = new();
 
+    /// <summary>Raised after an idle-shutdown backup completes, so an open Backups tab can refresh.</summary>
+    public event Action<string>? ServerBackedUp;
+
     public WakeOnDemandService(ServerManagerService manager, BackupService backup)
     {
         _manager = manager;
@@ -128,7 +131,7 @@ public sealed class WakeOnDemandService : IDisposable
                     try { await _manager.StopAsync(server); } catch { }
                     if (server.BackupOnShutdown)
                     {
-                        try { await _backup.CreateBackupAsync(server); } catch { }
+                        try { await _backup.CreateBackupAsync(server); ServerBackedUp?.Invoke(server.Id); } catch { }
                     }
                     return;
                 }

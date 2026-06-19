@@ -263,6 +263,14 @@ public partial class MainViewModel : BaseViewModel
             WpfApplication.Current?.Dispatcher?.Invoke(vm.RefreshBackups);
         };
 
+        // Same idea for idle-shutdown backups, which bypass the scheduler entirely
+        _wakeOnDemand.ServerBackedUp += id =>
+        {
+            var vm = FindServer(id);
+            if (vm == null) return;
+            WpfApplication.Current?.Dispatcher?.Invoke(vm.RefreshBackups);
+        };
+
         // Wire Web API callbacks
         _webApi.GetServers    = () => Servers.Select(v => v.Server);
         // AsyncRelayCommand.ExecuteAsync monitors task completion and calls
