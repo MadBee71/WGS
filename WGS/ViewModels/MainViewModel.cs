@@ -252,6 +252,17 @@ public partial class MainViewModel : BaseViewModel
         _scheduler.GetServers   = () => Servers.Select(v => v.Server);
         _scheduler.UpdateServer = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
 
+        // Backup/Restart/Stop scheduled tasks can create a backup behind the scenes (the task
+        // itself, or BackupOnShutdown) — refresh the Backups tab if that server is open so the
+        // new file shows up without the user having to trigger something else first.
+        _scheduler.TaskExecuted += (task, _) =>
+        {
+            if (task.Action is not (ScheduledActionType.Backup or ScheduledActionType.Restart or ScheduledActionType.Stop)) return;
+            var vm = FindServer(task.ServerId);
+            if (vm == null) return;
+            WpfApplication.Current?.Dispatcher?.Invoke(vm.RefreshBackups);
+        };
+
         // Wire Web API callbacks
         _webApi.GetServers    = () => Servers.Select(v => v.Server);
         // AsyncRelayCommand.ExecuteAsync monitors task completion and calls
