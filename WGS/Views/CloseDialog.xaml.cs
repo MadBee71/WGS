@@ -20,4 +20,10 @@ public partial class CloseDialog : Window
         Result = CloseResult.Close;
         Close();
     }
+
+    private void CancelClick(object sender, RoutedEventArgs e)
+    {
+        Result = CloseResult.Cancel;
+        Close();
+    }
 }
