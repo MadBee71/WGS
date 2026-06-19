@@ -168,7 +168,7 @@ public class WebApiService : IDisposable
 
         var path = req.Url?.AbsolutePath.TrimEnd('/') ?? "/";
 
-        if (req.HttpMethod == "GET" && path == "/logo.png")
+        if (req.HttpMethod == "GET" && path == "/favicon.ico")
         {
             await SendLogoAsync(resp);
             return;
@@ -442,7 +442,7 @@ public class WebApiService : IDisposable
         {
             _logoBytes ??= ReadLogoBytes();
             if (_logoBytes == null) { resp.StatusCode = 404; resp.Close(); return; }
-            resp.ContentType     = "image/png";
+            resp.ContentType     = "image/x-icon";
             resp.ContentLength64 = _logoBytes.Length;
             resp.Headers["Cache-Control"] = "public, max-age=86400";
             await resp.OutputStream.WriteAsync(_logoBytes);
@@ -453,11 +453,13 @@ public class WebApiService : IDisposable
 
     private static byte[]? ReadLogoBytes()
     {
-        // wgs.png ships as a WPF "Resource" (pack URI), bundled inside the exe rather than
-        // copied to the publish folder as a loose file.
+        // favicon.ico ships as a WPF "Resource" (pack URI), bundled inside the exe rather than
+        // copied to the publish folder as a loose file. Using the same icon as the app's own
+        // window/taskbar icon, not the "WGS" text logo, since the shield reads more clearly at
+        // the small sizes browser tabs and inline headers render it at.
         try
         {
-            var uri    = new Uri("pack://application:,,,/wgs.png", UriKind.Absolute);
+            var uri    = new Uri("pack://application:,,,/favicon.ico", UriKind.Absolute);
             var stream = System.Windows.Application.GetResourceStream(uri)?.Stream;
             if (stream == null) return null;
             using var ms = new MemoryStream();
@@ -499,7 +501,7 @@ public class WebApiService : IDisposable
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="/logo.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <title>{{Esc(srv.DisplayName)}} — Server Status</title>
 <style>
 body{font-family:-apple-system,Segoe UI,sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:40px 16px;display:flex;justify-content:center}
@@ -518,7 +520,7 @@ li{padding:4px 0;font-size:13px;color:#e6edf3}
 </head>
 <body>
 <div class="card">
-  <h1><img src="/logo.png" alt="WGS" style="height:24px;vertical-align:middle;margin-right:8px;border-radius:4px"/>{{Esc(srv.DisplayName)}}</h1>
+  <h1><img src="/favicon.ico" alt="WGS" style="height:24px;vertical-align:middle;margin-right:8px;border-radius:4px"/>{{Esc(srv.DisplayName)}}</h1>
   <div class="sub">{{Esc(gameName)}}</div>
   <div class="stat"><span><span class="dot"></span>Status</span><span>{{(isRunning ? "Online" : "Offline")}}</span></div>
   {{(isRunning ? $"""<div class="stat"><span>Uptime</span><span>{uptime}</span></div>""" : "")}}
@@ -560,7 +562,7 @@ li{padding:4px 0;font-size:13px;color:#e6edf3}
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/png" href="/logo.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <title>WGS Dashboard</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -658,7 +660,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 </head>
 <body>
 <div class="hdr">
-  <div class="hdr-title"><img src="/logo.png" alt="WGS" style="height:28px;vertical-align:middle;margin-right:8px"/>Dashboard</div>
+  <div class="hdr-title"><img src="/favicon.ico" alt="WGS" style="height:28px;vertical-align:middle;margin-right:8px"/>Dashboard</div>
   <div class="hdr-right">
     <span id="refreshTxt"></span>
     <span class="badge" id="conBadge">Connecting…</span>
@@ -668,7 +670,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 <!-- Auth screen -->
 <div id="authWrap" class="auth-wrap">
   <div class="auth-card">
-    <h2><img src="/logo.png" alt="WGS" style="height:32px;vertical-align:middle;margin-right:8px"/>Dashboard</h2>
+    <h2><img src="/favicon.ico" alt="WGS" style="height:32px;vertical-align:middle;margin-right:8px"/>Dashboard</h2>
     <div class="field"><label>Access Token</label>
       <input type="password" id="tokInp" placeholder="Enter token…"
              onkeydown="if(event.key==='Enter')connect()">
