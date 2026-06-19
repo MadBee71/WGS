@@ -2,8 +2,8 @@ using Newtonsoft.Json;
 
 namespace WGS.Services;
 
-public enum ScheduledActionType { Restart, Stop, Start, Backup, Update }
-public enum ScheduleFrequency   { Once, Daily, Weekly }
+public enum ScheduledActionType { Restart, Stop, Start, Backup, Update, QuickCommand }
+public enum ScheduleFrequency   { Once, Daily, Weekly, Interval }
 
 public class ScheduledTask
 {
@@ -14,25 +14,33 @@ public class ScheduledTask
     public ScheduleFrequency   Frequency { get; set; }
     public TimeSpan            TimeOfDay { get; set; }
     public DayOfWeek           DayOfWeek { get; set; }
+    /// <summary>Used when Frequency == Interval — repeat every N minutes.</summary>
+    public int    IntervalMinutes { get; set; } = 60;
+    /// <summary>Console command to send when Action == QuickCommand.</summary>
+    public string Command     { get; set; } = string.Empty;
     public bool   IsEnabled   { get; set; } = true;
     public DateTime? LastRun  { get; set; }
     public DateTime? NextRun  { get; set; }
 
     public string ActionText => Action switch
     {
-        ScheduledActionType.Restart => "Restart",
-        ScheduledActionType.Stop    => "Stop",
-        ScheduledActionType.Start   => "Start",
-        ScheduledActionType.Backup  => "Backup",
-        ScheduledActionType.Update  => "Update",
+        ScheduledActionType.Restart      => "Restart",
+        ScheduledActionType.Stop         => "Stop",
+        ScheduledActionType.Start        => "Start",
+        ScheduledActionType.Backup       => "Backup",
+        ScheduledActionType.Update       => "Update",
+        ScheduledActionType.QuickCommand => $"Command: {Command}",
         _ => Action.ToString()
     };
 
     public string FrequencyText => Frequency switch
     {
-        ScheduleFrequency.Daily  => $"Daily {TimeOfDay:hh\\:mm}",
-        ScheduleFrequency.Weekly => $"{DayOfWeek} {TimeOfDay:hh\\:mm}",
-        ScheduleFrequency.Once   => $"Once {NextRun:dd.MM HH:mm}",
+        ScheduleFrequency.Daily    => $"Daily {TimeOfDay:hh\\:mm}",
+        ScheduleFrequency.Weekly   => $"{DayOfWeek} {TimeOfDay:hh\\:mm}",
+        ScheduleFrequency.Once     => $"Once {NextRun:dd.MM HH:mm}",
+        ScheduleFrequency.Interval => IntervalMinutes % 60 == 0
+            ? $"Every {IntervalMinutes / 60}h"
+            : $"Every {IntervalMinutes}min",
         _ => Frequency.ToString()
     };
 }
@@ -158,6 +166,10 @@ public class ScheduledTaskService : IDisposable
                 case ScheduledActionType.Update:
                     if (UpdateServer != null) await UpdateServer(task.ServerId);
                     break;
+                case ScheduledActionType.QuickCommand:
+                    if (!string.IsNullOrWhiteSpace(task.Command))
+                        await _manager.SendCommandAsync(server.Id, task.Command);
+                    break;
             }
             TaskExecuted?.Invoke(task, "OK");
         }
@@ -178,11 +190,12 @@ public class ScheduledTaskService : IDisposable
 
         return task.Frequency switch
         {
-            ScheduleFrequency.Daily  => today > now ? today : today.AddDays(1),
-            ScheduleFrequency.Weekly =>
+            ScheduleFrequency.Daily    => today > now ? today : today.AddDays(1),
+            ScheduleFrequency.Weekly   =>
                 Enumerable.Range(0, 8)
                     .Select(d => today.AddDays(d))
                     .First(d => d.DayOfWeek == task.DayOfWeek && d > now),
+            ScheduleFrequency.Interval => (task.LastRun ?? now).AddMinutes(Math.Max(1, task.IntervalMinutes)),
             _ => task.NextRun ?? now.AddMinutes(1),
         };
     }

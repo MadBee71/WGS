@@ -277,6 +277,9 @@
                     <Border Grid.Row="3" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,8">
                         <StackPanel>
+                            <TextBlock Text="Quick Commands" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       ToolTip="One-click console command shortcuts you save below. Click a button to send its command instantly — hover a button to see exactly what it sends. Click ✕ to remove one. These can also be scheduled to run automatically from the Schedule tab."/>
                             <WrapPanel>
                                 <ItemsControl ItemsSource="{Binding QuickCommands}">
                                     <ItemsControl.ItemsPanel>
@@ -1257,7 +1260,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Toolbar: Kick/Ban perusteluineen -->
+                    <!-- Toolbar: manual Kick/Ban with reasons -->
                     <Border Grid.Row="0" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
                         <StackPanel>
@@ -1265,25 +1268,27 @@
                                 <Button Content="↻ Refresh" Style="{StaticResource GhostButton}"
                                         Command="{Binding RefreshPlayersCommand}"/>
                             </StackPanel>
-                            <!-- Manuaalinen kick/ban (fallback jos RCON ei tue playerlistia) -->
-                            <StackPanel Visibility="{Binding HasPlayerCommands, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Reason (optional):" FontSize="11"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBox Style="{StaticResource DarkTextBox}" Width="160" Margin="0,0,6,0"
-                                             Text="{Binding PlayerInput, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Name or SteamID"/>
-                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
-                                             Text="{Binding KickReason, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Kick-perustelu"/>
-                                    <Button Content="👢 Kick" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
-                                            Command="{Binding KickPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
-                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180" Margin="8,0,6,0"
-                                             Text="{Binding BanReason, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Ban-perustelu"/>
-                                    <Button Content="🚫 Ban" Style="{StaticResource DangerButton}"
-                                            Command="{Binding BanPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
+                            <!-- Manual kick/ban (fallback when RCON doesn't support a player list) -->
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding HasPlayerCommands, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Margin="0,0,6,0">
+                                    <TextBlock Text="Name or SteamID" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="160"
+                                             Text="{Binding PlayerInput, UpdateSourceTrigger=PropertyChanged}"/>
                                 </StackPanel>
+                                <StackPanel Margin="0,0,6,0">
+                                    <TextBlock Text="Kick reason (optional)" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180"
+                                             Text="{Binding KickReason, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <Button Content="👢 Kick" Style="{StaticResource GhostButton}" Margin="0,0,4,0" VerticalAlignment="Bottom"
+                                        Command="{Binding KickPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
+                                <StackPanel Margin="8,0,6,0">
+                                    <TextBlock Text="Ban reason (optional)" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="180"
+                                             Text="{Binding BanReason, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <Button Content="🚫 Ban" Style="{StaticResource DangerButton}" VerticalAlignment="Bottom"
+                                        Command="{Binding BanPlayerCommand}" IsEnabled="{Binding IsRunning}"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -1361,9 +1366,9 @@
                                                                      Text="{Binding DataContext.KickReason,
                                                                          RelativeSource={RelativeSource AncestorType=UserControl},
                                                                          UpdateSourceTrigger=PropertyChanged}"
-                                                                     ToolTip="Kick/Ban -perustelu"
+                                                                     ToolTip="Reason for kick or ban (optional)"
                                                                      VerticalAlignment="Center"/>
-                                                            <!-- Toimintopainikkeet -->
+                                                            <!-- Action buttons -->
                                                             <StackPanel Grid.Column="4" Orientation="Horizontal"
                                                                         VerticalAlignment="Center">
                                                                 <Button Content="👢" Style="{StaticResource GhostButton}"
