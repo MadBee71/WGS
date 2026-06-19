@@ -442,8 +442,12 @@ public class DiscordBotService : IDisposable
                 } while (!result.EndOfMessage);
 
                 var msg = JObject.Parse(Encoding.UTF8.GetString(ms.ToArray()));
-                var op  = msg["op"]?.Value<int>() ?? -1;
-                if (msg["s"] != null) _gatewaySeq = msg["s"]!.Value<long>();
+                var op  = msg["op"]?.Type == JTokenType.Null ? -1 : msg["op"]?.Value<int>() ?? -1;
+                // "s" is present but JSON null for non-dispatch opcodes (e.g. Hello) — Value<long>()
+                // on a JSON-null token throws InvalidCastException, which was killing every gateway
+                // connection right after Hello and silently looked like "buttons just don't work".
+                var seq = msg["s"]?.Type == JTokenType.Null ? null : msg["s"]?.Value<long?>();
+                if (seq != null) _gatewaySeq = seq;
 
                 switch (op)
                 {
