@@ -395,7 +395,13 @@ public class DiscordBotService : IDisposable
         {
             try { await RunGatewaySessionAsync(ct); }
             catch (OperationCanceledException) { break; }
-            catch { }
+            catch (Exception ex)
+            {
+                // This connection is what makes button clicks (Wake/admin) work at all — if it can't
+                // stay up, every button silently shows "This interaction failed" in Discord with no
+                // clue why, so surface it instead of swallowing it.
+                StatusChanged?.Invoke($"⚠ Discord gateway connection lost: {ex.GetType().Name}: {ex.Message}");
+            }
             if (ct.IsCancellationRequested) break;
             try { await Task.Delay(5000, ct); } catch (OperationCanceledException) { break; } // reconnect backoff
         }
@@ -427,7 +433,11 @@ public class DiscordBotService : IDisposable
                 do
                 {
                     result = await ws.ReceiveAsync(buffer, ct);
-                    if (result.MessageType == WebSocketMessageType.Close) return;
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        StatusChanged?.Invoke($"⚠ Discord gateway closed by server (status {ws.CloseStatus}, \"{ws.CloseStatusDescription}\") — reconnecting...");
+                        return;
+                    }
                     ms.Write(buffer, 0, result.Count);
                 } while (!result.EndOfMessage);
 
@@ -446,11 +456,16 @@ public class DiscordBotService : IDisposable
                         await SendHeartbeatAsync(ws, ct);
                         break;
                     case 7:  // Reconnect requested
-                    case 9:  // Invalid session
+                        StatusChanged?.Invoke("⚠ Discord gateway requested a reconnect — reconnecting...");
                         return; // drop and let GatewayLoop reconnect fresh
+                    case 9:  // Invalid session — usually a bad/expired Bot Token
+                        StatusChanged?.Invoke("⚠ Discord gateway session invalid (check the Bot Token) — reconnecting...");
+                        return;
                     case 0:  // Dispatch
                         var t = msg["t"]?.ToString();
-                        if (t == "INTERACTION_CREATE")
+                        if (t == "READY")
+                            StatusChanged?.Invoke("✅ Discord gateway connected (buttons are live)");
+                        else if (t == "INTERACTION_CREATE")
                             _ = HandleInteractionAsync(msg["d"] as JObject, ct);
                         break;
                 }
@@ -513,6 +528,18 @@ public class DiscordBotService : IDisposable
     ];
 
     private async Task HandleInteractionAsync(JObject? interaction, CancellationToken ct)
+    {
+        // Called fire-and-forget from the gateway receive loop — without this, any exception here
+        // (e.g. a delegate not wired up) is an unobserved task exception and the button just shows
+        // "This interaction failed" in Discord with absolutely no clue why.
+        try { await HandleInteractionCoreAsync(interaction, ct); }
+        catch (Exception ex)
+        {
+            StatusChanged?.Invoke($"⚠ Discord button handling failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private async Task HandleInteractionCoreAsync(JObject? interaction, CancellationToken ct)
     {
         if (interaction == null) return;
         var customId = interaction["data"]?["custom_id"]?.ToString();
@@ -584,11 +611,23 @@ public class DiscordBotService : IDisposable
         });
         try
         {
-            await _http.PostAsync(
+            var resp = await _http.PostAsync(
                 $"https://discord.com/api/v10/interactions/{id}/{token}/callback",
                 new StringContent(ackPayload, Encoding.UTF8, "application/json"), ct);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                // This is exactly why a button shows "This interaction failed" in Discord with no
+                // explanation — surface the actual reason instead of swallowing it.
+                var detail = "";
+                try { detail = await resp.Content.ReadAsStringAsync(ct); } catch { }
+                StatusChanged?.Invoke($"⚠ Discord button ack failed: {(int)resp.StatusCode} {resp.StatusCode} — {detail}");
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            StatusChanged?.Invoke($"⚠ Discord button ack failed: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     private async Task SeedLastMessageId(CancellationToken ct)
