@@ -9,6 +9,7 @@ public class TerrariaPlugin : GamePluginBase
     public override string Description     => "2D sandbox adventure — download TerrariaServer.exe from terraria.org";
     public override string Category        => "Survival";
     public override int    SteamAppId      => 0;   // Not on Steam; install manually from terraria.org/api/download/pc-dedicated-server
+    public override int    GameStoreAppId  => 105600; // Terraria's own Steam app — used for the cover image only
     public override string Executable      => "TerrariaServer.exe";
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 7777;

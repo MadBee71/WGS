@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WGS.Games;
@@ -215,9 +216,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public bool HasRcon          => Plugin?.HasRcon == true;
     public bool UseNativeConsole => Plugin?.UseNativeConsole == true;
 
-    public string? GameImageUrl => Plugin?.GameStoreAppId > 0
+    public string GameImageUrl => Plugin?.GameStoreAppId > 0
         ? $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg"
-        : null;
+        : "pack://application:,,,/no_image.png"; // games with no Steam store page (Minecraft family, etc.)
     public string UptimeText => _manager.GetInstance(Server.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
         : "--:--:--";
@@ -461,8 +462,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         if (Plugin.SteamAppId <= 0)
         {
-            AppendLog($"[WGS] ⚠ {Plugin.GameName} isn't distributed via Steam — install it manually, then point this server's Install Path at it. " +
-                      $"{Plugin.Description}", ConsoleMessageType.Warning);
+            await InstallFromManualDownloadAsync();
             return;
         }
 
@@ -511,6 +511,64 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         catch (Exception ex)
         {
             AppendLog("[ERR] Unexpected error: " + ex.Message, ConsoleMessageType.Error);
+            Server.Status = ServerStatus.Error;
+        }
+        finally { IsInstalling = false; RefreshStatus(); }
+    }
+
+    private static readonly HttpClient _manualDownloadHttp = new();
+
+    /// <summary>For SteamAppId == 0 games — download a direct zip build (FiveM/RedM's FXServer)
+    /// instead of going through SteamCMD, or fall back to a manual-install message if the plugin
+    /// doesn't know how to fetch one itself.</summary>
+    private async Task InstallFromManualDownloadAsync()
+    {
+        if (Plugin == null) return;
+
+        var url = await Plugin.GetManualDownloadUrlAsync();
+        if (url == null)
+        {
+            AppendLog($"[WGS] ⚠ {Plugin.GameName} isn't distributed via Steam — install it manually, then point this server's Install Path at it. " +
+                      $"{Plugin.Description}", ConsoleMessageType.Warning);
+            return;
+        }
+
+        IsInstalling  = true;
+        Server.Status = ServerStatus.Installing;
+        RefreshStatus();
+        AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
+
+        if (Server.BackupEnabled && Server.Status != ServerStatus.NotInstalled)
+        {
+            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); RefreshBackups(); }
+            catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
+        }
+
+        try
+        {
+            Directory.CreateDirectory(Server.InstallPath);
+            var zipPath = Path.Combine(Server.InstallPath, "_wgs_download.zip");
+
+            AppendLog($"[WGS] Downloading {url}...", ConsoleMessageType.System);
+            var bytes = await _manualDownloadHttp.GetByteArrayAsync(url);
+            await File.WriteAllBytesAsync(zipPath, bytes);
+
+            AppendLog("[WGS] Extracting...", ConsoleMessageType.System);
+            // Extract relative to the Executable's own subfolder (e.g. RedM's "server\FXServer.exe")
+            // so plugins that nest the binary in a subfolder don't end up with it one level too deep.
+            var execDir   = Path.GetDirectoryName(Plugin.Executable);
+            var targetDir = string.IsNullOrEmpty(execDir) ? Server.InstallPath : Path.Combine(Server.InstallPath, execDir);
+            Directory.CreateDirectory(targetDir);
+            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
+            File.Delete(zipPath);
+
+            Server.Status = ServerStatus.Stopped;
+            AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
+            await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
+        }
+        catch (Exception ex)
+        {
+            AppendLog("[ERR] Download/extract failed: " + ex.Message, ConsoleMessageType.Error);
             Server.Status = ServerStatus.Error;
         }
         finally { IsInstalling = false; RefreshStatus(); }

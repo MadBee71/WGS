@@ -10,11 +10,14 @@ public class FiveMPlugin : GamePluginBase
     public override string Description      => "FiveM multiplayer modification framework for GTA V — manual FXServer install required";
     public override string Category         => "Open World";
     public override int    SteamAppId       => 0;
+    public override int    GameStoreAppId   => 271590; // GTA V's own Steam app — used for the cover image only
     public override string Executable       => "FXServer.exe";
     public override int    DefaultPort      => 30120;
     public override int    DefaultQueryPort => 30120;
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon          => false;
+
+    public override Task<string?> GetManualDownloadUrlAsync() => CfxArtifactHelper.GetLatestServerDownloadUrlAsync();
 
     public override Task PreStartAsync(GameServer s)
     {
