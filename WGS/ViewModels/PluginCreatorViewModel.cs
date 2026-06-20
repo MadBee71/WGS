@@ -8,7 +8,7 @@ namespace WGS.ViewModels;
 
 public partial class PluginCreatorViewModel : BaseViewModel
 {
-    private static readonly string PluginsPath = Path.Combine(
+    public static readonly string PluginsPath = Path.Combine(
         AppDomain.CurrentDomain.BaseDirectory, "custom_plugins.json");
 
     public static IReadOnlyList<string> Categories { get; } =

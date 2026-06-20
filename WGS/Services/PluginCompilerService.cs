@@ -125,8 +125,17 @@ public static class PluginCompilerService
         if (!Directory.Exists(dir)) return;
         foreach (var dll in Directory.GetFiles(dir, "*.dll"))
         {
-            try { refs.Add(MetadataReference.CreateFromFile(dll)); }
-            catch { /* skip unreadable */ }
+            try
+            {
+                // Native/host DLLs (hostpolicy.dll, msquic.dll, mscordbi.dll, etc.) live in the
+                // same folders as managed assemblies but aren't valid PE metadata — adding them
+                // as references doesn't fail here (CreateFromFile is lazy), it fails much later
+                // during Emit() with a wall of "could not be opened" errors for every one of them.
+                // GetAssemblyName throws for anything that isn't actually a managed assembly.
+                System.Reflection.AssemblyName.GetAssemblyName(dll);
+                refs.Add(MetadataReference.CreateFromFile(dll));
+            }
+            catch { /* native DLL or unreadable — skip */ }
         }
     }
 }
