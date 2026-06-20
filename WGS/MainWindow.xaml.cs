@@ -32,6 +32,11 @@ public partial class MainWindow : Window
     private void MaximizeClick(object sender, RoutedEventArgs e)
         => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
+    // Stops the click from bubbling up to TitleBar_MouseDown — DragMove() captures the mouse on
+    // button-down and swallows the matching button-up, so UpdateBadge_Click below would otherwise
+    // never fire no matter how precisely you click without moving the mouse.
+    private void UpdateBadge_MouseDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
     private void UpdateBadge_Click(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is ViewModels.MainViewModel vm)
