@@ -89,6 +89,8 @@ public static class GameRegistry
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
 
+    public static void Unregister(string gameId) => _plugins.Remove(gameId);
+
     public static IGamePlugin? Get(string gameId)
         => _plugins.TryGetValue(gameId, out var p) ? p : null;
 
@@ -133,6 +135,28 @@ public static class GameRegistry
         else defs.Add(def);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, JsonSerializer.Serialize(defs,
+            new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>Reads the saved custom game definitions without registering them — used to list what exists.</summary>
+    public static List<CustomGameDefinition> ListCustomPlugins(string path)
+    {
+        if (!File.Exists(path)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<CustomGameDefinition>>(File.ReadAllText(path),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        }
+        catch { return []; }
+    }
+
+    /// <summary>Removes a custom game both from the live registry and from disk.</summary>
+    public static void RemoveCustomPlugin(string gameId, string path)
+    {
+        Unregister(gameId);
+        var defs = ListCustomPlugins(path);
+        defs.RemoveAll(d => d.GameId == gameId);
         File.WriteAllText(path, JsonSerializer.Serialize(defs,
             new JsonSerializerOptions { WriteIndented = true }));
     }
