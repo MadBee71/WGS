@@ -54,6 +54,11 @@ public partial class App : System.Windows.Application
 
         SelfUpdateService.CleanupLeftovers();
 
+        // Custom games created in the Plugin Creator were only ever loaded into the registry
+        // right after being saved — never on a fresh startup — so they vanished from every list
+        // (Add Server, etc.) the moment WGS was restarted.
+        Games.GameRegistry.LoadCustomPlugins(ViewModels.PluginCreatorViewModel.PluginsPath);
+
         // UI-säikeen poikkeukset
         DispatcherUnhandledException += (_, ex) =>
         {
