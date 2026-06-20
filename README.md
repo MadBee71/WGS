@@ -80,7 +80,7 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 ### Automation
 | Feature | Description |
 |---|---|
-| 🗓️ **Task scheduler** | Schedule start, stop, restart, update or backup — once, daily or weekly |
+| 🗓️ **Task scheduler** | Schedule start, stop, restart, update, backup, or a saved Quick Command — once, daily, weekly, or on a repeating "every X minutes/hours" interval |
 | 💾 **Automatic backups** | Zip backups of world saves before updates, retention by count and/or age with a manual cleanup option, optional incremental backups for large worlds, selective backup paths per server — scheduled backups are skipped automatically if the server hasn't run in the last 24 hours |
 | 🔗 **Group ban-list sync** | Ban a player on one server and it's automatically applied to every other running server in the same group (same game) — and replayed on group servers that were offline when the ban happened |
 | 📋 **Shareable status page** | A read-only, no-login link per server showing live player count and uptime — safe to post in Discord or on a website |
@@ -91,7 +91,7 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 | Feature | Description |
 |---|---|
 | 📟 **RCON console** | Send commands to running servers via Source RCON protocol |
-| 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` |
+| 🤖 **Discord bot** | Control servers from any Discord channel: `!start`, `!stop`, `!restart`, `!update`, `!backup`, `!cmd` — plus an optional live status board with a "Wake" button, and admin control buttons on a separate restricted channel |
 | 🌐 **REST API & web dashboard** | Built-in HTTP server for external integrations — start/stop/status/metrics/backup/restore endpoints, plus a sortable browser dashboard with a live per-server CPU graph |
 | 🖥️ **Remote machine support** | Manage servers running on other PCs from a single master panel |
 
@@ -115,7 +115,7 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 | 🧹 **Server hygiene** | Scans for and cleans up leftover log files, crash report folders and stray temp files while a server is stopped |
 | ⚡ **Quick commands** | Save up to a handful of console command shortcuts (e.g. a welcome message) as one-click buttons |
 | ⚙️ **CPU affinity, priority & RAM limit** | Per-server core pinning, process priority and hard RAM cap via Windows Job Objects |
-| 🔧 **Custom Plugin Creator** | Graphical tool to add any game server — no code required |
+| 🔧 **Custom Plugin Creator** | Graphical tool to add any game server — no code required, and remove ones you've created when you no longer need them |
 | 📦 **Plugin import / export** | Share plugins as `.cs` files between machines |
 | 🔔 **System tray** | Runs minimised in the background with tray notifications |
 | 🔒 **Encrypted credentials** | Steam login and Discord tokens encrypted with Windows DPAPI |
