@@ -538,6 +538,28 @@ public partial class MainViewModel : BaseViewModel
         }
     }
 
+    [ObservableProperty] private string _wgsUpdateCheckResult = string.Empty;
+
+    /// <summary>Manual "check now" for whoever is sitting at the admin PC — the automatic check
+    /// only runs on startup and every 4 hours, which can feel slow when you know a fix just shipped.</summary>
+    [RelayCommand]
+    private async Task CheckForWgsUpdateNowAsync()
+    {
+        WgsUpdateCheckResult = "Checking...";
+        var (hasUpdate, latest, url) = await Services.UpdateCheckerService.CheckAsync();
+        if (hasUpdate)
+        {
+            UpdateAvailable      = true;
+            LatestVersion        = latest;
+            UpdateDownloadUrl    = url;
+            WgsUpdateCheckResult = $"⬆️ {latest} is available — click the badge in the title bar to update";
+        }
+        else
+        {
+            WgsUpdateCheckResult = "✅ You're on the latest version";
+        }
+    }
+
     [RelayCommand]
     private async Task PerformUpdateAsync()
     {

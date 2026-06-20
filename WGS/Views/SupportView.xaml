@@ -49,8 +49,15 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Static wgs:AppInfo.Version}"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{x:Static wgs:AppInfo.Version}"
+                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="🔄 Check for WGS update now" Style="{StaticResource GhostButton}"
+                                    FontSize="11" Margin="12,0,0,0" Command="{Binding CheckForWgsUpdateNowCommand}"/>
+                            <TextBlock Text="{Binding WgsUpdateCheckResult}" VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="10,0,0,0"/>
+                        </StackPanel>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
