@@ -28,6 +28,117 @@
                        Foreground="{StaticResource TextSecondaryBrush}"
                        Margin="0,0,0,32"/>
 
+            <!-- ── About section ── -->
+            <TextBlock Text="ABOUT" FontSize="10" FontWeight="Bold"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
+
+            <Border Style="{StaticResource Card}" Padding="24" Margin="0,0,0,24">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Static wgs:AppInfo.Version}"
+                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="MadBee71"
+                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="License"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="MIT — Free to use and modify"
+                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Platform"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text=".NET 8  ·  WPF  ·  Windows 10+"
+                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Supported Games"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="63+ built-in plugins + Custom Plugin Creator"
+                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Features ── -->
+            <TextBlock Text="FEATURES" FontSize="10" FontWeight="Bold"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
+
+            <Border Style="{StaticResource Card}" Padding="24" Margin="0,0,0,24">
+                <WrapPanel>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🎮 90+ Games" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="⬇ SteamCMD" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🔄 Auto Restart" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="💾 Backups" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🛡 Firewall" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="📟 RCON" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="📊 Dashboard" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="⚙ CPU Affinity" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🔔 System Tray" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🔒 DPAPI Encryption" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
+                            Padding="10,5" Margin="0,0,8,8">
+                        <TextBlock Text="🔧 Plugin Creator" FontSize="12"
+                                   Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                </WrapPanel>
+            </Border>
+
             <!-- ── Support section ── -->
             <TextBlock Text="SUPPORT THE PROJECT" FontSize="10" FontWeight="Bold"
                        Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
@@ -101,117 +212,6 @@
                                TextDecorations="Underline"
                                MouseLeftButtonUp="KoFiLink_Click"/>
                 </StackPanel>
-            </Border>
-
-            <!-- ── About section ── -->
-            <TextBlock Text="ABOUT" FontSize="10" FontWeight="Bold"
-                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
-
-            <Border Style="{StaticResource Card}" Padding="24" Margin="0,0,0,24">
-                <StackPanel>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
-                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Static wgs:AppInfo.Version}"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"
-                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="MadBee71"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="License"
-                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="MIT — Free to use and modify"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Platform"
-                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1" Text=".NET 8  ·  WPF  ·  Windows 10+"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Supported Games"
-                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
-                        <TextBlock Grid.Row="4" Grid.Column="1" Text="63+ built-in plugins + Custom Plugin Creator"
-                                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- ── Features ── -->
-            <TextBlock Text="FEATURES" FontSize="10" FontWeight="Bold"
-                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
-
-            <Border Style="{StaticResource Card}" Padding="24" Margin="0,0,0,24">
-                <WrapPanel>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🎮 63+ Games" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="⬇ SteamCMD" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🔄 Auto Restart" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="💾 Backups" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🛡 Firewall" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="📟 RCON" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="📊 Dashboard" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="⚙ CPU Affinity" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🔔 System Tray" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🔒 DPAPI Encryption" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
-                            Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🔧 Plugin Creator" FontSize="12"
-                                   Foreground="{StaticResource AccentBlueBrush}"/>
-                    </Border>
-                </WrapPanel>
             </Border>
 
             <!-- ── Footer ── -->

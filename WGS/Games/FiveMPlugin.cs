@@ -32,6 +32,13 @@ public class FiveMPlugin : GamePluginBase
         return info != null && info.Value.Build != installed ? info.Value.Build : null;
     }
 
+    public override async Task<(string? Recommended, string? Latest)> GetAvailableBuildsAsync(GameServer server)
+    {
+        var recommended = await CfxArtifactHelper.GetRecommendedAsync();
+        var latest = await CfxArtifactHelper.GetLatestAsync();
+        return (recommended?.Build, latest?.Build);
+    }
+
     public override Task PreStartAsync(GameServer s)
     {
         var cfgPath = Path.Combine(s.InstallPath, "server.cfg");
