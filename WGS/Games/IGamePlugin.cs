@@ -36,9 +36,16 @@ public interface IGamePlugin
     List<ConfigField> GetConfigFields();
 
     /// <summary>For SteamAppId == 0 games that can still be auto-installed from a direct zip download
-    /// (e.g. FiveM/RedM's FXServer) — return the current build's download URL, or null if this game
-    /// truly requires a manual install WGS can't automate.</summary>
-    Task<string?> GetManualDownloadUrlAsync();
+    /// (e.g. FiveM/RedM's FXServer) — return the current build number and its download URL, or null
+    /// if this game truly requires a manual install WGS can't automate.</summary>
+    Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server);
+
+    /// <summary>Checks whether a newer build is available than what GameSpecificSettings records as
+    /// installed. Returns null if this game doesn't support version checking.</summary>
+    Task<string?> CheckForUpdateAsync(GameServer server);
+
+    /// <summary>True if this plugin tracks an installed build number and can check for updates (currently FiveM/RedM).</summary>
+    bool SupportsVersionCheck { get; }
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
 

@@ -951,6 +951,27 @@
                             </Grid>
                         </Border>
 
+                        <StackPanel Visibility="{Binding ShowVersionInfo, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Installed version" Style="{StaticResource SectionHeader}" Margin="0,20,0,0"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Build number" Style="{StaticResource FieldLabel}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding InstalledVersionText}" FontWeight="SemiBold"/>
+                                    </Grid>
+                                    <Button Content="🔍 Check for update" Style="{StaticResource GhostButton}"
+                                            HorizontalAlignment="Left" Command="{Binding CheckForGameUpdateCommand}"/>
+                                    <TextBlock Text="{Binding UpdateCheckResult}" Margin="0,8,0,0" FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Visibility="{Binding UpdateCheckResult, Converter={StaticResource NullToVis}}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <TextBlock Text="Share" Style="{StaticResource SectionHeader}" Margin="0,20,0,0"/>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>

@@ -7,7 +7,7 @@ public class FiveMPlugin : GamePluginBase
 {
     public override string GameId           => "fivem";
     public override string GameName         => "Grand Theft Auto V (FiveM)";
-    public override string Description      => "FiveM multiplayer modification framework for GTA V — manual FXServer install required";
+    public override string Description      => "FiveM multiplayer modification framework for GTA V — FXServer is downloaded automatically";
     public override string Category         => "Open World";
     public override int    SteamAppId       => 0;
     public override int    GameStoreAppId   => 271590; // GTA V's own Steam app — used for the cover image only
@@ -16,8 +16,21 @@ public class FiveMPlugin : GamePluginBase
     public override int    DefaultQueryPort => 30120;
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon          => true;
+    public override bool   SupportsVersionCheck => true;
 
-    public override Task<string?> GetManualDownloadUrlAsync() => CfxArtifactHelper.GetLatestServerDownloadUrlAsync();
+    public override async Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server)
+    {
+        var useLatest = S(server, "buildChannel", "recommended") == "latest";
+        var info = useLatest ? await CfxArtifactHelper.GetLatestAsync() : await CfxArtifactHelper.GetRecommendedAsync();
+        return info == null ? null : (info.Build, info.DownloadUrl);
+    }
+
+    public override async Task<string?> CheckForUpdateAsync(GameServer server)
+    {
+        var installed = S(server, "installedBuild", "");
+        var info = await GetManualDownloadInfoAsync(server);
+        return info != null && info.Value.Build != installed ? info.Value.Build : null;
+    }
 
     public override Task PreStartAsync(GameServer s)
     {
@@ -70,8 +83,9 @@ public class FiveMPlugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["licenseKey"]  = "",
-        ["txAdminPort"] = "40120",
+        ["licenseKey"]   = "",
+        ["txAdminPort"]  = "40120",
+        ["buildChannel"] = "recommended",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -81,6 +95,9 @@ public class FiveMPlugin : GamePluginBase
             new() { Key = "licenseKey",  Label = "CFX License Key",  FieldType = ConfigFieldType.Password, DefaultValue = "",
                     Description = "Get your key from https://keymaster.fivem.net" },
             new() { Key = "txAdminPort", Label = "txAdmin Port",      FieldType = ConfigFieldType.Number,   DefaultValue = "40120", Min = 1024, Max = 65535 },
+            new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
+                    DefaultValue = "recommended", Options = ["recommended", "latest"],
+                    Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy." },
         ]);
         return fields;
     }

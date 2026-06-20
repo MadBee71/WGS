@@ -216,6 +216,22 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public bool HasRcon          => Plugin?.HasRcon == true;
     public bool UseNativeConsole => Plugin?.UseNativeConsole == true;
 
+    public bool ShowVersionInfo => Plugin?.SupportsVersionCheck == true;
+    public string InstalledVersionText => Server.GameSpecificSettings.TryGetValue("installedBuild", out var b) && !string.IsNullOrEmpty(b)
+        ? b : "Not installed yet";
+    [ObservableProperty] private string _updateCheckResult = string.Empty;
+
+    [RelayCommand]
+    private async Task CheckForGameUpdateAsync()
+    {
+        if (Plugin == null) return;
+        UpdateCheckResult = "Checking...";
+        var newer = await Plugin.CheckForUpdateAsync(Server);
+        UpdateCheckResult = newer != null
+            ? $"⬆️ Build {newer} available — click Update to install it"
+            : "✅ Up to date";
+    }
+
     public string GameImageUrl => Plugin?.GameStoreAppId > 0
         ? $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg"
         : "pack://application:,,,/no_image.png"; // games with no Steam store page (Minecraft family, etc.)
@@ -525,13 +541,14 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (Plugin == null) return;
 
-        var url = await Plugin.GetManualDownloadUrlAsync();
-        if (url == null)
+        var info = await Plugin.GetManualDownloadInfoAsync(Server);
+        if (info == null)
         {
             AppendLog($"[WGS] ⚠ {Plugin.GameName} isn't distributed via Steam — install it manually, then point this server's Install Path at it. " +
                       $"{Plugin.Description}", ConsoleMessageType.Warning);
             return;
         }
+        var (build, url) = info.Value;
 
         IsInstalling  = true;
         Server.Status = ServerStatus.Installing;
@@ -562,9 +579,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
             File.Delete(zipPath);
 
+            Server.GameSpecificSettings["installedBuild"] = build;
+            OnPropertyChanged(nameof(InstalledVersionText));
+            UpdateCheckResult = string.Empty;
             Server.Status = ServerStatus.Stopped;
-            AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
-            await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
+            AppendLog($"[WGS] {Loc.InstallDone} (build {build})", ConsoleMessageType.System);
+            await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", $"{Plugin.GameName} — build {build}", "#3FB950");
         }
         catch (Exception ex)
         {
