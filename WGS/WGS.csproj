@@ -33,6 +33,7 @@
     <Resource Include="favicon.ico" />
     <Resource Include="wgs.png" />
     <Resource Include="splash.png" />
+    <Resource Include="no_image.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />

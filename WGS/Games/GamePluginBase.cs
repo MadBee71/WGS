@@ -26,6 +26,11 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 
+    /// <summary>For SteamAppId == 0 games that can still be auto-installed from a direct zip download
+    /// (e.g. FiveM/RedM's FXServer) — return the current build's download URL, or null if this game
+    /// truly requires a manual install WGS can't automate.</summary>
+    public virtual Task<string?> GetManualDownloadUrlAsync() => Task.FromResult<string?>(null);
+
     /// <summary>Set true in Unity-based game plugins to suppress harmless shader/GPU noise lines.</summary>
     protected virtual bool FilterUnityShaderNoise => false;
 

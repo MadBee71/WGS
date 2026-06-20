@@ -34,6 +34,11 @@ public interface IGamePlugin
     string BuildStartArguments(GameServer server);
     Dictionary<string, string> GetDefaultSettings();
     List<ConfigField> GetConfigFields();
+
+    /// <summary>For SteamAppId == 0 games that can still be auto-installed from a direct zip download
+    /// (e.g. FiveM/RedM's FXServer) — return the current build's download URL, or null if this game
+    /// truly requires a manual install WGS can't automate.</summary>
+    Task<string?> GetManualDownloadUrlAsync();
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
 

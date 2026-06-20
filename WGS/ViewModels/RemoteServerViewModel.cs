@@ -21,14 +21,14 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
     public string   GameId      => Info.GameId;
     public string   MachineName { get; }
 
-    public string? GameImageUrl
+    public string GameImageUrl
     {
         get
         {
             var plugin = Games.GameRegistry.Get(Info.GameId);
             return plugin?.GameStoreAppId > 0
                 ? $"https://cdn.akamai.steamstatic.com/steam/apps/{plugin.GameStoreAppId}/capsule_sm_120.jpg"
-                : null;
+                : "pack://application:,,,/no_image.png"; // games with no Steam store page (Minecraft family, etc.)
         }
     }
 
