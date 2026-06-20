@@ -216,9 +216,26 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public bool HasRcon          => Plugin?.HasRcon == true;
     public bool UseNativeConsole => Plugin?.UseNativeConsole == true;
 
-    public bool ShowVersionInfo => Plugin?.SupportsVersionCheck == true;
-    public string InstalledVersionText => Server.GameSpecificSettings.TryGetValue("installedBuild", out var b) && !string.IsNullOrEmpty(b)
-        ? b : "Not installed yet";
+    /// <summary>Shows the version card for any game where we can determine an installed build —
+    /// FiveM/RedM's own tracking, or any Steam-installed game's SteamCMD app manifest.</summary>
+    public bool ShowVersionInfo => Plugin != null && (Plugin.SupportsVersionCheck || Plugin.SteamAppId > 0);
+
+    /// <summary>Only FiveM/RedM have an explicit "check for update" — for normal Steam games,
+    /// clicking Install/Update already re-checks and updates every time, no separate step needed.</summary>
+    public bool ShowUpdateCheckButton => Plugin?.SupportsVersionCheck == true;
+
+    public string InstalledVersionText
+    {
+        get
+        {
+            if (Plugin == null) return "—";
+            if (Plugin.SupportsVersionCheck)
+                return Server.GameSpecificSettings.TryGetValue("installedBuild", out var b) && !string.IsNullOrEmpty(b)
+                    ? b : "Not installed yet";
+            return Plugin.GetSteamInstalledBuildId(Server) ?? "Not installed yet";
+        }
+    }
+
     [ObservableProperty] private string _updateCheckResult = string.Empty;
 
     [RelayCommand]
@@ -510,6 +527,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             await _steamCmd.InstallOrUpdateAsync(Server.Id, Plugin.SteamAppId, Server.InstallPath, login, password, Plugin.SteamBranch);
             Server.Status = ServerStatus.Stopped;
+            OnPropertyChanged(nameof(InstalledVersionText));
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
             await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
         }
