@@ -150,68 +150,14 @@
                     <!-- Server list -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <!-- Remote servers section -->
-                            <StackPanel Visibility="{Binding RemoteServers.Count, Converter={StaticResource ZeroToInvVis}, Mode=OneWay}">
-                                <Grid Margin="16,12,8,4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="REMOTE" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Column="1" SelectedValue="{Binding SortMode}"
-                                              SelectedValuePath="Tag"
-                                              FontSize="11" Width="90" Height="22"
-                                              Background="{StaticResource BgSurface2Brush}"
-                                              Foreground="{StaticResource TextSecondaryBrush}"
-                                              BorderThickness="0">
-                                        <ComboBoxItem Content="A → Z"  Tag="name-asc"/>
-                                        <ComboBoxItem Content="Z → A"  Tag="name-desc"/>
-                                        <ComboBoxItem Content="Game"   Tag="game-asc"/>
-                                        <ComboBoxItem Content="Status" Tag="status"/>
-                                    </ComboBox>
-                                </Grid>
-                                <ListBox ItemsSource="{Binding SortedRemoteServers}"
-                                         SelectedItem="{Binding SelectedRemoteServer}"
-                                         Background="Transparent" BorderThickness="0"
-                                         ItemContainerStyle="{StaticResource ServerListItem}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Width="64" Height="24" CornerRadius="3"
-                                                        Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
-                                                        ClipToBounds="True">
-                                                    <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                    <TextBlock Text="{Binding MachineName}" FontSize="11"
-                                                               Foreground="{StaticResource AccentBlueBrush}"/>
-                                                </StackPanel>
-                                                <Ellipse Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center"
-                                                         Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <Separator Background="{StaticResource BorderBrush}" Margin="12,4"/>
-                            </StackPanel>
-
-                            <Grid Margin="16,16,8,4">
+                            <Grid Margin="16,12,8,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Loc.Servers}" FontSize="10" FontWeight="Bold"
-                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                           Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
                                 <ComboBox Grid.Column="1" SelectedValue="{Binding SortMode}"
                                           SelectedValuePath="Tag"
                                           FontSize="11" Width="90" Height="22"
@@ -318,6 +264,60 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
+
+                            <!-- Remote servers section -->
+                            <StackPanel Visibility="{Binding RemoteServers.Count, Converter={StaticResource ZeroToInvVis}, Mode=OneWay}">
+                                <Separator Background="{StaticResource BorderBrush}" Margin="12,4"/>
+                                <Grid Margin="16,12,8,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="REMOTE" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" SelectedValue="{Binding SortMode}"
+                                              SelectedValuePath="Tag"
+                                              FontSize="11" Width="90" Height="22"
+                                              Background="{StaticResource BgSurface2Brush}"
+                                              Foreground="{StaticResource TextSecondaryBrush}"
+                                              BorderThickness="0">
+                                        <ComboBoxItem Content="A → Z"  Tag="name-asc"/>
+                                        <ComboBoxItem Content="Z → A"  Tag="name-desc"/>
+                                        <ComboBoxItem Content="Game"   Tag="game-asc"/>
+                                        <ComboBoxItem Content="Status" Tag="status"/>
+                                    </ComboBox>
+                                </Grid>
+                                <ListBox ItemsSource="{Binding SortedRemoteServers}"
+                                         SelectedItem="{Binding SelectedRemoteServer}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ItemContainerStyle="{StaticResource ServerListItem}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Width="64" Height="24" CornerRadius="3"
+                                                        Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
+                                                        ClipToBounds="True">
+                                                    <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding MachineName}" FontSize="11"
+                                                               Foreground="{StaticResource AccentBlueBrush}"/>
+                                                </StackPanel>
+                                                <Ellipse Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center"
+                                                         Fill="{Binding StatusColor, Converter={StaticResource StrToColor}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>
