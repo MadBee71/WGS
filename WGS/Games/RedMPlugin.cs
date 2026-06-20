@@ -5,9 +5,9 @@ namespace WGS.Games;
 public class RedMPlugin : GamePluginBase
 {
     public override string GameId          => "redm";
-    public override string GameName        => "RedM";
+    public override string GameName        => "Red Dead Redemption 2 (RedM)";
     public override string Description     => "Red Dead Redemption 2 multiplayer — download FXServer from cfx.re/redm";
-    public override string Category        => "Other";
+    public override string Category        => "Open World";
     public override int    SteamAppId      => 0;   // Not on Steam; install manually from cfx.re/redm
     public override string Executable      => @"server\FXServer.exe";
     public override int    DefaultPort     => 30120;
