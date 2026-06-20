@@ -45,6 +45,7 @@
                                 BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="8,0,0,0"
                                 VerticalAlignment="Center" Cursor="Hand"
                                 ToolTip="{Binding LatestVersion, StringFormat='Version {0} available — click to update automatically'}"
+                                MouseLeftButtonDown="UpdateBadge_MouseDown"
                                 MouseLeftButtonUp="UpdateBadge_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding LatestVersion, StringFormat='⬆ {0} available'}"
