@@ -45,10 +45,14 @@ public class RedMPlugin : GamePluginBase
 
             set onesync on
 
-            # Add resources below
-            # ensure mapmanager
-            # ensure chat
-            # ensure spawnmanager
+            # Default resources — without these, nothing loads at all (no map, no chat, no spawning).
+            ensure mapmanager
+            ensure chat
+            ensure spawnmanager
+            ensure sessionmanager
+
+            # Add your own resources below
+            # ensure your-resource-name
             """;
     }
 

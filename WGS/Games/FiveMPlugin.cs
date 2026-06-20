@@ -43,10 +43,20 @@ public class FiveMPlugin : GamePluginBase
 
             set txAdminPort {txAdminPort}
 
-            # Add resources below
-            # ensure mapmanager
-            # ensure chat
-            # ensure spawnmanager
+            set onesync on
+
+            # Default resources bundled with every FXServer build — without these, nothing loads
+            # at all (no map, no chat, no spawning), matching Cfx.re's own example server.cfg.
+            ensure mapmanager
+            ensure chat
+            ensure spawnmanager
+            ensure sessionmanager
+            ensure basic-gamemode
+            ensure hardcap
+            ensure rconlog
+
+            # Add your own resources below
+            # ensure your-resource-name
             """;
     }
 
