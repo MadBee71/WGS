@@ -963,11 +963,16 @@
                                         <TextBlock Text="Build number" Style="{StaticResource FieldLabel}"/>
                                         <TextBlock Grid.Column="1" Text="{Binding InstalledVersionText}" FontWeight="SemiBold"/>
                                     </Grid>
-                                    <Button Content="🔍 Check for update" Style="{StaticResource GhostButton}"
-                                            HorizontalAlignment="Left" Command="{Binding CheckForGameUpdateCommand}"/>
-                                    <TextBlock Text="{Binding UpdateCheckResult}" Margin="0,8,0,0" FontSize="12"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               Visibility="{Binding UpdateCheckResult, Converter={StaticResource NullToVis}}"/>
+                                    <StackPanel Visibility="{Binding ShowUpdateCheckButton, Converter={StaticResource BoolToVis}}">
+                                        <Button Content="🔍 Check for update" Style="{StaticResource GhostButton}"
+                                                HorizontalAlignment="Left" Command="{Binding CheckForGameUpdateCommand}"/>
+                                        <TextBlock Text="{Binding UpdateCheckResult}" Margin="0,8,0,0" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Visibility="{Binding UpdateCheckResult, Converter={StaticResource NullToVis}}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="SteamCMD checks for updates automatically every time you click Install/Update."
+                                               Visibility="{Binding ShowUpdateCheckButton, Converter={StaticResource InvBoolToVis}}"
+                                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

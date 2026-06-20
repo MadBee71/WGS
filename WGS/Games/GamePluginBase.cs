@@ -38,6 +38,25 @@ public abstract class GamePluginBase : IGamePlugin
     /// <summary>True if this plugin tracks an installed build number and can check for updates (currently FiveM/RedM).</summary>
     public virtual bool SupportsVersionCheck => false;
 
+    /// <summary>
+    /// Reads the build number SteamCMD itself recorded for this install, straight from the app
+    /// manifest it always writes (steamapps/appmanifest_&lt;id&gt;.acf, "buildid" field) — works for
+    /// every Steam-installed game generically, no per-plugin tracking needed.
+    /// </summary>
+    public string? GetSteamInstalledBuildId(GameServer server)
+    {
+        if (SteamAppId <= 0) return null;
+        try
+        {
+            var path = Path.Combine(server.InstallPath, "steamapps", $"appmanifest_{SteamAppId}.acf");
+            if (!File.Exists(path)) return null;
+            var match = System.Text.RegularExpressions.Regex.Match(
+                File.ReadAllText(path), "\"buildid\"\\s*\"(\\d+)\"");
+            return match.Success ? match.Groups[1].Value : null;
+        }
+        catch { return null; }
+    }
+
     /// <summary>Set true in Unity-based game plugins to suppress harmless shader/GPU noise lines.</summary>
     protected virtual bool FilterUnityShaderNoise => false;
 

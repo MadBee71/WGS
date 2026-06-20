@@ -46,6 +46,10 @@ public interface IGamePlugin
 
     /// <summary>True if this plugin tracks an installed build number and can check for updates (currently FiveM/RedM).</summary>
     bool SupportsVersionCheck { get; }
+
+    /// <summary>Reads the build number SteamCMD recorded for this install from its app manifest —
+    /// works for any Steam-installed game generically. Returns null if SteamAppId is 0 or unreadable.</summary>
+    string? GetSteamInstalledBuildId(GameServer server);
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
 
