@@ -27,9 +27,16 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 
     /// <summary>For SteamAppId == 0 games that can still be auto-installed from a direct zip download
-    /// (e.g. FiveM/RedM's FXServer) — return the current build's download URL, or null if this game
-    /// truly requires a manual install WGS can't automate.</summary>
-    public virtual Task<string?> GetManualDownloadUrlAsync() => Task.FromResult<string?>(null);
+    /// (e.g. FiveM/RedM's FXServer) — return the current build number and its download URL, or null
+    /// if this game truly requires a manual install WGS can't automate.</summary>
+    public virtual Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server) => Task.FromResult<(string, string)?>(null);
+
+    /// <summary>Checks whether a newer build is available than what GameSpecificSettings records as
+    /// installed. Returns null if this game doesn't support version checking.</summary>
+    public virtual Task<string?> CheckForUpdateAsync(GameServer server) => Task.FromResult<string?>(null);
+
+    /// <summary>True if this plugin tracks an installed build number and can check for updates (currently FiveM/RedM).</summary>
+    public virtual bool SupportsVersionCheck => false;
 
     /// <summary>Set true in Unity-based game plugins to suppress harmless shader/GPU noise lines.</summary>
     protected virtual bool FilterUnityShaderNoise => false;
