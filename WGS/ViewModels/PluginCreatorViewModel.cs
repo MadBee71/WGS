@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +14,25 @@ public partial class PluginCreatorViewModel : BaseViewModel
 
     public static IReadOnlyList<string> Categories { get; } =
         ["Survival", "Racing", "Simulation", "FPS", "Strategy", "Other"];
+
+    public ObservableCollection<CustomGameDefinition> ExistingCustomGames { get; } = [];
+
+    public PluginCreatorViewModel() => RefreshExistingCustomGames();
+
+    private void RefreshExistingCustomGames()
+    {
+        ExistingCustomGames.Clear();
+        foreach (var def in GameRegistry.ListCustomPlugins(PluginsPath))
+            ExistingCustomGames.Add(def);
+    }
+
+    [RelayCommand]
+    private void DeleteCustomGame(CustomGameDefinition? def)
+    {
+        if (def == null) return;
+        GameRegistry.RemoveCustomPlugin(def.GameId, PluginsPath);
+        RefreshExistingCustomGames();
+    }
 
     [ObservableProperty] private string _gameName        = string.Empty;
     [ObservableProperty] private string _gameId          = string.Empty;
@@ -42,8 +62,15 @@ public partial class PluginCreatorViewModel : BaseViewModel
         ErrorMessage = string.Empty;
 
         if (string.IsNullOrWhiteSpace(GameName))   { ErrorMessage = "Game name is required."; return; }
-        if (string.IsNullOrWhiteSpace(GameId))     { ErrorMessage = "Pelin ID on pakollinen."; return; }
+        if (string.IsNullOrWhiteSpace(GameId))     { ErrorMessage = "Game ID is required."; return; }
         if (string.IsNullOrWhiteSpace(Executable)) { ErrorMessage = "Executable is required."; return; }
+
+        var isExistingCustom = ExistingCustomGames.Any(d => d.GameId == GameId.Trim());
+        if (!isExistingCustom && GameRegistry.Get(GameId.Trim()) != null)
+        {
+            ErrorMessage = $"\"{GameId}\" already exists as a built-in game — pick a different name/ID to avoid replacing it.";
+            return;
+        }
 
         var def = new CustomGameDefinition
         {
@@ -71,6 +98,7 @@ public partial class PluginCreatorViewModel : BaseViewModel
             return;
         }
 
+        RefreshExistingCustomGames();
         PluginCreated?.Invoke();
     }
 

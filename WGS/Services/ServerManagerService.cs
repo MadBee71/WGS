@@ -185,7 +185,7 @@ public class ServerManagerService
 
         // Pre-flight: auto-reassign ports if any are in use
         var conflictingPorts = PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable).ToList();
-        if (conflictingPorts.Any())
+        if (conflictingPorts.Any() && server.LastStarted == null)
         {
             int oldGame  = server.ServerPort;
             int oldQuery = server.QueryPort;
@@ -225,10 +225,25 @@ public class ServerManagerService
                 // Could not find free ports â€” warn and proceed anyway
                 foreach (var r in conflictingPorts)
                 {
-                    var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] âš  {r.Message}", Type = ConsoleMessageType.Warning };
+                    var w = new ConsoleMessage { Text = $"[PRE-FLIGHT] ⚠ {r.Message}", Type = ConsoleMessageType.Warning };
                     inst0.AddToLog(w);
                     LogReceived?.Invoke(server.Id, w);
                 }
+            }
+        }
+        else if (conflictingPorts.Any())
+        {
+            // Not the first start for this server — leave the saved ports alone, just warn clearly
+            // so the user can fix it manually (stop the conflicting process, or change the port).
+            foreach (var r in conflictingPorts)
+            {
+                var w = new ConsoleMessage
+                {
+                    Text = $"[PRE-FLIGHT] ⚠ {r.Message} — fix it in Settings or stop whatever else is using that port.",
+                    Type = ConsoleMessageType.Warning
+                };
+                inst0.AddToLog(w);
+                LogReceived?.Invoke(server.Id, w);
             }
         }
 

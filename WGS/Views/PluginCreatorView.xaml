@@ -19,6 +19,33 @@
                         Style="{StaticResource DangerButton}" Click="CloseBtn_Click"/>
             </Grid>
 
+            <!-- Existing custom games -->
+            <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,16"
+                    Visibility="{Binding ExistingCustomGames.Count, Converter={StaticResource CountToVis}}">
+                <StackPanel>
+                    <TextBlock Text="Your custom games" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding ExistingCustomGames}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding GameName}" VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                                    <Button Grid.Column="1" Content="🗑 Delete" Style="{StaticResource GhostButton}"
+                                            Padding="8,2" FontSize="11"
+                                            Command="{Binding DataContext.DeleteCustomGameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <!-- Game Name -->
             <TextBlock Text="Game name *" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding GameName, UpdateSourceTrigger=PropertyChanged}"
