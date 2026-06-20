@@ -15,6 +15,7 @@ public class RedMPlugin : GamePluginBase
     public override int    DefaultPort     => 30120;
     public override int    DefaultQueryPort => 30120;
     public override int    DefaultMaxPlayers => 32;
+    public override bool   HasRcon          => true;
 
     public override Task<string?> GetManualDownloadUrlAsync() => CfxArtifactHelper.GetLatestServerDownloadUrlAsync();
 
@@ -45,11 +46,15 @@ public class RedMPlugin : GamePluginBase
 
             set onesync on
 
+            # Uncommented automatically by WGS — RCON requires a non-empty password to actually enable it.
+            set rcon_password "{s.RconPassword}"
+
             # Default resources — without these, nothing loads at all (no map, no chat, no spawning).
             ensure mapmanager
             ensure chat
             ensure spawnmanager
             ensure sessionmanager
+            ensure rconlog
 
             # Add your own resources below
             # ensure your-resource-name
