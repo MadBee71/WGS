@@ -459,6 +459,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (Plugin == null) return;
 
+        if (Plugin.SteamAppId <= 0)
+        {
+            AppendLog($"[WGS] ⚠ {Plugin.GameName} isn't distributed via Steam — install it manually, then point this server's Install Path at it. " +
+                      $"{Plugin.Description}", ConsoleMessageType.Warning);
+            return;
+        }
+
         string? login = null, password = null;
         if (Plugin.RequiresSteamLogin)
         {

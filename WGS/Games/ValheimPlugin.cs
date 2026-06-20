@@ -29,7 +29,10 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
 
     public override string BuildStartArguments(GameServer s)
     {
-        var name   = S(s, "serverName", "MyValheim");
+        // Server name comes from the dedicated, always-visible "Server name" field (s.ServerName)
+        // like every other plugin uses — not a GameSpecificSettings key, which the Settings UI
+        // filters out anyway since that base field already covers it.
+        var name   = string.IsNullOrWhiteSpace(s.ServerName) ? "MyValheim" : s.ServerName;
         var world  = S(s, "worldName", "Dedicated");
         var pass   = s.ServerPassword;
         var cross  = S(s, "crossplay", "false") == "true" ? "-crossplay" : "";
@@ -39,7 +42,6 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["serverName"] = "MyValheim",
         ["worldName"]  = "Dedicated",
         ["crossplay"]  = "false",
         ["public"]     = "true",
@@ -49,7 +51,6 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "serverName", Label = "Server name", FieldType = ConfigFieldType.Text,   DefaultValue = "MyValheim" },
             new() { Key = "worldName",  Label = "World name",  FieldType = ConfigFieldType.Text,   DefaultValue = "Dedicated" },
             new() { Key = "crossplay",  Label = "Crossplay",      FieldType = ConfigFieldType.Toggle, DefaultValue = "false" },
             new() { Key = "public",     Label = "Public listing",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
