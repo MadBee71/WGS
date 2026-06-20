@@ -38,6 +38,11 @@ public abstract class GamePluginBase : IGamePlugin
     /// <summary>True if this plugin tracks an installed build number and can check for updates (currently FiveM/RedM).</summary>
     public virtual bool SupportsVersionCheck => false;
 
+    /// <summary>For games with a Recommended/Latest build channel choice (currently FiveM/RedM) —
+    /// returns both build numbers so the UI can let the user pick before installing.</summary>
+    public virtual Task<(string? Recommended, string? Latest)> GetAvailableBuildsAsync(GameServer server)
+        => Task.FromResult<(string?, string?)>((null, null));
+
     /// <summary>
     /// Reads the build number SteamCMD itself recorded for this install, straight from the app
     /// manifest it always writes (steamapps/appmanifest_&lt;id&gt;.acf, "buildid" field) — works for

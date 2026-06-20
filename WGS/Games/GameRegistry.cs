@@ -85,6 +85,28 @@ public static class GameRegistry
         Register(new FabricPlugin());
         Register(new TerrariaPlugin());
         Register(new RedMPlugin());
+        // Community-requested additions
+        Register(new ArkSurvivalAscendedPlugin());
+        Register(new BeyondTheWirePlugin());
+        Register(new EchoesOfElysiumPlugin());
+        Register(new FrozenFlamePlugin());
+        Register(new HumanitZPlugin());
+        Register(new LastOasisPlugin());
+        Register(new LastOasisClassicPlugin());
+        Register(new MotorTownBTWPlugin());
+        Register(new MythOfEmpiresPlugin());
+        Register(new NightOfTheDeadPlugin());
+        Register(new OperationHarshDoorstopPlugin());
+        Register(new PixArkPlugin());
+        Register(new PlainsOfPainPlugin());
+        Register(new RepolyPlugin());
+        Register(new RunescapeDragonwildsPlugin());
+        Register(new ShatterlinePlugin());
+        Register(new StarRupturePlugin());
+        Register(new StarboundPlugin());
+        Register(new TABGPlugin());
+        Register(new TheFrontPlugin());
+        Register(new VoyagersOfNeraPlugin());
     }
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;

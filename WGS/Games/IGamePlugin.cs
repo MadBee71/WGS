@@ -50,6 +50,11 @@ public interface IGamePlugin
     /// <summary>Reads the build number SteamCMD recorded for this install from its app manifest —
     /// works for any Steam-installed game generically. Returns null if SteamAppId is 0 or unreadable.</summary>
     string? GetSteamInstalledBuildId(GameServer server);
+
+    /// <summary>For games with a Recommended/Latest build channel choice (currently FiveM/RedM) —
+    /// returns both build numbers so the UI can let the user pick before installing. Both null
+    /// if this game doesn't support channel selection.</summary>
+    Task<(string? Recommended, string? Latest)> GetAvailableBuildsAsync(GameServer server);
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
 

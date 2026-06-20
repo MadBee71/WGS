@@ -559,6 +559,16 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (Plugin == null) return;
 
+        if (Plugin.SupportsVersionCheck)
+        {
+            var (recommended, latest) = await Plugin.GetAvailableBuildsAsync(Server);
+            var dlg = new Views.BuildChannelDialog(Plugin.GameName, recommended, latest, () => Plugin.GetAvailableBuildsAsync(Server))
+            { Owner = System.Windows.Application.Current?.MainWindow };
+            dlg.ShowDialog();
+            if (dlg.Result == Views.BuildChannelResult.Cancel) return;
+            Server.GameSpecificSettings["buildChannel"] = dlg.Result == Views.BuildChannelResult.Latest ? "latest" : "recommended";
+        }
+
         var info = await Plugin.GetManualDownloadInfoAsync(Server);
         if (info == null)
         {
