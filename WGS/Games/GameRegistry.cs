@@ -107,6 +107,19 @@ public static class GameRegistry
         Register(new TABGPlugin());
         Register(new TheFrontPlugin());
         Register(new VoyagersOfNeraPlugin());
+        Register(new AbioticFactorPlugin());
+        Register(new EcoGlobalSurvivalPlugin());
+        Register(new GroundBranchPlugin());
+        Register(new CraftopiaPlugin());
+        Register(new NightingalePlugin());
+        Register(new PrimalCarnageExtinctionPlugin());
+        Register(new Squad44Plugin());
+        Register(new StationeersPlugin());
+        Register(new StormworksPlugin());
+        Register(new ScpSecretLabPlugin());
+        Register(new RiskOfRain2Plugin());
+        Register(new SmallandPlugin());
+        Register(new SvenCoopPlugin());
     }
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;
