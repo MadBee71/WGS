@@ -489,7 +489,7 @@
                                 <!-- Wake on Demand -->
                                 <CheckBox IsChecked="{Binding Server.WakeOnDemand}" Style="{StaticResource DarkCheckBox}"
                                           Content="Wake on demand (start when player connects)" Margin="0,0,0,4"
-                                          ToolTip="Listens on the server port while stopped. Starts the server automatically when a player connection arrives. Only triggers on a direct-IP connect — an offline server can never appear in the game's own server browser, since that list only shows servers that are already running. For games without direct-IP connect, use the Discord bot's !start command, or share the server's status page link — it shows a 'Wake server' button while this is enabled."/>
+                                          ToolTip="Listens on the server port while stopped. Starts the server automatically when a player connection arrives. Only triggers on a direct-IP connect — an offline server can never appear in the game's own server browser, since that list only shows servers that are already running. The connection attempt that wakes the server gets no reply, so it will fail or time out — the player needs to wait for the server to finish starting, then connect again. For games without direct-IP connect, use the Discord bot's !start command, or share the server's status page link — it shows a 'Wake server' button while this is enabled."/>
 
                                 <!-- Shut down when empty -->
                                 <CheckBox IsChecked="{Binding Server.ShutDownWhenEmpty}" Style="{StaticResource DarkCheckBox}"
