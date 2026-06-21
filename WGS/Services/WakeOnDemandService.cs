@@ -13,6 +13,7 @@ public sealed class WakeOnDemandService : IDisposable
 {
     private readonly ServerManagerService _manager;
     private readonly BackupService _backup;
+    private readonly NotificationService _notifications;
     private readonly Dictionary<string, CancellationTokenSource> _watchers  = new();
     private readonly Dictionary<string, CancellationTokenSource> _idleWatchers = new();
     private readonly object _lock = new();
@@ -20,10 +21,11 @@ public sealed class WakeOnDemandService : IDisposable
     /// <summary>Raised after an idle-shutdown backup completes, so an open Backups tab can refresh.</summary>
     public event Action<string>? ServerBackedUp;
 
-    public WakeOnDemandService(ServerManagerService manager, BackupService backup)
+    public WakeOnDemandService(ServerManagerService manager, BackupService backup, NotificationService notifications)
     {
         _manager = manager;
         _backup  = backup;
+        _notifications = notifications;
     }
 
     /// <summary>Start wake-on-demand listener for a stopped server.</summary>
@@ -100,6 +102,18 @@ public sealed class WakeOnDemandService : IDisposable
 
         // Remove watcher entry before starting
         lock (_lock) { _watchers.Remove(server.Id); }
+
+        // The connection attempt that triggered this wake is consumed by our listener and gets
+        // no reply, so the game client that sent it will report "can't connect" — the player needs
+        // to retry once the server has actually finished starting. Make that expectation explicit.
+        try
+        {
+            await _notifications.NotifyAsync(
+                $"🔌 Waking up {server.DisplayName}",
+                "An incoming connection triggered wake-on-demand. That first connection attempt won't succeed — wait for the server to finish starting, then connect again.",
+                "#d29922");
+        }
+        catch { }
 
         try { await _manager.StartAsync(server); }
         catch { }
