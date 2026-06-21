@@ -425,7 +425,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            AppendLog("[ERR] Executable not found after install. Check the game plugin's Executable field.", ConsoleMessageType.Error);
+            AppendLog("[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.", ConsoleMessageType.Error);
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
         }
         catch (InvalidOperationException ex)
@@ -533,7 +533,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            AppendLog("[ERR] Executable not found after install. Check the game plugin's Executable field.", ConsoleMessageType.Error);
+            AppendLog("[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.", ConsoleMessageType.Error);
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
             Server.Status = ServerStatus.Error;
         }
