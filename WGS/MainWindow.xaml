@@ -198,7 +198,7 @@
                                                 Content="None" Command="{Binding BatchClearSelectionCommand}"
                                                 ToolTip="Clear selection"/>
                                     </StackPanel>
-                                    <UniformGrid Rows="1" Columns="4">
+                                    <UniformGrid Rows="2" Columns="2">
                                         <Button Style="{StaticResource PrimaryButton}" FontSize="10" Height="24" Margin="1"
                                                 Content="▶ Start" Command="{Binding BatchStartCommand}"
                                                 ToolTip="Start selected servers"/>
