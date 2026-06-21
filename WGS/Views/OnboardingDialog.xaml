@@ -1,0 +1,39 @@
+<Window x:Class="WGS.Views.OnboardingDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="" Width="480" Height="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Border Background="#1c2128" CornerRadius="10" BorderBrush="#30363d" BorderThickness="1">
+        <StackPanel Margin="28,24">
+            <TextBlock Text="👋 Welcome to WGS" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,10">
+                Windows Game Server manages dedicated game servers from one panel. Quick start:
+            </TextBlock>
+            <StackPanel Margin="0,0,0,16">
+                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
+                    <Run Text="1." FontWeight="Bold" Foreground="#58A6FF"/>
+                    <Run Text=" Click '+ Add Server', pick a game, give it a descriptive name."/>
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
+                    <Run Text="2." FontWeight="Bold" Foreground="#58A6FF"/>
+                    <Run Text=" Click 'Install / Update' — WGS downloads SteamCMD and the server automatically."/>
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
+                    <Run Text="3." FontWeight="Bold" Foreground="#58A6FF"/>
+                    <Run Text=" Use the Settings tab for ports/password, Console to send commands, and Schedule for automatic restarts/backups."/>
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9">
+                    <Run Text="4." FontWeight="Bold" Foreground="#58A6FF"/>
+                    <Run Text=" Game isn't on the list? Use the 🎮 Plugin Creator wizard in the bottom toolbar."/>
+                </TextBlock>
+            </StackPanel>
+            <CheckBox x:Name="DontShowAgainCheck" Content="Don't show this again" Foreground="#8b949e" FontSize="12" Margin="0,0,0,16"/>
+            <Button Content="Got it" HorizontalAlignment="Right" Width="100" Height="34"
+                    Background="#238636" Foreground="White" BorderThickness="0"
+                    Cursor="Hand" Click="GotItClick"/>
+        </StackPanel>
+    </Border>
+</Window>

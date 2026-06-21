@@ -33,6 +33,7 @@ public class ConfigService
     public double CrashPredictionHighCpuPercent { get; set; } = 98.0;
     public bool   EnableUPnP             { get; set; } = false;
     public string SortMode               { get; set; } = "name-asc";
+    public bool   HasSeenOnboarding      { get; set; } = false;
 
     /// <summary>True when the Web API must be started — either by user choice or slave mode.</summary>
     public bool WebApiRequired => WebApiEnabled || SlaveMode;
@@ -66,7 +67,8 @@ public class ConfigService
         bool   CrashPredictionLowMemOnly = false,
         double CrashPredictionLowMemPercent = 5.0,
         bool   CrashPredictionHighCpuOnly = false,
-        double CrashPredictionHighCpuPercent = 98.0);
+        double CrashPredictionHighCpuPercent = 98.0,
+        bool   HasSeenOnboarding = false);
 
     private void LoadSettings()
     {
@@ -95,6 +97,7 @@ public class ConfigService
             CrashPredictionLowMemPercent = d.CrashPredictionLowMemPercent > 0 ? d.CrashPredictionLowMemPercent : 5.0;
             CrashPredictionHighCpuOnly = d.CrashPredictionHighCpuOnly;
             CrashPredictionHighCpuPercent = d.CrashPredictionHighCpuPercent > 0 ? d.CrashPredictionHighCpuPercent : 98.0;
+            HasSeenOnboarding = d.HasSeenOnboarding;
         }
         catch { }
     }
@@ -107,7 +110,7 @@ public class ConfigService
         var d = new SettingsData(DefaultInstallRoot, SteamLogin, encryptedPassword, BackupPath,
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
             EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent,
-            CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent);
+            CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent, HasSeenOnboarding);
         File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

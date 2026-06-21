@@ -405,7 +405,9 @@
                         <TextBlock Text="{Binding DataContext.Loc.DialogName, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding DataContext.NewServerName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}" Margin="0,0,0,16"/>
+                                 Style="{StaticResource DarkTextBox}"/>
+                        <TextBlock Text="Tip: a descriptive name (e.g. &quot;Friday Night Rust&quot;) is easier to find later than just the game's name"
+                                   FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,16" TextWrapping="Wrap"/>
 
                         <TextBlock Text="{Binding DataContext.Loc.DialogInstall, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Style="{StaticResource FieldLabel}"/>

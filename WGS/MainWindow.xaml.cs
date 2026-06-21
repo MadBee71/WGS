@@ -20,6 +20,22 @@ public partial class MainWindow : Window
                     Icon = BitmapFrame.Create(sri.Stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
         }
         catch { }
+
+        Loaded += MainWindow_Loaded;
+    }
+
+    private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
+    {
+        var config = App.Services.GetRequiredService<Services.ConfigService>();
+        if (config.HasSeenOnboarding) return;
+
+        var dlg = new Views.OnboardingDialog { Owner = this };
+        dlg.ShowDialog();
+        if (dlg.DontShowAgain)
+        {
+            config.HasSeenOnboarding = true;
+            config.Save();
+        }
     }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
