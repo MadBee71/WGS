@@ -76,7 +76,7 @@
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Supported Games"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
-                        <TextBlock Grid.Row="4" Grid.Column="1" Text="90+ built-in plugins + Custom Plugin Creator"
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="101+ built-in plugins + Custom Plugin Creator"
                                    Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
                     </Grid>
                 </StackPanel>
@@ -90,7 +90,7 @@
                 <WrapPanel>
                     <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
                             Padding="10,5" Margin="0,0,8,8">
-                        <TextBlock Text="🎮 90+ Games" FontSize="12"
+                        <TextBlock Text="🎮 101+ Games" FontSize="12"
                                    Foreground="{StaticResource AccentBlueBrush}"/>
                     </Border>
                     <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4"
