@@ -39,11 +39,12 @@ public class FiveMPlugin : GamePluginBase
         return (recommended?.Build, latest?.Build);
     }
 
-    public override Task PreStartAsync(GameServer s)
+    public override async Task PreStartAsync(GameServer s)
     {
+        await CfxArtifactHelper.EnsureBaseResourcesAsync(s.InstallPath);
         var cfgPath = Path.Combine(s.InstallPath, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
-        return Task.CompletedTask;
+        CfxArtifactHelper.EnsureTxAdminProfile(s.InstallPath);
     }
 
     private static string BuildServerCfg(GameServer s)

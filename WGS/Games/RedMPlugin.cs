@@ -39,11 +39,13 @@ public class RedMPlugin : GamePluginBase
         return (recommended?.Build, latest?.Build);
     }
 
-    public override Task PreStartAsync(GameServer s)
+    public override async Task PreStartAsync(GameServer s)
     {
-        var cfgPath = Path.Combine(s.InstallPath, "server", "server.cfg");
+        var serverDir = Path.Combine(s.InstallPath, "server");
+        await CfxArtifactHelper.EnsureBaseResourcesAsync(serverDir);
+        var cfgPath = Path.Combine(serverDir, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
-        return Task.CompletedTask;
+        CfxArtifactHelper.EnsureTxAdminProfile(serverDir);
     }
 
     private static string BuildServerCfg(GameServer s)
