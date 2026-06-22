@@ -67,7 +67,7 @@ set retries=0
 move /y ""{newExePath}"" ""{exePath}"" >nul 2>nul
 if exist ""{newExePath}"" (
     set /a retries+=1
-    if %retries% lss 10 (
+    if %retries% lss 30 (
         timeout /t 1 /nobreak >nul
         goto moveretry
     )
@@ -108,12 +108,17 @@ start """" ""{exePath}""
         System.Windows.Application.Current.Shutdown();
     }
 
-    /// <summary>Removes leftover update files from a previous run. Call once on startup.</summary>
-    public static void CleanupLeftovers()
+    /// <summary>Removes leftover update files from a previous run. Call once on startup.
+    /// Returns true if a previous update attempt left "_wgs_new.exe" behind unswapped — that
+    /// means the move failed every retry (e.g. antivirus held the file locked) and WGS is still
+    /// running the OLD version, even though the update appeared to "finish" and restart.</summary>
+    public static bool CleanupLeftovers()
     {
         var exeDir = Path.GetDirectoryName(
             Environment.ProcessPath
             ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe"))!;
+
+        var updateFailed = File.Exists(Path.Combine(exeDir, "_wgs_new.exe"));
 
         foreach (var name in new[] { "_wgs_update.bat", "_wgs_update.zip", "_wgs_new.exe" })
         {
@@ -124,6 +129,8 @@ start """" ""{exePath}""
             }
             catch { }
         }
+
+        return updateFailed;
     }
 
     private static void Report(IProgress<(int, string)>? p, int pct, string msg)
