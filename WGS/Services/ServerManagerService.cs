@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using WGS.Games;
 using WGS.Models;
 
@@ -42,6 +43,7 @@ public class ServerInstance
 
 public class ServerManagerService
 {
+    private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[a-zA-Z]", RegexOptions.Compiled);
     private readonly NetworkMonitorService _network;
     private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
 
@@ -322,6 +324,10 @@ public class ServerManagerService
 
         void AddLog(string text, ConsoleMessageType type)
         {
+            // FXServer/txAdmin (and some other engines) colorize stdout with ANSI escape
+            // codes even when piped to a non-tty — strip them or the embedded console
+            // renders raw escape sequences as garbled text instead of plain lines.
+            text = AnsiEscapeRegex.Replace(text, "");
             var now = System.Diagnostics.Stopwatch.GetTimestamp();
             var threshold = System.Diagnostics.Stopwatch.Frequency / 5; // 200 ms
             if (_recentLines.TryGetValue(text, out var seen) && (now - seen) < threshold) return;
