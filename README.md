@@ -10,13 +10,15 @@
   ![Games](https://img.shields.io/badge/supported_games-101+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
+  🌐 **[wgsserver.com](https://wgsserver.com)** — website, full game list, installation guide & user manual
+
 </div>
 
 ---
 
 ## What is Windows Game Server?
 
-**Windows Game Server (WGS)** is a free, open-source desktop application that lets you host and manage dedicated game servers on any Windows PC — without touching the command line.
+**Windows Game Server (WGS)** is a free, open-source desktop application that lets you host and manage dedicated game servers on any Windows PC — without touching the command line. It's a modern, actively maintained alternative to WindowsGSM, AMP (CubeCoders) and Pterodactyl Panel for anyone who wants a native Windows experience. See [wgsserver.com](https://wgsserver.com) for the full feature list, supported games, and documentation.
 
 Instead of juggling SteamCMD scripts, batch files, Task Scheduler entries and manual firewall rules, WGS brings everything into one clean window:
 
