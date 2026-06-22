@@ -1,4 +1,3 @@
-using System.IO;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -39,50 +38,15 @@ public class RedMPlugin : GamePluginBase
         return (recommended?.Build, latest?.Build);
     }
 
-    public override Task PreStartAsync(GameServer s)
-    {
-        var cfgPath = Path.Combine(s.InstallPath, "server", "server.cfg");
-        WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
-        return Task.CompletedTask;
-    }
+    // No server.cfg, no resources, no txData pre-seeding — FXServer's own txAdmin sets all of
+    // that up itself on first run (setup wizard, recipe choice, resource downloads). WGS's job
+    // here is just getting FXServer.exe downloaded and started.
+    public override Task PreStartAsync(GameServer s) => Task.CompletedTask;
 
-    private static string BuildServerCfg(GameServer s)
-    {
-        var licenseKey = s.GameSpecificSettings.TryGetValue("licenseKey", out var lk) ? lk : "YOUR_LICENSE_KEY";
-
-        return
-            $"""
-            # RedM runs the same FXServer binary as FiveM — this line is what actually switches it
-            # into RedM/RDR3 mode instead of defaulting to GTA V/FiveM.
-            set gamename rdr3
-
-            sv_licenseKey "{licenseKey}"
-            sv_maxclients {s.MaxPlayers}
-            sv_hostname "{s.ServerName}"
-            sv_projectName "{s.ServerName}"
-
-            endpoint_add_tcp "0.0.0.0:{s.ServerPort}"
-            endpoint_add_udp "0.0.0.0:{s.ServerPort}"
-
-            set onesync on
-
-            # Uncommented automatically by WGS — RCON requires a non-empty password to actually enable it.
-            set rcon_password "{s.RconPassword}"
-
-            # Default resources — without these, nothing loads at all (no map, no chat, no spawning).
-            ensure mapmanager
-            ensure chat
-            ensure spawnmanager
-            ensure sessionmanager
-            ensure rconlog
-
-            # Add your own resources below
-            # ensure your-resource-name
-            """;
-    }
-
+    // citizen_dir is a launch arg FXServer itself requires to find its RDR3 runtime files —
+    // unrelated to server.cfg/resources, so it stays even without our own config generation.
     public override string BuildStartArguments(GameServer s)
-        => $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\" +exec server.cfg";
+        => $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\"";
 
     public override string? GetStopCommand(GameServer server) => "quit";
 
@@ -96,7 +60,7 @@ public class RedMPlugin : GamePluginBase
     {
         var fields = BaseFields();
         fields.Add(new() { Key = "licenseKey", Label = "CFX License Key", FieldType = ConfigFieldType.Password, DefaultValue = "",
-                            Description = "Get your key from https://keymaster.fivem.net" });
+                            Description = "Not needed to start the server — only required once you set up txAdmin and want players to connect. Get one from https://keymaster.fivem.net when you're ready." });
         fields.Add(new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                             DefaultValue = "recommended", Options = ["recommended", "latest"],
                             Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy." });
