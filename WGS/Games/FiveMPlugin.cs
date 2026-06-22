@@ -47,6 +47,8 @@ public class FiveMPlugin : GamePluginBase
         await CfxArtifactHelper.EnsureResourceTemplateAsync(s.InstallPath, templateUrl, templateSubpath);
         var cfgPath = Path.Combine(s.InstallPath, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
+        var resourcesDir = Path.Combine(s.InstallPath, "resources");
+        CfxArtifactHelper.EnsureResourcesEnsuredInCfg(cfgPath, CfxArtifactHelper.DiscoverResourceNames(resourcesDir));
         CfxArtifactHelper.EnsureTxAdminProfile(s.InstallPath);
     }
 

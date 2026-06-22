@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 
@@ -100,6 +103,52 @@ public static class CfxArtifactHelper
             try { if (File.Exists(tempZip)) File.Delete(tempZip); } catch { }
             try { if (Directory.Exists(tempExtract)) Directory.Delete(tempExtract, recursive: true); } catch { }
         }
+    }
+
+    /// <summary>Finds actual loadable resource names under a resources folder — i.e. folders containing
+    /// fxmanifest.lua or __resource.lua. Recurses one level into category folders (Cfx convention
+    /// wraps related resources in a "[bracket-name]" folder, e.g. "[gamemodes]/basic-gamemode") since
+    /// FXServer's `ensure` takes the resource's own name, never the category folder's.</summary>
+    public static IEnumerable<string> DiscoverResourceNames(string resourcesDir)
+    {
+        if (!Directory.Exists(resourcesDir)) yield break;
+
+        bool IsResource(string dir) =>
+            File.Exists(Path.Combine(dir, "fxmanifest.lua")) || File.Exists(Path.Combine(dir, "__resource.lua"));
+
+        foreach (var dir in Directory.GetDirectories(resourcesDir))
+        {
+            if (IsResource(dir))
+            {
+                yield return Path.GetFileName(dir);
+            }
+            else
+            {
+                foreach (var sub in Directory.GetDirectories(dir))
+                    if (IsResource(sub))
+                        yield return Path.GetFileName(sub);
+            }
+        }
+    }
+
+    /// <summary>Appends `ensure <name>` lines to an existing server.cfg for any resource on disk that
+    /// isn't already mentioned in it — covers resources pulled in by a template URL after the cfg was
+    /// first written (WriteConfigIfMissing only writes once). Safe to call every start: it only adds
+    /// lines, never removes anything the user added themselves, and skips names already present.</summary>
+    public static void EnsureResourcesEnsuredInCfg(string cfgPath, IEnumerable<string> resourceNames)
+    {
+        if (!File.Exists(cfgPath)) return;
+
+        var cfgText = File.ReadAllText(cfgPath);
+        var missing = resourceNames
+            .Where(name => !cfgText.Contains($"ensure {name}", StringComparison.OrdinalIgnoreCase))
+            .Distinct()
+            .ToList();
+        if (missing.Count == 0) return;
+
+        var addition = "\n# Auto-added by WGS for downloaded template resources\n" +
+                        string.Join("\n", missing.Select(n => $"ensure {n}")) + "\n";
+        File.AppendAllText(cfgPath, addition);
     }
 
     private static void CopyDirectory(string sourceDir, string destDir)

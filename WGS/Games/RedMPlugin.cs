@@ -48,6 +48,8 @@ public class RedMPlugin : GamePluginBase
         await CfxArtifactHelper.EnsureResourceTemplateAsync(serverDir, templateUrl, templateSubpath);
         var cfgPath = Path.Combine(serverDir, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
+        var resourcesDir = Path.Combine(serverDir, "resources");
+        CfxArtifactHelper.EnsureResourcesEnsuredInCfg(cfgPath, CfxArtifactHelper.DiscoverResourceNames(resourcesDir));
         CfxArtifactHelper.EnsureTxAdminProfile(serverDir);
     }
 
