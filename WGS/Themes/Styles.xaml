@@ -8,6 +8,7 @@
     <conv:InverseBoolConverter             x:Key="InvBool"/>
     <conv:NullToVisibilityConverter        x:Key="NullToVis"/>
     <conv:NullToInverseVisibilityConverter x:Key="NullToInvVis"/>
+    <conv:StringToVisibilityConverter      x:Key="StringToVis"/>
     <conv:StringToColorBrushConverter      x:Key="StrToColor"/>
     <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
     <conv:ZeroToInverseVisibilityConverter x:Key="ZeroToInvVis"/>

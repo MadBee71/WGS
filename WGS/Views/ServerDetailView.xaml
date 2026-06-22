@@ -469,6 +469,10 @@
                                                 <TextBlock Text="{Binding Field.Label}" Style="{StaticResource FieldLabel}"/>
                                                 <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource DarkTextBox}"/>
+                                                <TextBlock Text="{Binding Field.Description}" FontSize="10"
+                                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0"
+                                                           TextWrapping="Wrap"
+                                                           Visibility="{Binding Field.Description, Converter={StaticResource StringToVis}}"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

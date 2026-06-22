@@ -19,7 +19,6 @@ public static class SelfUpdateService
         var exePath = Environment.ProcessPath
                       ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe");
         var exeDir  = Path.GetDirectoryName(exePath)!;
-        var exeName = Path.GetFileName(exePath);
 
         var tempZip    = Path.Combine(exeDir, "_wgs_update.zip");
         var newExePath = Path.Combine(exeDir, "_wgs_new.exe");
@@ -110,8 +109,8 @@ start """" ""{exePath}""
 
     /// <summary>Removes leftover update files from a previous run. Call once on startup.
     /// Returns true if a previous update attempt left "_wgs_new.exe" behind unswapped — that
-    /// means the move failed every retry (e.g. antivirus held the file locked) and WGS is still
-    /// running the OLD version, even though the update appeared to "finish" and restart.</summary>
+    /// means the move failed every retry and WGS is still running the OLD version, even though
+    /// the update appeared to "finish" and restart.</summary>
     public static bool CleanupLeftovers()
     {
         var exeDir = Path.GetDirectoryName(
