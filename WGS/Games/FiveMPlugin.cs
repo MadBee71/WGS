@@ -89,6 +89,14 @@ public class FiveMPlugin : GamePluginBase
         return $"+exec server.cfg";
     }
 
+    public override string? ValidateBeforeStart(GameServer s)
+    {
+        var licenseKey = s.GameSpecificSettings.TryGetValue("licenseKey", out var lk) ? lk : "";
+        if (string.IsNullOrWhiteSpace(licenseKey) || licenseKey == "YOUR_LICENSE_KEY")
+            return "FiveM needs a CFX license key before it can start. Get a free one from https://keymaster.fivem.net, then paste it into Settings → CFX License Key for this server.";
+        return null;
+    }
+
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
         ["licenseKey"]   = "",
