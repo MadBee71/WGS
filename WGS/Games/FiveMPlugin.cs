@@ -42,6 +42,9 @@ public class FiveMPlugin : GamePluginBase
     public override async Task PreStartAsync(GameServer s)
     {
         await CfxArtifactHelper.EnsureBaseResourcesAsync(s.InstallPath);
+        var templateUrl = s.GameSpecificSettings.TryGetValue("templateRepoUrl", out var tu) ? tu : "";
+        var templateSubpath = s.GameSpecificSettings.TryGetValue("templateSubpath", out var ts) ? ts : "resources";
+        await CfxArtifactHelper.EnsureResourceTemplateAsync(s.InstallPath, templateUrl, templateSubpath);
         var cfgPath = Path.Combine(s.InstallPath, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
         CfxArtifactHelper.EnsureTxAdminProfile(s.InstallPath);
@@ -102,6 +105,8 @@ public class FiveMPlugin : GamePluginBase
         ["licenseKey"]   = "",
         ["txAdminPort"]  = "40120",
         ["buildChannel"] = "recommended",
+        ["templateRepoUrl"] = "",
+        ["templateSubpath"] = "resources",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -114,6 +119,10 @@ public class FiveMPlugin : GamePluginBase
             new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                     DefaultValue = "recommended", Options = ["recommended", "latest"],
                     Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy." },
+            new() { Key = "templateRepoUrl", Label = "Resource Template (GitHub zip URL)", FieldType = ConfigFieldType.Text, DefaultValue = "",
+                    Description = "Optional. Paste a GitHub branch zip URL (e.g. https://github.com/esx-framework/esx_legacy/archive/refs/heads/main.zip) to install a framework's resources on top of the basics. Leave empty for just the CFX default. Re-downloads automatically if you change this." },
+            new() { Key = "templateSubpath", Label = "Template subpath", FieldType = ConfigFieldType.Text, DefaultValue = "resources",
+                    Description = "Folder inside the template repo that contains the actual resources. Use \"resources\" for most full-server recipes, or leave empty if the repo IS the resource itself." },
         ]);
         return fields;
     }

@@ -43,6 +43,9 @@ public class RedMPlugin : GamePluginBase
     {
         var serverDir = Path.Combine(s.InstallPath, "server");
         await CfxArtifactHelper.EnsureBaseResourcesAsync(serverDir);
+        var templateUrl = s.GameSpecificSettings.TryGetValue("templateRepoUrl", out var tu) ? tu : "";
+        var templateSubpath = s.GameSpecificSettings.TryGetValue("templateSubpath", out var ts) ? ts : "resources";
+        await CfxArtifactHelper.EnsureResourceTemplateAsync(serverDir, templateUrl, templateSubpath);
         var cfgPath = Path.Combine(serverDir, "server.cfg");
         WriteConfigIfMissing(cfgPath, BuildServerCfg(s));
         CfxArtifactHelper.EnsureTxAdminProfile(serverDir);
@@ -100,6 +103,8 @@ public class RedMPlugin : GamePluginBase
     {
         ["licenseKey"]   = "",
         ["buildChannel"] = "recommended",
+        ["templateRepoUrl"] = "",
+        ["templateSubpath"] = "resources",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -110,6 +115,10 @@ public class RedMPlugin : GamePluginBase
         fields.Add(new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                             DefaultValue = "recommended", Options = ["recommended", "latest"],
                             Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy." });
+        fields.Add(new() { Key = "templateRepoUrl", Label = "Resource Template (GitHub zip URL)", FieldType = ConfigFieldType.Text, DefaultValue = "",
+                            Description = "Optional. Paste a GitHub branch zip URL (e.g. https://github.com/VORPCORE/vorp-core/archive/refs/heads/main.zip) to install a framework's resources on top of the basics. Leave empty for just the CFX default. Re-downloads automatically if you change this." });
+        fields.Add(new() { Key = "templateSubpath", Label = "Template subpath", FieldType = ConfigFieldType.Text, DefaultValue = "resources",
+                            Description = "Folder inside the template repo that contains the actual resources. Use \"resources\" for most full-server recipes, or leave empty if the repo IS the resource itself." });
         return fields;
     }
 }

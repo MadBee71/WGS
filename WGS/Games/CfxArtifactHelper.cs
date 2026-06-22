@@ -59,6 +59,49 @@ public static class CfxArtifactHelper
         }
     }
 
+    /// <summary>Downloads an extra resource template (ESX, QBCore, VORP, or any other GitHub repo)
+    /// into {installPath}/resources on top of the base resources, given a repo's branch zip URL and
+    /// the subpath inside that repo containing the actual resources (often "resources" or "" for the
+    /// repo root). Tracked via a marker file so it's only fetched once per (url, subpath) pair — if
+    /// the user changes the template URL in Settings, it re-downloads on the next start.</summary>
+    public static async Task EnsureResourceTemplateAsync(string installPath, string repoZipUrl, string subpath)
+    {
+        if (string.IsNullOrWhiteSpace(repoZipUrl)) return;
+
+        var resourcesDir = Path.Combine(installPath, "resources");
+        var markerFile = Path.Combine(installPath, ".wgs_template_installed");
+        var markerValue = repoZipUrl + "|" + subpath;
+        if (File.Exists(markerFile) && File.ReadAllText(markerFile).Trim() == markerValue) return;
+
+        var tempZip = Path.Combine(Path.GetTempPath(), $"wgs-template-{Guid.NewGuid():N}.zip");
+        var tempExtract = Path.Combine(Path.GetTempPath(), $"wgs-template-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(resourcesDir);
+
+            using (var stream = await _http.GetStreamAsync(repoZipUrl))
+            using (var file = File.Create(tempZip))
+                await stream.CopyToAsync(file);
+
+            ZipFile.ExtractToDirectory(tempZip, tempExtract);
+
+            // GitHub branch zips extract to a single "<repo>-<branch>" root folder.
+            var rootFolder = Directory.GetDirectories(tempExtract).FirstOrDefault();
+            if (rootFolder == null) return;
+            var sourceDir = string.IsNullOrWhiteSpace(subpath) ? rootFolder : Path.Combine(rootFolder, subpath);
+            if (!Directory.Exists(sourceDir)) return;
+
+            CopyDirectory(sourceDir, resourcesDir);
+            File.WriteAllText(markerFile, markerValue);
+        }
+        catch { /* network hiccup or bad URL — leave existing console logging to surface the problem */ }
+        finally
+        {
+            try { if (File.Exists(tempZip)) File.Delete(tempZip); } catch { }
+            try { if (Directory.Exists(tempExtract)) Directory.Delete(tempExtract, recursive: true); } catch { }
+        }
+    }
+
     private static void CopyDirectory(string sourceDir, string destDir)
     {
         Directory.CreateDirectory(destDir);
