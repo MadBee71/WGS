@@ -52,18 +52,15 @@ public class RedMPlugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["licenseKey"]   = "",
         ["buildChannel"] = "recommended",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
-        fields.Add(new() { Key = "licenseKey", Label = "CFX License Key", FieldType = ConfigFieldType.Password, DefaultValue = "",
-                            Description = "Not needed to start the server — only required once you set up txAdmin and want players to connect. Get one from https://keymaster.fivem.net when you're ready." });
         fields.Add(new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                             DefaultValue = "recommended", Options = ["recommended", "latest"],
-                            Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy." });
+                            Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy. The CFX license key, RCON password and everything else are set inside txAdmin itself after first launch — not here." });
         return fields;
     }
 }

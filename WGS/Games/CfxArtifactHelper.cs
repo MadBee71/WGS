@@ -15,9 +15,6 @@ public static class CfxArtifactHelper
 
     public record ArtifactInfo(string Build, string DownloadUrl);
 
-    public static async Task<string?> GetLatestServerDownloadUrlAsync()
-        => (await GetLatestAsync())?.DownloadUrl;
-
     /// <summary>The newest build — gets new features fastest, but per Cfx.re's own guidance can be buggy.</summary>
     public static Task<ArtifactInfo?> GetLatestAsync() => GetAsync("latest", "latest_download");
 

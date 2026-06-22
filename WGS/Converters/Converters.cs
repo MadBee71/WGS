@@ -47,6 +47,13 @@ public class NullToInverseVisibilityConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+public class StringToVisibilityConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => string.IsNullOrWhiteSpace(v as string) ? Visibility.Collapsed : Visibility.Visible;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 public class StringToColorBrushConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)
