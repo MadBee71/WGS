@@ -69,7 +69,16 @@ public partial class App : System.Windows.Application
 
         WriteLog("=== WGS starting ===");
 
-        SelfUpdateService.CleanupLeftovers();
+        if (SelfUpdateService.CleanupLeftovers())
+        {
+            System.Windows.MessageBox.Show(
+                "The last update couldn't finish — the file swap failed and never completed. " +
+                "You're still on the old version. Try again, or update manually from " +
+                $"{UpdateCheckerService.ReleasesUrl}",
+                "Update did not apply",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
 
         // Custom games created in the Plugin Creator were only ever loaded into the registry
         // right after being saved — never on a fresh startup — so they vanished from every list
