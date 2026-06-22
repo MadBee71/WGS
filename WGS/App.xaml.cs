@@ -13,8 +13,25 @@ public partial class App : System.Windows.Application
     public static IServiceProvider Services { get; private set; } = null!;
     private TrayService? _tray;
 
+    // Kept alive for the app's lifetime — running two WGS instances at once leads to port
+    // conflicts and duplicate process management of the same servers (reported by a user
+    // running multiple copies without realizing it).
+    private static System.Threading.Mutex? _singleInstanceMutex;
+
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
+        _singleInstanceMutex = new System.Threading.Mutex(true, "WGS_SingleInstance_Mutex", out var createdNew);
+        if (!createdNew)
+        {
+            System.Windows.MessageBox.Show(
+                "Windows Game Server is already running. Check your system tray.",
+                "WGS already running",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         CultureInfo.DefaultThreadCurrentCulture   = CultureInfo.InvariantCulture;
         CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-US");
 
@@ -185,6 +202,8 @@ public partial class App : System.Windows.Application
     {
         _tray?.Dispose();
         (Services as IDisposable)?.Dispose();
+        try { _singleInstanceMutex?.ReleaseMutex(); } catch { }
+        _singleInstanceMutex?.Dispose();
         base.OnExit(e);
     }
 }
