@@ -62,7 +62,16 @@ if not errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto wait
 )
-move /y ""{newExePath}"" ""{exePath}""
+set retries=0
+:moveretry
+move /y ""{newExePath}"" ""{exePath}"" >nul 2>nul
+if exist ""{newExePath}"" (
+    set /a retries+=1
+    if %retries% lss 10 (
+        timeout /t 1 /nobreak >nul
+        goto moveretry
+    )
+)
 del ""{tempZip}"" 2>nul
 start """" ""{exePath}""
 ";
