@@ -44,6 +44,27 @@ public class SpigotPlugin : MinecraftPluginBase
         var targetJar = Path.Combine(server.InstallPath, S(server, "jarFile", "server.jar"));
         File.Copy(newest, targetJar, overwrite: true);
         MinecraftInstallHelper.WriteEulaIfMissing(server.InstallPath);
+
+        // BuildTools leaves a large amount of build artifacts in the server directory
+        // (apache-maven, PortableGit, Bukkit, CraftBukkit, BuildData, Spigot source, work/).
+        // None of these are needed to run the server — clean them up so the directory stays tidy.
+        log("[Minecraft] Cleaning up BuildTools artifacts...");
+        var dirsToDelete  = new[] { "apache-maven-3.9.6", "BuildData", "Bukkit", "CraftBukkit", "Spigot", "work" };
+        var filesPattern  = new[] { "BuildTools.jar", "BuildTools.log.txt" };
+        foreach (var dir in dirsToDelete)
+        {
+            var path = Path.Combine(server.InstallPath, dir);
+            if (Directory.Exists(path)) try { Directory.Delete(path, recursive: true); } catch { }
+        }
+        // PortableGit folder has a version number in its name
+        foreach (var dir in Directory.GetDirectories(server.InstallPath, "PortableGit-*"))
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        foreach (var file in filesPattern)
+        {
+            var path = Path.Combine(server.InstallPath, file);
+            if (File.Exists(path)) try { File.Delete(path); } catch { }
+        }
+        log("[Minecraft] Cleanup done.");
         return true;
     }
 
