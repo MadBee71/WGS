@@ -262,6 +262,11 @@ public class ServerManagerService
             var found = TryFindExecutable(server.InstallPath, plugin.Executable);
             if (found != null)
                 exe = found;
+            else if (!plugin.Executable.Contains(Path.DirectorySeparatorChar) && !Path.HasExtension(plugin.Executable))
+                // Bare command name with no extension/path (e.g. "java" for the Minecraft family) —
+                // not something WGS installed itself, so don't look for it inside InstallPath at
+                // all; let Process.Start resolve it from the system PATH like any other command.
+                exe = plugin.Executable;
             else
                 throw new FileNotFoundException("Server executable not found in: " + server.InstallPath);
         }
@@ -275,8 +280,12 @@ public class ServerManagerService
             exe  = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
         }
 
-        // WorkingDirectory must be the exe's own folder (not just InstallPath)
-        var exeDir = Path.GetDirectoryName(exe) ?? server.InstallPath;
+        // WorkingDirectory must be the exe's own folder (not just InstallPath) — but a bare PATH
+        // command (e.g. "java") has no directory component at all, so GetDirectoryName returns ""
+        // (not null), which would otherwise launch with WGS's own folder as the working directory
+        // instead of the server's.
+        var exeDirRaw = Path.GetDirectoryName(exe);
+        var exeDir = string.IsNullOrEmpty(exeDirRaw) ? server.InstallPath : exeDirRaw;
 
         // SteamClientAppId == 0 means "don't write steam_appid.txt or set Steam env vars"
         // SteamClientAppId > 0 means explicit override; otherwise fall back to SteamAppId

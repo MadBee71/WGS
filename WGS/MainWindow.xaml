@@ -243,7 +243,7 @@
                                                     Width="64" Height="24" CornerRadius="3"
                                                     Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
                                                     ClipToBounds="True">
-                                                <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
+                                                <Image Source="{Binding GameImageUrl}" Stretch="Uniform"
                                                        RenderOptions.BitmapScalingMode="HighQuality"/>
                                             </Border>
                                             <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Center">
@@ -303,7 +303,7 @@
                                                 <Border Grid.Column="0" Width="64" Height="24" CornerRadius="3"
                                                         Margin="0,0,8,0" Background="{StaticResource BgSurface2Brush}"
                                                         ClipToBounds="True">
-                                                    <Image Source="{Binding GameImageUrl}" Stretch="UniformToFill"
+                                                    <Image Source="{Binding GameImageUrl}" Stretch="Uniform"
                                                            RenderOptions.BitmapScalingMode="HighQuality"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">

@@ -31,6 +31,11 @@ public abstract class GamePluginBase : IGamePlugin
     /// if this game truly requires a manual install WGS can't automate.</summary>
     public virtual Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server) => Task.FromResult<(string, string)?>(null);
 
+    /// <summary>For installs that don't fit the "download one zip and extract it" shape — a single
+    /// jar download (Paper, vanilla Minecraft), or running a vendor installer/build step (Forge,
+    /// Fabric, Spigot's BuildTools). Returns false for any plugin that doesn't need this.</summary>
+    public virtual Task<bool> TryCustomInstallAsync(GameServer server, Action<string> log) => Task.FromResult(false);
+
     /// <summary>Checks whether a newer build is available than what GameSpecificSettings records as
     /// installed. Returns null if this game doesn't support version checking.</summary>
     public virtual Task<string?> CheckForUpdateAsync(GameServer server) => Task.FromResult<string?>(null);
