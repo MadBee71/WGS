@@ -82,23 +82,27 @@ public sealed class WakeOnDemandService : IDisposable
 
     private async Task ListenAsync(GameServer server, CancellationToken ct)
     {
-        // Game traffic on the main server port is UDP for almost every supported game
-        // (Valheim, Rust, ARK, Palworld, 7 Days to Die, DayZ...) — a TCP listener here would
-        // never see a real client's connection attempt. Wake on any inbound datagram instead.
-        UdpClient? listener = null;
+        // Race TCP and UDP on the same port number — OS allows both simultaneously since they are
+        // separate protocols. Most games use UDP (Valheim, Rust, ARK, Palworld, DayZ…) but some
+        // use TCP (Minecraft family, FiveM…). First signal from either protocol wins.
+        using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var linked = innerCts.Token;
+
+        bool triggered = false;
         try
         {
-            listener = new UdpClient(server.ServerPort);
-            using var reg = ct.Register(() => listener.Dispose());
-            await listener.ReceiveAsync(ct);
+            await Task.WhenAny(
+                WaitForUdpAsync(server.ServerPort, linked),
+                WaitForTcpAsync(server.ServerPort, linked));
+            triggered = !ct.IsCancellationRequested;
         }
-        catch (OperationCanceledException) { return; }
-        catch (ObjectDisposedException) { return; }
-        catch { return; }
+        catch (OperationCanceledException) { }
         finally
         {
-            try { listener?.Dispose(); } catch { }
+            innerCts.Cancel(); // shut down whichever listener didn't fire
         }
+
+        if (!triggered) return;
 
         // Remove watcher entry before starting
         lock (_lock) { _watchers.Remove(server.Id); }
@@ -117,6 +121,23 @@ public sealed class WakeOnDemandService : IDisposable
 
         try { await _manager.StartAsync(server); }
         catch { }
+    }
+
+    private static async Task WaitForUdpAsync(int port, CancellationToken ct)
+    {
+        using var udp = new UdpClient(port);
+        using var reg = ct.Register(() => { try { udp.Close(); } catch { } });
+        try { await udp.ReceiveAsync(ct); } catch { }
+    }
+
+    private static async Task WaitForTcpAsync(int port, CancellationToken ct)
+    {
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Any, port);
+        listener.Start();
+        using var reg = ct.Register(() => { try { listener.Stop(); } catch { } });
+        try { await listener.AcceptTcpClientAsync(ct); }
+        catch { }
+        finally { try { listener.Stop(); } catch { } }
     }
 
     private async Task IdleWatchAsync(GameServer server, CancellationToken ct)
