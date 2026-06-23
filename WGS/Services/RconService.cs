@@ -4,20 +4,42 @@ using System.Text;
 
 namespace WGS.Services;
 
+public enum RconProtocol
+{
+    /// <summary>TCP, used by Rust, Valheim, Minecraft + RCON mods, etc.</summary>
+    SourceTcp,
+    /// <summary>FXServer (FiveM/RedM) doesn't speak Source RCON at all — it uses the older
+    /// single-packet UDP "quake rcon" format on the SAME port as the game traffic, with no
+    /// persistent connection/handshake. See https://docs.fivem.net/docs/server-manual/server-commands/#rcon</summary>
+    LegacyUdp,
+}
+
 /// <summary>
-/// Source RCON protocol implementation (used by Rust, Valheim, Minecraft + RCON mods, etc.)
+/// Source RCON protocol implementation (used by Rust, Valheim, Minecraft + RCON mods, etc.),
+/// plus FXServer's older UDP-based protocol selected via <see cref="RconProtocol.LegacyUdp"/>.
 /// </summary>
 public class RconService : IDisposable
 {
+    private readonly RconProtocol _protocol;
     private TcpClient? _client;
     private NetworkStream? _stream;
     private int _requestId = 1;
     private bool _authenticated;
 
-    public bool IsConnected => _client?.Connected == true && _authenticated;
+    private UdpClient? _udp;
+    private string _udpPassword = "";
+
+    public RconService(RconProtocol protocol = RconProtocol.SourceTcp) => _protocol = protocol;
+
+    public bool IsConnected => _protocol == RconProtocol.LegacyUdp
+        ? _udp != null && _authenticated
+        : _client?.Connected == true && _authenticated;
 
     public async Task<bool> ConnectAsync(string host, int port, string password)
     {
+        if (_protocol == RconProtocol.LegacyUdp)
+            return await ConnectLegacyUdpAsync(host, port, password);
+
         try
         {
             _client = new TcpClient();
@@ -38,11 +60,92 @@ public class RconService : IDisposable
 
     public async Task<string> SendCommandAsync(string command)
     {
+        if (_protocol == RconProtocol.LegacyUdp)
+            return await SendLegacyUdpCommandAsync(command);
+
         if (!IsConnected) return "[RCON] Not connected";
         var id = _requestId++;
         await SendPacketAsync(2, command, id);
         var resp = await ReadPacketAsync();
         return resp.body;
+    }
+
+    // ── FXServer legacy UDP rcon ─────────────────────────────────────────────
+    // This protocol has no real handshake at all — every single packet carries the password,
+    // and there's nothing to "connect" to since UDP has no connection state. Trying to validate
+    // the password upfront with a probe command was fragile (no command is guaranteed to get a
+    // reply, and error text varies). So "connect" just opens the local socket; whether the
+    // password is actually right only shows up in the response text of real commands you send.
+
+    private Task<bool> ConnectLegacyUdpAsync(string host, int port, string password)
+    {
+        try
+        {
+            _udp?.Dispose();
+            _udp = new UdpClient();
+            _udp.Connect(host, port);
+            _udpPassword = password;
+            _authenticated = true;
+            return Task.FromResult(true);
+        }
+        catch
+        {
+            _authenticated = false;
+            return Task.FromResult(false);
+        }
+    }
+
+    private async Task<string> SendLegacyUdpCommandAsync(string command)
+    {
+        if (!IsConnected) return "[RCON] Not connected";
+        try
+        {
+            var reply = await SendLegacyUdpRawAsync(command);
+            return reply ?? "[RCON] No response from server (command may have been sent — FXServer doesn't always reply)";
+        }
+        catch (SocketException)
+        {
+            return "[RCON] No reply — is the server actually running?";
+        }
+    }
+
+    private async Task<string?> SendLegacyUdpRawAsync(string command)
+    {
+        if (_udp == null) return null;
+
+        var payload = Encoding.UTF8.GetBytes($"rcon {_udpPassword} {command}");
+        var packet = new byte[4 + payload.Length];
+        packet[0] = packet[1] = packet[2] = packet[3] = 0xFF;
+        Buffer.BlockCopy(payload, 0, packet, 4, payload.Length);
+
+        await _udp.SendAsync(packet, packet.Length);
+
+        // Output can span several UDP packets — keep reading until a short gap with nothing more.
+        var sb = new StringBuilder();
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (true)
+            {
+                using var packetCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+                packetCts.CancelAfter(TimeSpan.FromMilliseconds(300));
+                UdpReceiveResult result;
+                try { result = await _udp.ReceiveAsync(packetCts.Token); }
+                catch (OperationCanceledException) { break; }
+
+                var data = result.Buffer;
+                // Reply framing: 0xFFFFFFFF + "print\n" + text
+                if (data.Length > 8)
+                {
+                    var text = Encoding.UTF8.GetString(data, 4, data.Length - 4);
+                    if (text.StartsWith("print\n")) text = text["print\n".Length..];
+                    sb.Append(text);
+                }
+            }
+        }
+        catch (OperationCanceledException) { /* total timeout reached, return what we have */ }
+
+        return sb.ToString();
     }
 
     private async Task SendPacketAsync(int type, string body, int id = 1)
@@ -106,6 +209,8 @@ public class RconService : IDisposable
         _authenticated = false;
         _stream?.Dispose();
         _client?.Dispose();
+        _udp?.Dispose();
+        _udp = null;
     }
 
     public void Dispose() => Disconnect();

@@ -16,6 +16,8 @@ public class FiveMPlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon          => true;
     public override bool   SupportsVersionCheck => true;
+    // FXServer doesn't speak Source RCON — it uses a legacy UDP protocol on the game port itself.
+    public override string EngineFamily     => "fivem";
 
     public override async Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server)
     {
@@ -42,6 +44,8 @@ public class FiveMPlugin : GamePluginBase
     // that up itself on first run (setup wizard, recipe choice, resource downloads). WGS's job
     // here is just getting FXServer.exe downloaded and started.
     public override Task PreStartAsync(GameServer s) => Task.CompletedTask;
+
+    public override string? GetStopCommand(GameServer server) => "quit";
 
     public override string BuildStartArguments(GameServer s)
     {
