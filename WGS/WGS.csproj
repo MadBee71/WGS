@@ -6,10 +6,10 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>WGS</RootNamespace>
     <AssemblyName>WindowsGameServer</AssemblyName>
-    <Version>1.2.5.21</Version>
-    <AssemblyVersion>1.2.5.21</AssemblyVersion>
-    <FileVersion>1.2.5.21</FileVersion>
-    <InformationalVersion>1.2.5.21</InformationalVersion>
+    <Version>1.2.5.22</Version>
+    <AssemblyVersion>1.2.5.22</AssemblyVersion>
+    <FileVersion>1.2.5.22</FileVersion>
+    <InformationalVersion>1.2.5.22</InformationalVersion>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
