@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WGS.Games;
@@ -249,9 +251,28 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             : "✅ Up to date";
     }
 
-    public string GameImageUrl => Plugin?.GameStoreAppId > 0
-        ? $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg"
-        : "pack://application:,,,/no_image.png"; // games with no Steam store page (Minecraft family, etc.)
+    // Games with no Steam store page at all get a bundled local logo where we have one (the
+    // Minecraft family's own project logos — not Mojang's "MINECRAFT" trademark, which we
+    // deliberately avoid using) — otherwise the generic placeholder.
+    internal static readonly Dictionary<string, string> LocalGameImages = new()
+    {
+        ["minecraft"]        = "minecraft_paper.png",   // GameId "minecraft" actually runs PaperMC
+        ["minecraft_spigot"] = "minecraft_spigot.png",
+        ["minecraft_forge"]  = "minecraft_forge.png",
+        ["minecraft_fabric"] = "minecraft_fabric.png",
+    };
+
+    public string GameImageUrl
+    {
+        get
+        {
+            if (Plugin?.GameStoreAppId > 0)
+                return $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg";
+            if (Plugin != null && LocalGameImages.TryGetValue(Plugin.GameId, out var localImage))
+                return $"pack://application:,,,/{localImage}";
+            return "pack://application:,,,/no_image.png";
+        }
+    }
     public string UptimeText => _manager.GetInstance(Server.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
         : "--:--:--";
@@ -558,6 +579,29 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task InstallFromManualDownloadAsync()
     {
         if (Plugin == null) return;
+
+        IsInstalling  = true;
+        Server.Status = ServerStatus.Installing;
+        RefreshStatus();
+        try
+        {
+            Directory.CreateDirectory(Server.InstallPath);
+            var handled = await Plugin.TryCustomInstallAsync(Server, msg => AppendLog(msg, ConsoleMessageType.System));
+            if (handled)
+            {
+                Server.Status = ServerStatus.Stopped;
+                AppendLog($"[WGS] {Loc.InstallDone}", ConsoleMessageType.System);
+                await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog("[ERR] Install failed: " + ex.Message, ConsoleMessageType.Error);
+            Server.Status = ServerStatus.Error;
+            return;
+        }
+        finally { IsInstalling = false; RefreshStatus(); }
 
         if (Plugin.SupportsVersionCheck)
         {
@@ -1871,7 +1915,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     private void AppendLog(string text, ConsoleMessageType type = ConsoleMessageType.Info)
-        => WpfApplication.Current?.Dispatcher?.Invoke(() => Log.Add(new ConsoleMessage { Text = text, Type = type }));
+    {
+        // Split on newlines so batched output (e.g. from BuildTools flush) renders as separate
+        // lines, not one invisible block. BeginInvoke (async) so the calling thread never blocks
+        // waiting for the UI to process the log — this keeps other servers' buttons responsive.
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        WpfApplication.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            foreach (var line in lines)
+                Log.Add(new ConsoleMessage { Text = line, Type = type });
+        });
+    }
 
     public void AppendConsoleWarning(string text)
         => AppendLog(text, ConsoleMessageType.Warning);
