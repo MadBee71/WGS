@@ -40,6 +40,13 @@ public interface IGamePlugin
     /// if this game truly requires a manual install WGS can't automate.</summary>
     Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server);
 
+    /// <summary>For installs that don't fit the "download one zip and extract it" shape — a single
+    /// jar download (Paper, vanilla Minecraft), or running a vendor installer/build step (Forge,
+    /// Fabric, Spigot's BuildTools). Checked before <see cref="GetManualDownloadInfoAsync"/>; if this
+    /// returns true, the plugin handled the whole install itself and the generic zip flow is skipped.
+    /// Returns false for any plugin that doesn't need this (the vast majority).</summary>
+    Task<bool> TryCustomInstallAsync(GameServer server, Action<string> log);
+
     /// <summary>Checks whether a newer build is available than what GameSpecificSettings records as
     /// installed. Returns null if this game doesn't support version checking.</summary>
     Task<string?> CheckForUpdateAsync(GameServer server);

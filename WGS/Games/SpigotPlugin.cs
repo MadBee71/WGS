@@ -1,3 +1,4 @@
+using System.IO;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -16,6 +17,36 @@ public class SpigotPlugin : MinecraftPluginBase
     public override bool   HasRcon          => true;
     public override string MinecraftFlavor  => "spigot";
 
+    private const string BuildToolsUrl = "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar";
+
+    // Spigot has no prebuilt download anywhere — official policy is everyone compiles their own
+    // jar locally from source via BuildTools, which downloads Mojang's mappings and patches them
+    // with CraftBukkit/Spigot's own changes. This is slow (minutes) and needs a JDK, unlike the
+    // other three Minecraft variants which are just a file download.
+    public override async Task<bool> TryCustomInstallAsync(GameServer server, Action<string> log)
+    {
+        var version = S(server, "mcVersion", "");
+
+        var buildToolsPath = Path.Combine(server.InstallPath, "BuildTools.jar");
+        await MinecraftInstallHelper.DownloadFileAsync(BuildToolsUrl, buildToolsPath, log);
+
+        log(string.IsNullOrWhiteSpace(version)
+            ? "[Minecraft] Building latest Spigot from source — this compiles locally and can take several minutes..."
+            : $"[Minecraft] Building Spigot {version} from source — this compiles locally and can take several minutes...");
+
+        var args = string.IsNullOrWhiteSpace(version) ? "--output-dir ." : $"--rev {version} --output-dir .";
+        var ok = await MinecraftInstallHelper.RunJavaAsync(buildToolsPath, args, server.InstallPath, log, timeoutMinutes: 20);
+        if (!ok) { log("[Minecraft] BuildTools failed — check the output above for the actual error."); return false; }
+
+        var newest = MinecraftInstallHelper.FindNewestFile(server.InstallPath, "spigot-*.jar");
+        if (newest == null) { log("[Minecraft] BuildTools finished but no spigot-*.jar was found."); return false; }
+
+        var targetJar = Path.Combine(server.InstallPath, S(server, "jarFile", "server.jar"));
+        File.Copy(newest, targetJar, overwrite: true);
+        MinecraftInstallHelper.WriteEulaIfMissing(server.InstallPath);
+        return true;
+    }
+
     public override string BuildStartArguments(GameServer s)
     {
         var ram = S(s, "ramGb", "4");
@@ -27,6 +58,7 @@ public class SpigotPlugin : MinecraftPluginBase
     {
         ["ramGb"]      = "4",
         ["jarFile"]    = "server.jar",
+        ["mcVersion"]  = "",
         ["difficulty"] = "normal",
         ["gamemode"]   = "survival",
         ["onlineMode"] = "true",
@@ -38,6 +70,8 @@ public class SpigotPlugin : MinecraftPluginBase
         fields.AddRange([
             new() { Key = "ramGb",      Label = "RAM (GB)",   FieldType = ConfigFieldType.Slider,   DefaultValue = "4", Min = 1, Max = 32 },
             new() { Key = "jarFile",    Label = "Spigot JAR", FieldType = ConfigFieldType.Text,     DefaultValue = "server.jar" },
+            new() { Key = "mcVersion",  Label = "Minecraft version", FieldType = ConfigFieldType.Text, DefaultValue = "",
+                    Description = "e.g. 1.21.4. Leave empty for BuildTools' own latest. Compiling takes several minutes — this isn't a simple download." },
             new() { Key = "difficulty", Label = "Difficulty", FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode",FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },

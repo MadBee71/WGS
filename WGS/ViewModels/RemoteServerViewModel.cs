@@ -26,9 +26,11 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
         get
         {
             var plugin = Games.GameRegistry.Get(Info.GameId);
-            return plugin?.GameStoreAppId > 0
-                ? $"https://cdn.akamai.steamstatic.com/steam/apps/{plugin.GameStoreAppId}/capsule_sm_120.jpg"
-                : "pack://application:,,,/no_image.png"; // games with no Steam store page (Minecraft family, etc.)
+            if (plugin?.GameStoreAppId > 0)
+                return $"https://cdn.akamai.steamstatic.com/steam/apps/{plugin.GameStoreAppId}/capsule_sm_120.jpg";
+            if (plugin != null && ServerViewModel.LocalGameImages.TryGetValue(plugin.GameId, out var localImage))
+                return $"pack://application:,,,/{localImage}";
+            return "pack://application:,,,/no_image.png"; // games with no Steam store page and no local logo
         }
     }
 
