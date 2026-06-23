@@ -45,8 +45,8 @@ public class FiveMPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var serverProfile = S(s, "serverProfile");
-        return $"+set serverProfile {serverProfile}";
+        var serverProfile = S(s, "serverProfile", "default");
+        return $"+set serverProfile \"{serverProfile}\"";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
