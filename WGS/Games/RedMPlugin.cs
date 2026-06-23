@@ -45,19 +45,27 @@ public class RedMPlugin : GamePluginBase
 
     // citizen_dir is a launch arg FXServer itself requires to find its RDR3 runtime files —
     // unrelated to server.cfg/resources, so it stays even without our own config generation.
+    // serverProfile lets each WGS-managed server load its own txAdmin profile instead of every
+    // server defaulting to the same "default" profile, which causes them to collide.
     public override string BuildStartArguments(GameServer s)
-        => $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\"";
+    {
+        var serverProfile = S(s, "serverProfile", "default");
+        return $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\" +set serverProfile \"{serverProfile}\"";
+    }
 
     public override string? GetStopCommand(GameServer server) => "quit";
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["buildChannel"] = "recommended",
+        ["serverProfile"] = "default",
+        ["buildChannel"]  = "recommended",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
+        fields.Add(new() { Key = "serverProfile", Label = "TxAdmin Server Profile", FieldType = ConfigFieldType.Text, DefaultValue = "default",
+                            Description = "Server profile to load via txAdmin. Give each RedM server its own unique name here, or they'll all collide on the same \"default\" profile." });
         fields.Add(new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                             DefaultValue = "recommended", Options = ["recommended", "latest"],
                             Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy. The CFX license key, RCON password and everything else are set inside txAdmin itself after first launch — not here." });
