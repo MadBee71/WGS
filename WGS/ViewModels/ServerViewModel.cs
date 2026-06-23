@@ -707,18 +707,22 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task ConnectRconAsync()
     {
         // Swap in a fresh RconService under lock so SendConsoleCommandAsync never sees a half-constructed state
+        var isFxServer = Plugin?.EngineFamily == "fivem";
+
         RconService newRcon;
         await _rconLock.WaitAsync();
         try
         {
             _rcon?.Dispose();
-            _rcon = new RconService();
+            _rcon = new RconService(isFxServer ? RconProtocol.LegacyUdp : RconProtocol.SourceTcp);
             newRcon = _rcon;
         }
         finally { _rconLock.Release(); }
 
-        var ip   = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
-        var port = Server.RconPort > 0 ? Server.RconPort : Server.ServerPort + 10;
+        var ip = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
+        // FXServer's rcon rides on the same UDP port as the game itself — there is no separate
+        // rcon port like Source RCON has.
+        var port = isFxServer ? Server.ServerPort : (Server.RconPort > 0 ? Server.RconPort : Server.ServerPort + 10);
         var ok   = await newRcon.ConnectAsync(ip, port, Server.RconPassword);
 
         RconConnected = ok;

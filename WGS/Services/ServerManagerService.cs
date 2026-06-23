@@ -43,7 +43,9 @@ public class ServerInstance
 
 public class ServerManagerService
 {
-    private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[a-zA-Z]", RegexOptions.Compiled);
+    // CSI sequences (colors, cursor movement) and OSC sequences (terminal title-set, used by
+    // FXServer/txAdmin) — both leak through as garbled text in the embedded console otherwise.
+    private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[a-zA-Z]|\x1B\][^\x07\x1B]*(\x07|\x1B\\)", RegexOptions.Compiled);
     private readonly NetworkMonitorService _network;
     private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
 

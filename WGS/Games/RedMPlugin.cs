@@ -16,6 +16,8 @@ public class RedMPlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon          => true;
     public override bool   SupportsVersionCheck => true;
+    // RedM runs the same FXServer binary as FiveM, including its legacy UDP rcon protocol.
+    public override string EngineFamily     => "fivem";
 
     public override async Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server)
     {
