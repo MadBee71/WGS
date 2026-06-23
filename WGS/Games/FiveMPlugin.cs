@@ -43,10 +43,15 @@ public class FiveMPlugin : GamePluginBase
     // here is just getting FXServer.exe downloaded and started.
     public override Task PreStartAsync(GameServer s) => Task.CompletedTask;
 
-    public override string BuildStartArguments(GameServer s) => "";
+    public override string BuildStartArguments(GameServer s)
+    {
+        var serverProfile = S(s, "serverProfile");
+        return $"+set serverProfile {serverProfile}";
+    }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
+        ["serverProfile"] = "default",
         ["buildChannel"] = "recommended",
     };
 
@@ -54,6 +59,8 @@ public class FiveMPlugin : GamePluginBase
     {
         var fields = BaseFields();
         fields.AddRange([
+            new() { Key = "serverProfile",  Label = "TxAdmin Server Profile",  FieldType = ConfigFieldType.Text, DefaultValue = "default",
+                    Description = "Server profile to load via txadmin." },
             new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                     DefaultValue = "recommended", Options = ["recommended", "latest"],
                     Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy. The CFX license key, RCON password and everything else are set inside txAdmin itself after first launch — not here." },
