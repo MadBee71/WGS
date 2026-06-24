@@ -492,8 +492,16 @@
 
                                 <!-- Wake on Demand -->
                                 <CheckBox IsChecked="{Binding Server.WakeOnDemand}" Style="{StaticResource DarkCheckBox}"
-                                          Content="Wake on demand (start when player connects)" Margin="0,0,0,4"
-                                          ToolTip="Listens on the server port while stopped. Starts the server automatically when a player connection arrives. Only triggers on a direct-IP connect — an offline server can never appear in the game's own server browser, since that list only shows servers that are already running. The connection attempt that wakes the server gets no reply, so it will fail or time out — the player needs to wait for the server to finish starting, then connect again. For games without direct-IP connect, use the Discord bot's !start command, or share the server's status page link — it shows a 'Wake server' button while this is enabled."/>
+                                          Content="Wake on demand" Margin="0,0,0,4"
+                                          ToolTip="Enables wake-on-demand mode. Use the sub-option below to control whether the server starts automatically on incoming connections, or only via the Discord bot !start command / status page Wake button."/>
+                                <CheckBox IsChecked="{Binding Server.WakeOnDemandPortTrigger}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Auto-start on incoming connection (port trigger)" Margin="16,0,0,4"
+                                          IsEnabled="{Binding Server.WakeOnDemand}"
+                                          ToolTip="When enabled, WGS listens on the server port and starts the server automatically when any connection arrives. Disable this if port scanners or bots are causing unwanted restarts — you can still wake the server manually via the Discord bot !start command or the status page Wake button.">
+                                    <CheckBox.Visibility>
+                                        <Binding Path="Server.WakeOnDemand" Converter="{StaticResource BoolToVis}"/>
+                                    </CheckBox.Visibility>
+                                </CheckBox>
 
                                 <!-- Shut down when empty -->
                                 <CheckBox IsChecked="{Binding Server.ShutDownWhenEmpty}" Style="{StaticResource DarkCheckBox}"

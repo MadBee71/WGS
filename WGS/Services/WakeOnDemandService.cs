@@ -31,7 +31,7 @@ public sealed class WakeOnDemandService : IDisposable
     /// <summary>Start wake-on-demand listener for a stopped server.</summary>
     public void Arm(GameServer server)
     {
-        if (!server.WakeOnDemand) return;
+        if (!server.WakeOnDemand || !server.WakeOnDemandPortTrigger) return;
 
         lock (_lock)
         {
