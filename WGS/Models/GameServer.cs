@@ -24,6 +24,7 @@ public class GameServer
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
     public bool AutoStart              { get; set; } = false;
     public bool WakeOnDemand           { get; set; } = false;
+    public bool WakeOnDemandPortTrigger { get; set; } = true;
     public bool ShutDownWhenEmpty      { get; set; } = false;
     public int  ShutDownIdleMinutes    { get; set; } = 10;
     public bool UpdateOnStart          { get; set; } = false;
