@@ -1213,6 +1213,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (restPlugin.LastRestApiError != null)
                 AppendLog($"[REST API] {restPlugin.LastRestApiError}", ConsoleMessageType.Warning);
         }
+        else if (Plugin is Games.IA2SQueryPlugin a2sPlugin)
+        {
+            parsed = await Services.A2SQueryService.QueryPlayersAsync(
+                a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(Server));
+        }
         else
         {
             var cmd = Plugin.GetPlayersCommand();
