@@ -262,16 +262,55 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ["minecraft_fabric"] = "minecraft_fabric.png",
     };
 
+    private string CustomImagePath => Path.Combine(
+        _config.AppDataPath, "server_images", Server.Id + ".png");
+
+    public bool HasCustomImage => File.Exists(CustomImagePath);
+
     public string GameImageUrl
     {
         get
         {
+            if (HasCustomImage)
+                return CustomImagePath;
             if (Plugin?.GameStoreAppId > 0)
                 return $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg";
             if (Plugin != null && LocalGameImages.TryGetValue(Plugin.GameId, out var localImage))
                 return $"pack://application:,,,/{localImage}";
             return "pack://application:,,,/no_image.png";
         }
+    }
+
+    [RelayCommand]
+    private void PickCustomImage()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title  = "Select server image (recommended: 200×200 px)",
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.webp",
+        };
+        if (dlg.ShowDialog() != true) return;
+        var dir = Path.GetDirectoryName(CustomImagePath)!;
+        Directory.CreateDirectory(dir);
+        File.Copy(dlg.FileName, CustomImagePath, overwrite: true);
+        OnPropertyChanged(nameof(GameImageUrl));
+        OnPropertyChanged(nameof(HasCustomImage));
+    }
+
+    [RelayCommand]
+    private void RemoveCustomImage()
+    {
+        if (File.Exists(CustomImagePath)) File.Delete(CustomImagePath);
+        OnPropertyChanged(nameof(GameImageUrl));
+        OnPropertyChanged(nameof(HasCustomImage));
+    }
+
+    internal void CopyCustomImageTo(string targetServerId)
+    {
+        if (!HasCustomImage) return;
+        var targetDir  = Path.Combine(_config.AppDataPath, "server_images");
+        Directory.CreateDirectory(targetDir);
+        File.Copy(CustomImagePath, Path.Combine(targetDir, targetServerId + ".png"), overwrite: true);
     }
     public string UptimeText => _manager.GetInstance(Server.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
@@ -1697,17 +1736,22 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void ExportTemplate(Models.ServerTemplate? template)
     {
         if (template == null) return;
+        var hasImg  = HasCustomImage;
+        var ext     = hasImg ? ".wgst" : ".json";
+        var filter  = hasImg ? "WGS template with image|*.wgst|JSON file|*.json"
+                             : "JSON file|*.json";
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
             Title      = "Export template",
-            Filter     = "JSON file|*.json",
-            FileName   = SanitizeFileName(template.Name) + ".json",
-            DefaultExt = ".json",
+            Filter     = filter,
+            FileName   = SanitizeFileName(template.Name) + ext,
+            DefaultExt = ext,
         };
         if (dlg.ShowDialog() != true) return;
         try
         {
-            _templates.ExportSingle(template.Id, dlg.FileName);
+            _templates.ExportSingle(template.Id, dlg.FileName,
+                hasImg ? CustomImagePath : null);
             AppendLog($"[Template] Exported: {dlg.FileName}", ConsoleMessageType.System);
         }
         catch (Exception ex)
@@ -1721,15 +1765,27 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title     = "Import templates",
-            Filter    = "JSON file|*.json",
+            Title       = "Import templates",
+            Filter      = "WGS template|*.wgst;*.json|All files|*.*",
             Multiselect = true,
         };
         if (dlg.ShowDialog() != true) return;
         int total = 0;
         foreach (var file in dlg.FileNames)
         {
-            try   { total += _templates.Import(file); }
+            try
+            {
+                var imgDir = Path.Combine(_config.AppDataPath, "server_images");
+                var (count, imgPath) = _templates.Import(file, imgDir);
+                total += count;
+                // If image was extracted and a template was imported, rename image to match new template id
+                if (imgPath != null && count > 0)
+                {
+                    var newId = _templates.All.Last().Id;
+                    var dest  = Path.Combine(imgDir, newId + ".png");
+                    if (File.Exists(imgPath)) File.Move(imgPath, dest, overwrite: true);
+                }
+            }
             catch (Exception ex)
             {
                 AppendLog($"[Template] Import failed ({Path.GetFileName(file)}): {ex.Message}",
