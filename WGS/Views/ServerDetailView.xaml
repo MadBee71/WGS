@@ -378,6 +378,7 @@
                                     <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/><RowDefinition Height="12"/>
+                                    <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/>
                                 </Grid.RowDefinitions>
 
@@ -386,19 +387,6 @@
                                     <TextBox Text="{Binding Server.DisplayName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
-                                <!-- Custom server image -->
-                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="Custom server image" Style="{StaticResource FieldLabel}"/>
-                                    <TextBlock Text="Recommended: 200×200 px, PNG or JPG" FontSize="10"
-                                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource GhostButton}" FontSize="10" Height="28" Padding="8,0"
-                                                Content="📁 Choose image" Command="{Binding PickCustomImageCommand}"/>
-                                        <Button Style="{StaticResource GhostButton}" FontSize="10" Height="28" Padding="8,0" Margin="4,0,0,0"
-                                                Content="✕ Remove" Command="{Binding RemoveCustomImageCommand}"
-                                                Visibility="{Binding HasCustomImage, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </StackPanel>
                                 <StackPanel Grid.Row="0" Grid.Column="2">
                                     <TextBlock Text="Server name (in-game)" Style="{StaticResource FieldLabel}"/>
                                     <TextBox Text="{Binding Server.ServerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
@@ -454,6 +442,20 @@
                                              AcceptsReturn="True" TextWrapping="Wrap"
                                              Height="80" VerticalScrollBarVisibility="Auto"
                                              FontFamily="Cascadia Code, Consolas" FontSize="12"/>
+                                </StackPanel>
+
+                                <!-- Custom server image -->
+                                <StackPanel Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3">
+                                    <TextBlock Text="Custom server image" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="Replaces the default game image in the server list. Recommended: 300×110 px (landscape), PNG or JPG."
+                                               FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource GhostButton}" FontSize="11" Height="28" Padding="10,0"
+                                                Content="📁 Choose image" Command="{Binding PickCustomImageCommand}"/>
+                                        <Button Style="{StaticResource GhostButton}" FontSize="11" Height="28" Padding="10,0" Margin="6,0,0,0"
+                                                Content="✕ Remove image" Command="{Binding RemoveCustomImageCommand}"
+                                                Visibility="{Binding HasCustomImage, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Grid>
                         </Border>
