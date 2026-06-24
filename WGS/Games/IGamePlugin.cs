@@ -19,6 +19,7 @@ public interface IGamePlugin
     bool   RequiresSteamLogin { get; }
     string SteamBranch        { get; }  // beta branch for SteamCMD (empty = default branch)
     bool HasRcon { get; }
+    bool HasHeavyInstall { get; }
     bool UseNativeConsole { get; }
 
     // Mod manager support

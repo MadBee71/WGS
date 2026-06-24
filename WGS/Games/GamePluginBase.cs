@@ -18,6 +18,8 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual bool   RequiresSteamLogin => false;
     public virtual string SteamBranch        => string.Empty;
     public virtual bool   HasRcon            => false;
+    /// <summary>True when the install compiles locally (e.g. Spigot/BuildTools) and can lag the machine.</summary>
+    public virtual bool   HasHeavyInstall    => false;
     public virtual bool   UseNativeConsole   => false;
     public virtual bool   SupportsOxide      => false;
     public virtual string MinecraftFlavor    => string.Empty;
