@@ -65,6 +65,8 @@ public class ServerManagerService
     public ServerInstance? GetInstance(string serverId)
         => _running.TryGetValue(serverId, out var i) ? i : null;
 
+    public int RunningCount => _running.Count;
+
     /// <summary>Other currently-running servers in the same group and of the same game, used for ban-list sync.</summary>
     public IEnumerable<GameServer> GetRunningGroupSiblings(GameServer server)
         => _running.Values

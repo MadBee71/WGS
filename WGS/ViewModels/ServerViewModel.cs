@@ -586,11 +586,16 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         try
         {
             Directory.CreateDirectory(Server.InstallPath);
+
+            if (Plugin.HasHeavyInstall && _manager.RunningCount > 0)
+                AppendLog("[WGS] ⚠ Warning: other servers are running. This install compiles code locally and may cause lag — consider stopping them first.", ConsoleMessageType.Warning);
+
             var handled = await Plugin.TryCustomInstallAsync(Server, msg => AppendLog(msg, ConsoleMessageType.System));
             if (handled)
             {
                 Server.Status = ServerStatus.Stopped;
-                AppendLog($"[WGS] {Loc.InstallDone}", ConsoleMessageType.System);
+                WpfApplication.Current?.Dispatcher?.BeginInvoke(() => Log.Clear());
+                AppendLog($"[WGS] ✅ {Loc.InstallDone}", ConsoleMessageType.System);
                 await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
                 return;
             }

@@ -15,6 +15,7 @@ public class SpigotPlugin : MinecraftPluginBase
     public override int    DefaultQueryPort => 25565;
     public override int    DefaultMaxPlayers => 20;
     public override bool   HasRcon          => true;
+    public override bool   HasHeavyInstall  => true;
     public override string MinecraftFlavor  => "spigot";
 
     private const string BuildToolsUrl = "https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar";
