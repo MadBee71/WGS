@@ -286,7 +286,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title  = "Select server image (recommended: 200×200 px)",
+            Title  = "Select server image (recommended: 300×110 px landscape)",
             Filter = "Image files|*.png;*.jpg;*.jpeg;*.webp",
         };
         if (dlg.ShowDialog() != true) return;
