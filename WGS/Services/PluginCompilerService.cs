@@ -104,9 +104,24 @@ public static class PluginCompilerService
             if (best != null) AddAllDlls(refs, best);
         }
 
-        // 3. WGS own assemblies (extracted to temp dir by single-file host)
-        var appBase = AppContext.BaseDirectory;
-        AddAllDlls(refs, appBase);
+        // 3. WGS own assemblies — in single-file publish the DLLs are extracted to a temp
+        // directory, not AppContext.BaseDirectory. Use already-loaded assemblies instead.
+        var loadedPaths = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+            .Select(a => a.Location)
+            .Distinct();
+        foreach (var dll in loadedPaths)
+        {
+            try
+            {
+                AssemblyName.GetAssemblyName(dll);
+                refs.Add(MetadataReference.CreateFromFile(dll));
+            }
+            catch { }
+        }
+
+        // Also try AppContext.BaseDirectory for non-single-file dev runs
+        AddAllDlls(refs, AppContext.BaseDirectory);
 
         return refs;
     }
