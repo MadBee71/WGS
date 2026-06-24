@@ -49,23 +49,27 @@ public class FiveMPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var serverProfile = S(s, "serverProfile", "default");
-        return $"+set serverProfile \"{serverProfile}\"";
+        var serverProfile  = S(s, "serverProfile",  "default");
+        var txAdminPort    = S(s, "txAdminPort",    "40120");
+        return $"+set serverProfile \"{serverProfile}\" +set txAdminPort \"{txAdminPort}\"";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
         ["serverProfile"] = "default",
-        ["buildChannel"] = "recommended",
+        ["buildChannel"]  = "recommended",
+        ["txAdminPort"]   = "40120",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "serverProfile",  Label = "TxAdmin Server Profile",  FieldType = ConfigFieldType.Text, DefaultValue = "default",
-                    Description = "Server profile to load via txadmin." },
-            new() { Key = "buildChannel", Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
+            new() { Key = "serverProfile", Label = "TxAdmin Server Profile", FieldType = ConfigFieldType.Text, DefaultValue = "default",
+                    Description = "Server profile to load via txAdmin." },
+            new() { Key = "txAdminPort",   Label = "TxAdmin Port",           FieldType = ConfigFieldType.Text, DefaultValue = "40120",
+                    Description = "Port txAdmin listens on. Default is 40120. Change if running FiveM and RedM side-by-side to avoid conflicts." },
+            new() { Key = "buildChannel",  Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                     DefaultValue = "recommended", Options = ["recommended", "latest"],
                     Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy. The CFX license key, RCON password and everything else are set inside txAdmin itself after first launch — not here." },
         ]);
