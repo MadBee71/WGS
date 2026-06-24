@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin
+public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId        => "armareforger";
     public override string GameName      => "Arma Reforger";
@@ -19,8 +19,12 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupAHelper.OnModRemovedAsync(s, w, id);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _)      => GroupAHelper.BuildModArguments(ids);
     public override int    DefaultPort      => 2302;
-    public override int    DefaultQueryPort => 7777;
+    public override int    DefaultQueryPort => 17777;
     public override int    DefaultMaxPlayers => 16;
+
+    // A2S query — Reforger exposes Steam Query on -a2sPort instead of RCON
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort;
 
     public override string BuildStartArguments(GameServer s)
     {
