@@ -777,6 +777,7 @@ public partial class MainViewModel : BaseViewModel
         SelectedServer = vm;
         Save();
         RefreshCounts();
+        source.CopyCustomImageTo(clone.Id);
     }
 
     [RelayCommand]

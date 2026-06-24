@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using Newtonsoft.Json;
 using WGS.Models;
 
@@ -120,15 +121,27 @@ public class TemplateService
 
     // ── Export / Import ───────────────────────────────────────────────────────
 
-    /// <summary>Vie yksittäinen template .json-tiedostoon.</summary>
-    public void ExportSingle(string id, string filePath)
+    /// <summary>Export a single template to .json or .wgst (ZIP with image).</summary>
+    public void ExportSingle(string id, string filePath, string? customImagePath = null)
     {
         lock (_lock)
         {
             var t = _templates.FirstOrDefault(t => t.Id == id)
                 ?? throw new InvalidOperationException($"Template {id} not found.");
-            File.WriteAllText(filePath,
-                JsonConvert.SerializeObject(t, Formatting.Indented));
+            var json = JsonConvert.SerializeObject(t, Formatting.Indented);
+
+            if (customImagePath != null && File.Exists(customImagePath))
+            {
+                using var zip = ZipFile.Open(filePath, ZipArchiveMode.Create);
+                var jsonEntry = zip.CreateEntry("template.json");
+                using (var w = new StreamWriter(jsonEntry.Open()))
+                    w.Write(json);
+                zip.CreateEntryFromFile(customImagePath, "server_image.png");
+            }
+            else
+            {
+                File.WriteAllText(filePath, json);
+            }
         }
     }
 
@@ -141,37 +154,55 @@ public class TemplateService
     }
 
     /// <summary>
-    /// Tuo templatet .json-tiedostosta.
-    /// Palauttaa tuotujen templatejen lukumäärän.
-    /// Uudet Id:t generoidaan, jotta törmäyksiä ei tule.
+    /// Import templates from a .json or .wgst file.
+    /// Returns (count, extracted image path or null).
     /// </summary>
-    public int Import(string filePath)
+    public (int Count, string? ImagePath) Import(string filePath, string imageOutputDir)
     {
-        var text = File.ReadAllText(filePath);
-        List<ServerTemplate>? list;
+        string json;
+        string? imagePath = null;
 
-        // Tuki sekä yhden objektin että listan tuonnille
-        var trimmed = text.TrimStart();
-        if (trimmed.StartsWith('['))
-            list = JsonConvert.DeserializeObject<List<ServerTemplate>>(text);
+        if (Path.GetExtension(filePath).Equals(".wgst", StringComparison.OrdinalIgnoreCase))
+        {
+            using var zip = ZipFile.OpenRead(filePath);
+            var jsonEntry = zip.GetEntry("template.json")
+                ?? throw new InvalidOperationException("Invalid .wgst file: missing template.json");
+            using var sr  = new StreamReader(jsonEntry.Open());
+            json = sr.ReadToEnd();
+
+            var imgEntry = zip.GetEntry("server_image.png");
+            if (imgEntry != null)
+            {
+                Directory.CreateDirectory(imageOutputDir);
+                imagePath = Path.Combine(imageOutputDir, "_import_" + Guid.NewGuid() + ".png");
+                imgEntry.ExtractToFile(imagePath, overwrite: true);
+            }
+        }
         else
         {
-            var single = JsonConvert.DeserializeObject<ServerTemplate>(text);
+            json = File.ReadAllText(filePath);
+        }
+
+        List<ServerTemplate>? list;
+        var trimmed = json.TrimStart();
+        if (trimmed.StartsWith('['))
+            list = JsonConvert.DeserializeObject<List<ServerTemplate>>(json);
+        else
+        {
+            var single = JsonConvert.DeserializeObject<ServerTemplate>(json);
             list = single != null ? [single] : null;
         }
 
-        if (list == null || list.Count == 0) return 0;
+        if (list == null || list.Count == 0) return (0, null);
 
         lock (_lock)
         {
             foreach (var t in list)
-            {
-                t.Id = Guid.NewGuid().ToString(); // uusi id, ei ylikirjoita
-                _templates.Add(t);
-            }
+                t.Id = Guid.NewGuid().ToString();
+            _templates.AddRange(list);
             Save();
         }
-        return list.Count;
+        return (list.Count, imagePath);
     }
 
     // ── Delete / Rename ───────────────────────────────────────────────────────
