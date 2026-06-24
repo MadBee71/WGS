@@ -199,16 +199,16 @@
                                                 ToolTip="Clear selection"/>
                                     </StackPanel>
                                     <UniformGrid Rows="2" Columns="2">
-                                        <Button Style="{StaticResource PrimaryButton}" FontSize="10" Height="24" Margin="1"
+                                        <Button Style="{StaticResource PrimaryButton}" FontSize="10" Height="28" Padding="6,0" Margin="1"
                                                 Content="▶ Start" Command="{Binding BatchStartCommand}"
                                                 ToolTip="Start selected servers"/>
-                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="28" Padding="6,0" Margin="1"
                                                 Content="■ Stop" Command="{Binding BatchStopCommand}"
                                                 ToolTip="Stop selected servers"/>
-                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="28" Padding="6,0" Margin="1"
                                                 Content="↺ Restart" Command="{Binding BatchRestartCommand}"
                                                 ToolTip="Restart selected servers"/>
-                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="24" Margin="1"
+                                        <Button Style="{StaticResource SecondaryButton}" FontSize="10" Height="28" Padding="6,0" Margin="1"
                                                 Content="💾 Backup" Command="{Binding BatchBackupCommand}"
                                                 ToolTip="Backup selected servers"/>
                                     </UniformGrid>
