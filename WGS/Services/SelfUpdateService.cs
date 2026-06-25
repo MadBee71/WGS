@@ -28,7 +28,7 @@ public static class SelfUpdateService
         {
             // 1 — download zip with progress reporting
             Report(progress, 5, "Downloading update...");
-            using var http = new HttpClient();
+            using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true });
             http.Timeout = TimeSpan.FromMinutes(5);
             http.DefaultRequestHeaders.UserAgent.Add(
                 new ProductInfoHeaderValue("WGS", UpdateCheckerService.GetCurrentVersion()));
