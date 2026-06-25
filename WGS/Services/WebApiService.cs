@@ -47,6 +47,14 @@ public class WebApiService : IDisposable
     /// <summary>Restores a backup by filename for a server. Returns error message or null on success.</summary>
     public Func<string, string, Task<string?>>? RestoreBackup { get; set; }
     public Func<string, int, IEnumerable<(DateTime time, double cpu, long memMb)>>? GetPerfSamples { get; set; }
+    /// <summary>Save a note for a server. Returns error or null on success.</summary>
+    public Func<string, string, Task<string?>>? SaveNote { get; set; }
+    /// <summary>Returns all scheduled tasks.</summary>
+    public Func<IEnumerable<ScheduledTask>>? GetScheduledTasks { get; set; }
+    /// <summary>Manually trigger a scheduled task by id. Returns error or null on success.</summary>
+    public Func<string, Task<string?>>? RunScheduledTask { get; set; }
+    /// <summary>Returns all log lines for a server (for download).</summary>
+    public Func<string, IEnumerable<string>>? GetFullLog { get; set; }
 
     /// <summary>True when listener bound to all interfaces (reachable from network); false = localhost only.</summary>
     public bool BoundToAllInterfaces { get; private set; }
@@ -262,7 +270,8 @@ public class WebApiService : IDisposable
                 var servers = GetServers?.Invoke() ?? [];
                 await SendJson(resp, servers.Select(s => new {
                     s.Id, s.DisplayName, s.GameId, Status = s.Status.ToString(),
-                    s.ServerPort, s.MaxPlayers, s.CurrentPlayers }));
+                    s.ServerPort, s.MaxPlayers, s.CurrentPlayers,
+                    Notes = s.Notes ?? "" }));
                 return;
             }
 
@@ -281,6 +290,7 @@ public class WebApiService : IDisposable
                     srv.ServerPort, srv.MaxPlayers, srv.CurrentPlayers,
                     Uptime = uptime ?? "--:--:--",
                     Players = players,
+                    Notes  = srv.Notes ?? "",
                 });
                 return;
             }
@@ -360,6 +370,70 @@ public class WebApiService : IDisposable
                 var err = RestoreBackup != null ? await RestoreBackup(serverId, fileName) : "Restore not available";
                 if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
                 Users?.WriteAudit(authedUser?.Username ?? "api", "restore", $"server={serverId} file={fileName}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // GET /api/servers/{id}/log/download — full log as text file
+            var dlParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (req.HttpMethod == "GET" && dlParts.Length == 5
+                && dlParts[0] == "api" && dlParts[1] == "servers" && dlParts[3] == "log" && dlParts[4] == "download")
+            {
+                var serverId = dlParts[2];
+                var lines    = GetFullLog?.Invoke(serverId) ?? [];
+                var text     = string.Join("\n", lines);
+                var bytes    = System.Text.Encoding.UTF8.GetBytes(text);
+                resp.ContentType     = "text/plain; charset=utf-8";
+                resp.ContentLength64 = bytes.Length;
+                resp.Headers["Content-Disposition"] = $"attachment; filename=\"{serverId}_console.log\"";
+                await resp.OutputStream.WriteAsync(bytes);
+                resp.Close();
+                return;
+            }
+
+            // GET /api/scheduled-tasks
+            if (req.HttpMethod == "GET" && path == "/api/scheduled-tasks")
+            {
+                var tasks = GetScheduledTasks?.Invoke() ?? [];
+                await SendJson(resp, tasks.Select(t => new {
+                    t.Id, t.ServerId, t.ServerName,
+                    action    = t.ActionText,
+                    frequency = t.FrequencyText,
+                    t.IsEnabled,
+                    lastRun = t.LastRun?.ToString("yyyy-MM-dd HH:mm"),
+                    nextRun = t.NextRun?.ToString("yyyy-MM-dd HH:mm")
+                }));
+                return;
+            }
+
+            // POST /api/scheduled-tasks/{id}/run
+            var stParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (req.HttpMethod == "POST" && stParts.Length == 4
+                && stParts[0] == "api" && stParts[1] == "scheduled-tasks" && stParts[3] == "run")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var taskId = stParts[2];
+                var err    = RunScheduledTask != null ? await RunScheduledTask(taskId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "run_scheduled_task", $"id={taskId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // PATCH /api/servers/{id}/notes  body: { "notes": "..." }
+            var notesParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (req.HttpMethod == "PATCH" && notesParts.Length == 4
+                && notesParts[0] == "api" && notesParts[1] == "servers" && notesParts[3] == "notes")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = notesParts[2];
+                using var nr = new System.IO.StreamReader(req.InputStream);
+                var nbody    = await nr.ReadToEndAsync();
+                var ndoc     = JsonDocument.Parse(nbody.Length > 0 ? nbody : "{}");
+                var notes    = ndoc.RootElement.TryGetProperty("notes", out var nv) ? nv.GetString() ?? "" : "";
+                if (notes.Length > 2000) notes = notes[..2000];
+                var nerr = SaveNote != null ? await SaveNote(serverId, notes) : "Not available";
+                if (nerr != null) { resp.StatusCode = 400; await SendJson(resp, new { error = nerr }); return; }
                 await SendJson(resp, new { ok = true });
                 return;
             }
@@ -649,12 +723,48 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .toast{position:fixed;bottom:20px;right:20px;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
 .toast.show{opacity:1}
 .toast.err-t{background:#da3633}
+/* Notes */
+.notes-wrap{padding:6px 16px 10px;border-top:1px solid #21262d}
+.notes-toggle{background:none;border:none;color:#8b949e;font-size:11px;cursor:pointer;padding:4px 16px 8px;display:block;width:100%;text-align:left}
+.notes-toggle:hover{color:#e6edf3}
+.notes-area{display:none;flex-direction:column;gap:5px}
+.notes-area.open{display:flex}
+.notes-area textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:7px 10px;color:#e6edf3;font-size:12px;font-family:'Segoe UI',system-ui,sans-serif;resize:vertical;min-height:64px;outline:none;transition:border-color .15s}
+.notes-area textarea:focus{border-color:#58a6ff}
+.notes-save{align-self:flex-end;background:#238636;border:none;border-radius:6px;padding:4px 14px;color:#fff;font-size:12px;cursor:pointer}
+.notes-save:hover{background:#2ea043}
+/* Scheduled tasks */
+.sched-section{margin-top:22px}
+.sched-list{display:flex;flex-direction:column;gap:8px}
+.sched-item{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sched-item .si-name{font-size:13px;font-weight:600;flex:1;min-width:120px}
+.sched-item .si-meta{font-size:11px;color:#8b949e;display:flex;gap:14px;flex-wrap:wrap}
+.sched-item .si-tag{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#c9d1d9}
+.sched-item .si-disabled{opacity:.45}
+/* Player list panel */
+.players-panel{padding:6px 16px 10px;border-top:1px solid #21262d;display:none}
+.players-panel.open{display:block}
+.players-toggle{background:none;border:none;color:#8b949e;font-size:11px;cursor:pointer;padding:4px 16px 8px;display:block;width:100%;text-align:left}
+.players-toggle:hover{color:#e6edf3}
+.player-row{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #21262d18;font-size:12px;align-items:center}
+.player-row:last-child{border-bottom:none}
+.player-row .pn{color:#e6edf3;flex:1}
+.player-row .pp{color:#8b949e;font-size:11px;width:48px;text-align:right}
+.player-row .pt{color:#8b949e;font-size:11px;width:64px;text-align:right}
 /* Responsive */
-@media(max-width:600px){
+@media(max-width:640px){
   .hdr{padding:10px 14px}
   .main{padding:12px 14px}
   .sysbar{grid-template-columns:repeat(2,1fr)}
   .srv-grid{grid-template-columns:1fr}
+  .srv-btns{gap:4px}
+  .btn{padding:7px 10px;font-size:12px;flex:1 1 auto}
+  .sched-item{flex-direction:column;align-items:flex-start}
+  .si-meta{flex-direction:column;gap:4px}
+}
+@media(max-width:360px){
+  .sysbar{grid-template-columns:1fr 1fr}
+  .hdr-title{font-size:14px}
 }
 </style>
 </head>
@@ -701,6 +811,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
       </select>
     </div>
     <div class="srv-grid" id="srvGrid"></div>
+
+    <!-- Scheduled tasks -->
+    <div class="sched-section" id="schedSection" style="display:none">
+      <div class="sec-hdr" style="margin-top:10px">
+        <h2>Scheduled Tasks</h2>
+      </div>
+      <div class="sched-list" id="schedList"></div>
+    </div>
   </div>
 </div>
 
@@ -734,6 +852,7 @@ async function api(path,method,body){
 async function loadAll(){
   try{
     const[sv,sys]=await Promise.all([api('servers'),api('system')]);
+    loadScheduled();
     document.getElementById('conBadge').textContent='Connected';
     document.getElementById('conBadge').className='badge ok';
     document.getElementById('authWrap').style.display='none';
@@ -840,12 +959,24 @@ function upsertCard(s){
   <button class="btn bo" onclick="toggleBackups('${s.Id}')">📂 Backups</button>
 </div>
 <div id="bkrow_${s.Id}" style="display:none;padding:6px 16px;border-top:1px solid #21262d"></div>
+<button class="players-toggle" id="pltog_${s.Id}" onclick="togglePlayers('${s.Id}')">▼ Players (0)</button>
+<div class="players-panel" id="plpanel_${s.Id}"></div>
 <div class="con-row">
   <input id="c_${s.Id}" placeholder="Console command…">
   <button class="btn bo" onclick="sendCmd('${s.Id}')">Send</button>
 </div>
-<button class="log-toggle" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+  <button class="log-toggle" style="padding:4px 0;flex:1;text-align:left" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
+  <a href="/api/servers/${s.Id}/log/download" style="font-size:11px;color:#8b949e;text-decoration:none;padding:4px 0 4px 8px" title="Download log">⬇ Download</a>
+</div>
 <div class="log-box" id="log_${s.Id}"></div>
+<button class="notes-toggle" onclick="toggleNotes('${s.Id}')">📝 Notes</button>
+<div class="notes-wrap" style="padding-top:0">
+  <div class="notes-area" id="notes_${s.Id}">
+    <textarea id="ntxt_${s.Id}" placeholder="Server notes…" rows="3"></textarea>
+    <button class="notes-save" onclick="saveNotes('${s.Id}')">Save</button>
+  </div>
+</div>
 `;
     grid.appendChild(card);
   }
@@ -870,6 +1001,7 @@ function upsertCard(s){
 }
 
 // ── Server detail (uptime + players) ─────────────────────────────────────
+const _serverNotes={};
 async function fetchDetail(id){
   try{
     const d=await api('servers/'+id);
@@ -877,13 +1009,84 @@ async function fetchDetail(id){
     if(el){el.textContent='Uptime: '+d.Uptime;el.style.display='block';}
     const plEl=document.getElementById('pl_'+id);
     if(plEl)plEl.textContent=d.Players.length+'/'+d.MaxPlayers;
+    // Old pills row (hidden, kept for compat)
     const row=document.getElementById('plrow_'+id);
-    if(row){
-      row.innerHTML=d.Players.map(p=>
-        `<span class="player-pill">${esc(p.Name)}<span class="ping"> ${p.Ping>0?p.Ping+'ms':''}</span></span>`
-      ).join('');
-    }
+    if(row)row.innerHTML='';
+    // Player toggle label
+    const pltog=document.getElementById('pltog_'+id);
+    if(pltog)pltog.textContent=(d.Players.length>0?'▼':'▼')+' Players ('+d.Players.length+')';
+    // Player panel (if open)
+    const plpanel=document.getElementById('plpanel_'+id);
+    if(plpanel&&plpanel.classList.contains('open'))renderPlayerPanel(id,d.Players,d.MaxPlayers);
+    // Notes — init once
+    const ntxt=document.getElementById('ntxt_'+id);
+    if(ntxt&&_serverNotes[id]==null){_serverNotes[id]=d.Notes||'';ntxt.value=_serverNotes[id];}
   }catch(e){}
+}
+
+function renderPlayerPanel(id,players,maxPlayers){
+  const plpanel=document.getElementById('plpanel_'+id);
+  if(!plpanel)return;
+  if(players.length===0){plpanel.innerHTML='<div style="font-size:12px;color:#8b949e;padding:2px 0">No players online.</div>';return;}
+  plpanel.innerHTML='<div class="player-row" style="font-size:10px;color:#8b949e;font-weight:600"><span class="pn">Name</span><span class="pp">Ping</span><span class="pt">Connected</span></div>'+
+    players.map(p=>`<div class="player-row"><span class="pn">${esc(p.Name)}</span><span class="pp">${p.Ping>0?p.Ping+'ms':'—'}</span><span class="pt">${p.ConnectedText||'—'}</span></div>`).join('');
+}
+
+function togglePlayers(id){
+  const panel=document.getElementById('plpanel_'+id);
+  const tog=document.getElementById('pltog_'+id);
+  if(!panel)return;
+  if(panel.classList.contains('open')){panel.classList.remove('open');return;}
+  panel.classList.add('open');
+  // Refresh immediately
+  api('servers/'+id).then(d=>{
+    const pltog=document.getElementById('pltog_'+id);
+    if(pltog)pltog.textContent='▼ Players ('+d.Players.length+')';
+    renderPlayerPanel(id,d.Players,d.MaxPlayers);
+  }).catch(()=>{});
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────
+function toggleNotes(id){
+  const area=document.getElementById('notes_'+id);
+  if(!area)return;
+  area.classList.toggle('open');
+}
+async function saveNotes(id){
+  const ntxt=document.getElementById('ntxt_'+id);
+  if(!ntxt)return;
+  try{
+    await api('servers/'+id+'/notes','PATCH',{notes:ntxt.value});
+    _serverNotes[id]=ntxt.value;
+    toast('Notes saved');
+  }catch(e){toast('Save failed',true);}
+}
+
+// ── Scheduled tasks ───────────────────────────────────────────────────────
+async function loadScheduled(){
+  try{
+    const tasks=await api('scheduled-tasks');
+    const sec=document.getElementById('schedSection');
+    const list=document.getElementById('schedList');
+    if(!tasks||tasks.length===0){if(sec)sec.style.display='none';return;}
+    if(sec)sec.style.display='';
+    list.innerHTML=tasks.map(t=>`
+<div class="sched-item${t.IsEnabled?'':' si-disabled'}">
+  <div class="si-name">${esc(t.serverName)} — ${esc(t.action)}</div>
+  <div class="si-meta">
+    <span>${esc(t.frequency)}</span>
+    ${t.lastRun?`<span>Last: ${esc(t.lastRun)}</span>`:''}
+    ${t.nextRun?`<span>Next: ${esc(t.nextRun)}</span>`:''}
+    ${!t.IsEnabled?'<span style="color:#f85149">Disabled</span>':''}
+  </div>
+  <button class="btn bo" style="white-space:nowrap" onclick="runTask('${t.Id}')">▶ Run now</button>
+</div>`).join('');
+  }catch(e){}
+}
+async function runTask(id){
+  if(!confirm('Run this scheduled task now?'))return;
+  try{await api('scheduled-tasks/'+id+'/run','POST');toast('Task triggered');}
+  catch(e){toast('Failed: '+e,true);}
 }
 
 // ── Mini CPU sparkline ────────────────────────────────────────────────────

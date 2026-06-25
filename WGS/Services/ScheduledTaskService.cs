@@ -101,6 +101,13 @@ public class ScheduledTaskService : IDisposable
         }
     }
 
+    public async Task ExecuteNowAsync(string taskId)
+    {
+        ScheduledTask? task;
+        lock (_lock) { task = _tasks.FirstOrDefault(t => t.Id == taskId); }
+        if (task != null) await ExecuteTaskAsync(task);
+    }
+
     private async Task CheckTasksAsync()
     {
         var now = DateTime.Now;
