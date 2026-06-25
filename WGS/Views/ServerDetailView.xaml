@@ -379,6 +379,7 @@
                                     <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/><RowDefinition Height="12"/>
+                                    <RowDefinition/><RowDefinition Height="12"/>
                                     <RowDefinition/>
                                 </Grid.RowDefinitions>
 
@@ -444,8 +445,18 @@
                                              FontFamily="Cascadia Code, Consolas" FontSize="12"/>
                                 </StackPanel>
 
+                                <!-- Notes -->
+                                <StackPanel Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,12">
+                                    <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Server.Notes, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource DarkTextBox}"
+                                             AcceptsReturn="True" TextWrapping="Wrap"
+                                             Height="72" VerticalScrollBarVisibility="Auto"
+                                             FontSize="12"/>
+                                </StackPanel>
+
                                 <!-- Custom server image -->
-                                <StackPanel Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3">
+                                <StackPanel Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="3">
                                     <TextBlock Text="Custom server image" Style="{StaticResource FieldLabel}"/>
                                     <TextBlock Text="Replaces the default game image in the server list. Recommended: 300×110 px (landscape), PNG or JPG."
                                                FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" TextWrapping="Wrap"/>
