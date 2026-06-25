@@ -345,6 +345,41 @@ public partial class MainViewModel : BaseViewModel
             catch (Exception ex) { return ex.Message; }
         };
 
+        _webApi.SaveNote = async (id, notes) =>
+        {
+            GameServer? srv = null;
+            List<GameServer>? all = null;
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                srv = FindServer(id)?.Server;
+                if (srv != null) { srv.Notes = notes; all = Servers.Select(v => v.Server).ToList(); }
+            });
+            if (srv == null) return "Server not found";
+            await Task.Run(() => _config.SaveServers(all!));
+            return null;
+        };
+
+        _webApi.GetScheduledTasks = () => _scheduler.Tasks;
+
+        _webApi.RunScheduledTask = async (taskId) =>
+        {
+            var task = _scheduler.Tasks.FirstOrDefault(t => t.Id == taskId);
+            if (task == null) return "Task not found";
+            await _scheduler.ExecuteNowAsync(taskId);
+            return null;
+        };
+
+        _webApi.GetFullLog = id =>
+        {
+            List<string>? lines = null;
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                var vm = FindServer(id);
+                lines = vm?.Log.Select(m => $"[{m.FormattedTime}] {m.Text}").ToList();
+            });
+            return lines ?? [];
+        };
+
         // Wire RemoteMachineService
         foreach (var machine in _remoteMachines.Machines)
             RemoteMachines.Add(new MachineViewModel(machine, _remoteMachines));

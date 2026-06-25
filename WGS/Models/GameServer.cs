@@ -65,6 +65,7 @@ public class GameServer
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastStarted { get; set; }
     public string GroupId { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
     /// <summary>Saved console command shortcuts shown as one-click buttons in the Console tab.</summary>
     public List<QuickCommand> QuickCommands { get; set; } = [];
 
