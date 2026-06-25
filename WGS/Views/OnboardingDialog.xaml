@@ -12,24 +12,30 @@
             <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,10">
                 Windows Game Server manages dedicated game servers from one panel. Quick start:
             </TextBlock>
-            <StackPanel Margin="0,0,0,16">
-                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
-                    <Run Text="1." FontWeight="Bold" Foreground="#58A6FF"/>
-                    <Run Text=" Click '+ Add Server', pick a game, give it a descriptive name."/>
-                </TextBlock>
-                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
-                    <Run Text="2." FontWeight="Bold" Foreground="#58A6FF"/>
-                    <Run Text=" Click 'Install / Update' — WGS downloads SteamCMD and the server automatically."/>
-                </TextBlock>
-                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8">
-                    <Run Text="3." FontWeight="Bold" Foreground="#58A6FF"/>
-                    <Run Text=" Use the Settings tab for ports/password, Console to send commands, and Schedule for automatic restarts/backups."/>
-                </TextBlock>
-                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9">
-                    <Run Text="4." FontWeight="Bold" Foreground="#58A6FF"/>
-                    <Run Text=" Game isn't on the list? Use the 🎮 Plugin Creator wizard in the bottom toolbar."/>
-                </TextBlock>
-            </StackPanel>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="22"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="1." FontWeight="Bold" FontSize="13" Foreground="#58A6FF" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Click '+ Add Server', pick a game, give it a descriptive name." TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="2." FontWeight="Bold" FontSize="13" Foreground="#58A6FF" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Click 'Install / Update' — WGS downloads SteamCMD and the server automatically." TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="3." FontWeight="Bold" FontSize="13" Foreground="#58A6FF" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="Use the Settings tab for ports/password, Console to send commands, and Schedule for automatic restarts/backups." TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="4." FontWeight="Bold" FontSize="13" Foreground="#58A6FF"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="Game isn't on the list? Use the 🎮 Plugin Creator wizard in the bottom toolbar." TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9"/>
+            </Grid>
             <CheckBox x:Name="DontShowAgainCheck" Content="Don't show this again" Foreground="#8b949e" FontSize="12" Margin="0,0,0,16"/>
             <Button Content="Got it" HorizontalAlignment="Right" Width="100" Height="34"
                     Background="#238636" Foreground="White" BorderThickness="0"
