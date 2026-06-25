@@ -696,8 +696,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .player-pill{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9}
 .player-pill .ping{color:#8b949e;font-size:10px}
 /* Action buttons */
-.srv-btns{padding:10px 16px;display:flex;gap:5px;border-top:1px solid #21262d;flex-wrap:nowrap}
-.btn{border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;white-space:nowrap}
+.srv-btns{padding:10px 16px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;border-top:1px solid #21262d}
+.btn{border:none;border-radius:6px;padding:5px 4px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;white-space:nowrap;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:500px){
+  .srv-btns{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .btn:hover:not(:disabled){opacity:.85}
 .bg{background:#238636;color:#fff}
@@ -757,7 +760,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
   .main{padding:12px 14px}
   .sysbar{grid-template-columns:repeat(2,1fr)}
   .srv-grid{grid-template-columns:1fr}
-  .srv-btns{gap:3px;padding:8px 10px}
   .btn{font-size:11px}
   .sched-item{flex-direction:column;align-items:flex-start}
   .si-meta{flex-direction:column;gap:4px}
