@@ -671,7 +671,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .sec-hdr h2{font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
 .sortsel{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer}
 /* Server grid */
-.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
 .srv{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;transition:border-color .15s}
 .srv:hover{border-color:#58a6ff44}
 /* Server card top */
@@ -696,8 +696,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .player-pill{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9}
 .player-pill .ping{color:#8b949e;font-size:10px}
 /* Action buttons */
-.srv-btns{padding:10px 16px;display:flex;flex-wrap:wrap;gap:5px;border-top:1px solid #21262d}
-.btn{border:none;border-radius:6px;padding:5px 11px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s}
+.srv-btns{padding:8px 12px;display:flex;gap:4px;border-top:1px solid #21262d}
+.btn{border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;flex:1;min-width:0;white-space:nowrap}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .btn:hover:not(:disabled){opacity:.85}
 .bg{background:#238636;color:#fff}
@@ -757,8 +757,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
   .main{padding:12px 14px}
   .sysbar{grid-template-columns:repeat(2,1fr)}
   .srv-grid{grid-template-columns:1fr}
-  .srv-btns{gap:4px}
-  .btn{padding:7px 10px;font-size:12px;flex:1 1 auto}
+  .srv-btns{gap:3px;padding:8px 10px}
+  .btn{font-size:11px}
   .sched-item{flex-direction:column;align-items:flex-start}
   .si-meta{flex-direction:column;gap:4px}
 }
