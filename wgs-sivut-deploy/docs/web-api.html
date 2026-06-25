@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -73,41 +73,41 @@
 
     <header>
         <h1>Web Dashboard &amp; REST API</h1>
-        <p>WGS includes a built-in HTTP server — accessible from any browser or script. Monitor and control your servers remotely from any device, including mobile phones.</p>
+        <p>WGS includes a built-in HTTP server â€” accessible from any browser or script. Monitor and control your servers remotely from any device, including mobile phones.</p>
     </header>
 
     <div class="content-block">
-        <h3>⚙️ Enabling the Web API</h3>
+        <h3>âš™ï¸ Enabling the Web API</h3>
         <ol>
-            <li>Open WGS and go to <strong>Settings → Web Remote Control</strong>.</li>
+            <li>Open WGS and go to <strong>Settings â†’ Web Remote Control</strong>.</li>
             <li>Check <strong>Enable Web API</strong> and choose a port (default: <code>8765</code>).</li>
             <li>An access token is generated automatically. Copy or customise it.</li>
-            <li>Click <strong>Save</strong> — the server starts immediately and the status indicator turns green.</li>
+            <li>Click <strong>Save</strong> â€” the server starts immediately and the status indicator turns green.</li>
             <li>Navigate to <code>http://localhost:8765/ui</code> in any browser to open the dashboard.</li>
         </ol>
     </div>
 
     <div class="info-box">
-        <strong>Authentication:</strong> All API requests require the header <code>Authorization: Bearer &lt;your-token&gt;</code>. The token is shown in Settings → Web Remote Control. Individual users can also be created with their own tokens in <strong>Settings → User Management</strong>.
+        <strong>Authentication:</strong> All API requests require the header <code>Authorization: Bearer &lt;your-token&gt;</code>. The token is shown in Settings â†’ Web Remote Control. Individual users can also be created with their own tokens in <strong>Settings â†’ User Management</strong>.
     </div>
 
     <h2>Browser Dashboard</h2>
     <div class="content-block">
-        <h3>🌐 http://your-ip:8765/ui</h3>
-        <p>The web dashboard provides a full management interface accessible from any browser — no installation needed on the remote device.</p>
+        <h3>ðŸŒ http://your-ip:8765/ui</h3>
+        <p>The web dashboard provides a full management interface accessible from any browser â€” no installation needed on the remote device.</p>
         <ul>
             <li>Real-time server status, CPU, RAM, and player count</li>
             <li>Start, stop, and restart servers with one click</li>
             <li>Live console log viewer and command input</li>
             <li>Network bandwidth graphs per server</li>
             <li>Auto-refreshes every 5 seconds</li>
-            <li><span class="new-tag">v1.2.5</span> Sortable server grid (A→Z, Z→A, by game, by status) — remembered in the browser</li>
+            <li><span class="new-tag">v1.2.5</span> Sortable server grid (Aâ†’Z, Zâ†’A, by game, by status) â€” remembered in the browser</li>
             <li><span class="new-tag">v1.2.5</span> Live mini CPU graph on each running server's card</li>
-            <li><span class="new-tag">v1.2.5.31</span> <strong>Player list panel</strong> — expand to see all online players with ping and connected time</li>
-            <li><span class="new-tag">v1.2.5.31</span> <strong>Server notes</strong> — write and save per-server notes directly from the dashboard</li>
-            <li><span class="new-tag">v1.2.5.31</span> <strong>Log download</strong> — download the full console log as a text file with one click</li>
-            <li><span class="new-tag">v1.2.5.31</span> <strong>Scheduled tasks panel</strong> — view all scheduled tasks and trigger any of them manually</li>
-            <li><span class="new-tag">v1.2.5.31</span> Improved mobile layout — larger touch targets, better wrapping on small screens</li>
+            <li><span class="new-tag">v1.2.5.32</span> <strong>Player list panel</strong> â€” expand to see all online players with ping and connected time</li>
+            <li><span class="new-tag">v1.2.5.32</span> <strong>Server notes</strong> â€” write and save per-server notes directly from the dashboard</li>
+            <li><span class="new-tag">v1.2.5.32</span> <strong>Log download</strong> â€” download the full console log as a text file with one click</li>
+            <li><span class="new-tag">v1.2.5.32</span> <strong>Scheduled tasks panel</strong> â€” view all scheduled tasks and trigger any of them manually</li>
+            <li><span class="new-tag">v1.2.5.32</span> Improved mobile layout â€” larger touch targets, better wrapping on small screens</li>
         </ul>
     </div>
 
@@ -131,14 +131,14 @@
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/restore</code></td><td>Restore a backup. Body: <code>{"backup":"2024-01-15_valheim.zip"}</code>. Stop the server first.</td></tr>
                 <tr><td><span class="badge post">POST</span></td><td><code>/api/servers/{id}/cmd</code></td><td>Send a console command. Body: <code>{"command":"say hello"}</code></td></tr>
                 <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}/perf?minutes=N</code></td><td><span class="new-tag">v1.2.5</span> CPU/RAM history samples for the last N minutes (default 5).</td></tr>
-                <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}/log/download</code></td><td><span class="new-tag">v1.2.5.31</span> Download the full console log as a plain text file.</td></tr>
-                <tr><td><span class="badge">PATCH</span></td><td><code>/api/servers/{id}/notes</code></td><td><span class="new-tag">v1.2.5.31</span> Save server notes. Body: <code>{"notes":"text"}</code>. Max 2000 chars.</td></tr>
+                <tr><td><span class="badge get">GET</span></td><td><code>/api/servers/{id}/log/download</code></td><td><span class="new-tag">v1.2.5.32</span> Download the full console log as a plain text file.</td></tr>
+                <tr><td><span class="badge">PATCH</span></td><td><code>/api/servers/{id}/notes</code></td><td><span class="new-tag">v1.2.5.32</span> Save server notes. Body: <code>{"notes":"text"}</code>. Max 2000 chars.</td></tr>
             </tbody>
         </table></div>
     </div>
 
     <div class="content-block">
-        <h3>Scheduled Tasks <span class="new-tag">v1.2.5.31</span></h3>
+        <h3>Scheduled Tasks <span class="new-tag">v1.2.5.32</span></h3>
         <div class="tbl-wrap"><table>
             <thead>
                 <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
