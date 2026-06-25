@@ -671,7 +671,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .sec-hdr h2{font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
 .sortsel{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer}
 /* Server grid */
-.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
+.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px}
 .srv{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;transition:border-color .15s}
 .srv:hover{border-color:#58a6ff44}
 /* Server card top */
@@ -696,8 +696,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .player-pill{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:11px;color:#c9d1d9}
 .player-pill .ping{color:#8b949e;font-size:10px}
 /* Action buttons */
-.srv-btns{padding:8px 12px;display:flex;gap:4px;border-top:1px solid #21262d}
-.btn{border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;flex:1;min-width:0;white-space:nowrap}
+.srv-btns{padding:10px 16px;display:flex;gap:5px;border-top:1px solid #21262d;flex-wrap:nowrap}
+.btn{border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;white-space:nowrap}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .btn:hover:not(:disabled){opacity:.85}
 .bg{background:#238636;color:#fff}
@@ -965,9 +965,9 @@ function upsertCard(s){
   <input id="c_${s.Id}" placeholder="Console command…">
   <button class="btn bo" onclick="sendCmd('${s.Id}')">Send</button>
 </div>
-<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px">
-  <button class="log-toggle" style="padding:4px 0;flex:1;text-align:left" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
-  <button class="btn bo" style="font-size:11px;padding:2px 8px" onclick="downloadLog('${s.Id}')" title="Download full log">⬇ Log</button>
+<div style="display:flex;align-items:center;border-top:1px solid #21262d">
+  <button class="log-toggle" style="padding:4px 16px 8px;flex:1;text-align:left;border-top:none" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
+  <button onclick="downloadLog('${s.Id}')" style="background:none;border:none;color:#8b949e;font-size:11px;cursor:pointer;padding:4px 16px 8px" title="Download full log">⬇ Download</button>
 </div>
 <div class="log-box" id="log_${s.Id}"></div>
 <button class="notes-toggle" onclick="toggleNotes('${s.Id}')">📝 Notes</button>
