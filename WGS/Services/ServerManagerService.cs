@@ -454,47 +454,13 @@ public class ServerManagerService
             // CreateNoWindow only suppresses the console host; some servers (e.g. Rust)
             // still create a Win32 window via AllocConsole/CreateWindow internally.
             // Poll until the window appears, then hide it completely.
-            _ = Task.Run(async () =>
-            {
-                for (int i = 0; i < 30 && !proc.HasExited; i++) // up to 15 seconds
-                {
-                    await Task.Delay(500);
-                    try
-                    {
-                        proc.Refresh();
-                        var hwnd = proc.MainWindowHandle;
-                        if (hwnd != IntPtr.Zero)
-                        {
-                            ShowWindow(hwnd, SW_HIDE);
-                            break;
-                        }
-                    }
-                    catch { break; }
-                }
-            });
+            _ = ApplyWindowStyleAsync(proc, SW_HIDE, 30);
         }
         else
         {
             // Native-console server: has its own useful console window.
             // Minimize to taskbar without stealing focus â€” user can open it with Console button.
-            _ = Task.Run(async () =>
-            {
-                for (int i = 0; i < 20 && !proc.HasExited; i++) // up to 10 seconds
-                {
-                    await Task.Delay(500);
-                    try
-                    {
-                        proc.Refresh();
-                        var hwnd = proc.MainWindowHandle;
-                        if (hwnd != IntPtr.Zero)
-                        {
-                            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
-                            break;
-                        }
-                    }
-                    catch { break; }
-                }
-            });
+            _ = ApplyWindowStyleAsync(proc, SW_SHOWMINNOACTIVE, 20);
         }
 
         // Apply CPU affinity
@@ -651,6 +617,26 @@ public class ServerManagerService
             try { _running[id].Process?.Kill(entireProcessTree: true); } catch { }
         }
         _running.Clear();
+    }
+
+
+    private static async Task ApplyWindowStyleAsync(System.Diagnostics.Process proc, int showCmd, int maxAttempts)
+    {
+        try
+        {
+            for (int i = 0; i < maxAttempts && !proc.HasExited; i++)
+            {
+                await Task.Delay(500);
+                try
+                {
+                    proc.Refresh();
+                    var hwnd = proc.MainWindowHandle;
+                    if (hwnd != IntPtr.Zero) { ShowWindow(hwnd, showCmd); return; }
+                }
+                catch { return; }
+            }
+        }
+        catch { }
     }
 
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);

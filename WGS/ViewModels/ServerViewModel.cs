@@ -83,7 +83,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             .Select(h => new HourBar { Hour = h, Count = hourly[h], HeightFraction = hourly[h] / (double)max })
             .ToList();
     }
-    [ObservableProperty] private bool   _playersBusy;
     [ObservableProperty] private string _kickReason  = string.Empty;
     [ObservableProperty] private string _banReason   = string.Empty;
 
@@ -819,9 +818,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void DisconnectRcon()
+    private async Task DisconnectRconAsync()
     {
-        _rconLock.Wait();
+        await _rconLock.WaitAsync();
         try
         {
             _rcon?.Dispose();
@@ -1208,7 +1207,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         _playerRefreshTimer?.Dispose();
         _playerRefreshTimer = new System.Timers.Timer(15_000);
-        _playerRefreshTimer.Elapsed  += (_, _) => _ = FetchOnlinePlayersAsync();
+        _playerRefreshTimer.Elapsed  += (_, _) => _ = FetchOnlinePlayersAsync().ContinueWith(t => AppendLog($"[Players] {t.Exception!.InnerException?.Message}", ConsoleMessageType.Warning), System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
         _playerRefreshTimer.AutoReset = true;
         _playerRefreshTimer.Start();
 
@@ -1216,9 +1215,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // starts before their HTTP API is actually listening — fetching immediately just
         // logs a noisy "connection refused" warning that the regular 15s poll would avoid.
         if (Plugin is Games.IRestPlayersPlugin)
-            _ = Task.Delay(10_000).ContinueWith(_ => FetchOnlinePlayersAsync());
+            _ = Task.Delay(10_000).ContinueWith(_ => FetchOnlinePlayersAsync().ContinueWith(t => AppendLog($"[Players] {t.Exception!.InnerException?.Message}", ConsoleMessageType.Warning), System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted));
         else
-            _ = FetchOnlinePlayersAsync(); // first one immediately
+            _ = FetchOnlinePlayersAsync().ContinueWith(t => AppendLog($"[Players] {t.Exception!.InnerException?.Message}", ConsoleMessageType.Warning), System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private void StopPlayerRefresh()
@@ -2040,9 +2039,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         StopUpdateTimer();
         StopPerfMonitoring();
 
-        _rconLock.Wait();
-        try { _rcon?.Dispose(); _rcon = null; }
-        finally { _rconLock.Release(); }
+        if (_rconLock.Wait(TimeSpan.FromSeconds(3)))
+        {
+            try { _rcon?.Dispose(); _rcon = null; }
+            finally { _rconLock.Release(); }
+        }
+        else
+        {
+            // Lock timed out during shutdown — dispose anyway to avoid resource leak
+            try { _rcon?.Dispose(); } catch { }
+            _rcon = null;
+        }
 
         _rconLock.Dispose();
     }
