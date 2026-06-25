@@ -967,7 +967,7 @@ function upsertCard(s){
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px">
   <button class="log-toggle" style="padding:4px 0;flex:1;text-align:left" onclick="toggleLog('${s.Id}')">▼ Console Log</button>
-  <a href="/api/servers/${s.Id}/log/download" style="font-size:11px;color:#8b949e;text-decoration:none;padding:4px 0 4px 8px" title="Download log">⬇ Download</a>
+  <button class="btn bo" style="font-size:11px;padding:2px 8px" onclick="downloadLog('${s.Id}')" title="Download full log">⬇ Log</button>
 </div>
 <div class="log-box" id="log_${s.Id}"></div>
 <button class="notes-toggle" onclick="toggleNotes('${s.Id}')">📝 Notes</button>
@@ -995,8 +995,20 @@ function upsertCard(s){
   const btnRestart=document.getElementById('btn_restart_'+s.Id);
   if(btnRestart)btnRestart.disabled=!isRun;
 
+  // Players toggle — only useful when running
+  const pltogEl=document.getElementById('pltog_'+s.Id);
+  if(pltogEl)pltogEl.style.display=isRun?'block':'none';
+  if(!isRun){const pp=document.getElementById('plpanel_'+s.Id);if(pp)pp.classList.remove('open');}
   if(isRun){fetchDetail(s.Id);fetchPerf(s.Id);}
-  else{const sp=document.getElementById('spark_'+s.Id);if(sp)sp.style.display='none';}
+  else{
+    const sp=document.getElementById('spark_'+s.Id);if(sp)sp.style.display='none';
+    // Load notes for stopped servers once
+    if(_serverNotes[s.Id]==null&&s.Notes!=null){
+      _serverNotes[s.Id]=s.Notes;
+      const ntxt=document.getElementById('ntxt_'+s.Id);
+      if(ntxt)ntxt.value=s.Notes;
+    }
+  }
   if(isNew&&logOpen[s.Id])openLog(s.Id);
 }
 
@@ -1044,6 +1056,23 @@ function togglePlayers(id){
     if(pltog)pltog.textContent='▼ Players ('+d.Players.length+')';
     renderPlayerPanel(id,d.Players,d.MaxPlayers);
   }).catch(()=>{});
+}
+
+// ── Log download ──────────────────────────────────────────────────────────
+async function downloadLog(id){
+  try{
+    const r=await fetch('/api/servers/'+id+'/log/download',{
+      headers:{'Authorization':'Bearer '+TOKEN}
+    });
+    if(!r.ok){toast('Download failed: '+r.status,true);return;}
+    const text=await r.text();
+    const blob=new Blob([text],{type:'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=id+'_console.log';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+  }catch(e){toast('Download failed',true);}
 }
 
 // ── Notes ─────────────────────────────────────────────────────────────────
