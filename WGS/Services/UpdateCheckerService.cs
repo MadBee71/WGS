@@ -14,6 +14,13 @@ public static class UpdateCheckerService
     private const string ApiUrl = "https://api.github.com/repos/MadBee71/WGS/releases/latest";
     public  const string ReleasesUrl = "https://github.com/MadBee71/WGS/releases/latest";
 
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+
+    static UpdateCheckerService()
+    {
+        _http.DefaultRequestHeaders.UserAgent.ParseAdd($"WGS/{GetCurrentVersion()}");
+    }
+
     /// <summary>
     /// Returns (hasUpdate, latestTag, zipDownloadUrl) or (false, "", "") on any error.
     /// Never throws.
@@ -22,12 +29,7 @@ public static class UpdateCheckerService
     {
         try
         {
-            using var http = new HttpClient();
-            http.Timeout = TimeSpan.FromSeconds(10);
-            http.DefaultRequestHeaders.UserAgent.Add(
-                new ProductInfoHeaderValue("WGS", GetCurrentVersion()));
-
-            var json = await http.GetStringAsync(ApiUrl);
+            var json = await _http.GetStringAsync(ApiUrl);
             using var doc = JsonDocument.Parse(json);
 
             if (!doc.RootElement.TryGetProperty("tag_name", out var tagEl))

@@ -49,14 +49,50 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="{x:Static wgs:AppInfo.Version}"
-                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"
-                                       VerticalAlignment="Center"/>
-                            <Button Content="🔄 Check for WGS update now" Style="{StaticResource GhostButton}"
-                                    FontSize="11" Margin="12,0,0,0" Command="{Binding CheckForWgsUpdateNowCommand}"/>
-                            <TextBlock Text="{Binding WgsUpdateCheckResult}" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="10,0,0,0"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
+                            <!-- Version + check button row -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{x:Static wgs:AppInfo.Version}"
+                                           Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                                <Button Content="🔄 Check for update" Style="{StaticResource GhostButton}"
+                                        FontSize="11" Margin="12,0,0,0"
+                                        IsEnabled="{Binding UpdateDownloading, Converter={StaticResource InvBool}}"
+                                        Command="{Binding CheckForWgsUpdateNowCommand}"/>
+                                <TextBlock Text="{Binding WgsUpdateCheckResult}" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="10,0,0,0"/>
+                            </StackPanel>
+
+                            <!-- Install update panel — visible when update is available and not yet downloading -->
+                            <StackPanel Margin="0,8,0,0"
+                                        Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}">
+                                <!-- Warning when servers are running -->
+                                <TextBlock FontSize="11" Foreground="#F0A500" Margin="0,0,0,6"
+                                           Visibility="{Binding HasRunningServers, Converter={StaticResource BoolToVis}}">
+                                    ⚠ Stop all running servers before installing the update.
+                                </TextBlock>
+
+                                <!-- Install button — disabled while servers are running or download in progress -->
+                                <Button Style="{StaticResource GhostButton}" FontSize="11" HorizontalAlignment="Left"
+                                        Command="{Binding PerformUpdateCommand}"
+                                        IsEnabled="{Binding CanInstallUpdate}">
+                                    <Button.Content>
+                                        <TextBlock>
+                                            <Run Text="⬆ Install "/>
+                                            <Run Text="{Binding LatestVersion}"/>
+                                            <Run Text=" now"/>
+                                        </TextBlock>
+                                    </Button.Content>
+                                </Button>
+
+                                <!-- Download progress -->
+                                <StackPanel Margin="0,8,0,0"
+                                            Visibility="{Binding UpdateDownloading, Converter={StaticResource BoolToVis}}">
+                                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding UpdateStatusText}"
+                                               FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Author"
