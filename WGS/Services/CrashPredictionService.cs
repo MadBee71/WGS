@@ -96,8 +96,9 @@ public class CrashPredictionService : IDisposable
                 .Select(s => (s.id, s.name, s.players, ramMb: _perfHistory.Get(s.id).LastOrDefault()?.MemMb ?? 0))
                 .OrderBy(s => s.players)
                 .ThenByDescending(s => s.ramMb)
-                .First();
-            suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players, {candidate.ramMb} MB RAM) to free up memory.";
+                .FirstOrDefault();
+            if (candidate != default)
+                suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players, {candidate.ramMb} MB RAM) to free up memory.";
         }
 
         var pred = Make("__system__", "System", $"System RAM critically low — {freeMb} MB free ({freePercent:F1}%).{suggestion}", 2, now);
@@ -128,8 +129,9 @@ public class CrashPredictionService : IDisposable
         string suggestion = "";
         if (servers.Count > 0)
         {
-            var candidate = servers.OrderBy(s => s.players).First();
-            suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players) to free up CPU.";
+            var candidate = servers.OrderBy(s => s.players).FirstOrDefault();
+            if (candidate != default)
+                suggestion = $" Consider stopping \"{candidate.name}\" ({candidate.players} players) to free up CPU.";
         }
 
         var pred = Make("__system__", "System", $"System CPU critically high — {cpu:F0}%.{suggestion}", 2, now);

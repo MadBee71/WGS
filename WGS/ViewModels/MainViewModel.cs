@@ -98,6 +98,12 @@ public partial class MainViewModel : BaseViewModel
     [ObservableProperty] private bool   _updateDownloading;
     [ObservableProperty] private string _updateStatusText = string.Empty;
 
+    public bool HasRunningServers => Servers.Any(s => s.IsRunning);
+    public bool CanInstallUpdate  => UpdateAvailable && !UpdateDownloading && !HasRunningServers;
+
+    partial void OnUpdateAvailableChanged(bool value)   => OnPropertyChanged(nameof(CanInstallUpdate));
+    partial void OnUpdateDownloadingChanged(bool value) => OnPropertyChanged(nameof(CanInstallUpdate));
+
     // ── Batch operations ──────────────────────────────────────────────────────
     [ObservableProperty] private bool _batchMode;
     public int BatchSelectedCount => Servers.Count(s => s.IsBatchSelected);
@@ -197,6 +203,8 @@ public partial class MainViewModel : BaseViewModel
             {
                 OnPropertyChanged(nameof(RunningCount));
                 OnPropertyChanged(nameof(StoppedCount));
+                OnPropertyChanged(nameof(HasRunningServers));
+                OnPropertyChanged(nameof(CanInstallUpdate));
                 _tray.SetStatus(RunningCount, TotalServers);
             });
 
@@ -651,7 +659,20 @@ public partial class MainViewModel : BaseViewModel
             return;
         }
 
-        Services.SelfUpdateService.ApplyAndRestart();
+        bool launched = Services.SelfUpdateService.ApplyAndRestart();
+        if (!launched)
+        {
+            UpdateDownloading = false;
+            UpdateStatusText  = string.Empty;
+            System.Windows.MessageBox.Show(
+                "Could not start the update process. Please update manually from GitHub.",
+                "Update failed",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                Services.UpdateCheckerService.ReleasesUrl) { UseShellExecute = true }); }
+            catch { }
+        }
     }
 
     private ServerViewModel MakeVm(GameServer srv)
