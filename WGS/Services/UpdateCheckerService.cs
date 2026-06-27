@@ -62,6 +62,9 @@ public static class UpdateCheckerService
                 }
             }
 
+            if (string.IsNullOrEmpty(downloadUrl))
+                return (false, tag, "");
+
             return (true, tag, downloadUrl);
         }
         catch
