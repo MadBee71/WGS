@@ -1219,6 +1219,137 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- ── SOURCEMOD PLUGINS ── -->
+            <TabItem Header="🔌 Plugins"
+                     Visibility="{Binding HasSourceModSupport, Converter={StaticResource BoolToVis}}"
+                     GotFocus="PluginsTab_GotFocus">
+                <Grid Background="{StaticResource BgDeepBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <StackPanel Grid.Row="0" Margin="24,24,24,12">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="SourceMod Plugins" Style="{StaticResource SectionHeader}" Margin="0"/>
+                            <Button Content="🔄 Refresh" Style="{StaticResource GhostButton}"
+                                    FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center"
+                                    Command="{Binding RefreshSourceModCommand}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding SourceModStatusText}" FontSize="12"
+                                   Foreground="{StaticResource TextMutedBrush}"/>
+                    </StackPanel>
+
+                    <!-- Two-column layout: Active | Disabled -->
+                    <Grid Grid.Row="1" Margin="24,0,24,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Active plugins -->
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="{StaticResource BgSurface2Brush}"
+                                        Padding="12,8" CornerRadius="6,6,0,0">
+                                    <TextBlock Text="✅ Active" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentGreenBrush}"/>
+                                </Border>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding SourceModActive}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         MaxHeight="400">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <Button Grid.Column="1" Content="Disable"
+                                                        Style="{StaticResource GhostButton}" FontSize="11"
+                                                        Foreground="{StaticResource AccentYellowBrush}"
+                                                        Margin="8,0,0,0"
+                                                        CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.DisableSourceModPluginCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="12,6"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <!-- Disabled plugins -->
+                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="{StaticResource BgSurface2Brush}"
+                                        Padding="12,8" CornerRadius="6,6,0,0">
+                                    <TextBlock Text="⏸ Disabled" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Border>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding SourceModDisabled}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         MaxHeight="400">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <Button Grid.Column="1" Content="Enable"
+                                                        Style="{StaticResource GhostButton}" FontSize="11"
+                                                        Foreground="{StaticResource AccentGreenBrush}"
+                                                        Margin="8,0,0,0"
+                                                        CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.EnableSourceModPluginCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="12,6"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
             <!-- ── SCHEDULE ── -->
             <TabItem Header="⏰ Schedule">
                 <Grid Background="{StaticResource BgDeepBrush}">

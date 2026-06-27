@@ -19,6 +19,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly TrayService               _tray;
     private readonly SystemMetricsService      _metrics;
     private readonly ModManagerService         _mods;
+    private readonly SourceModService          _sourceMod;
     private readonly DiscordBotService         _bot;
     private readonly ConfigEditorService       _configEditor;
     private readonly PlayerStatsService        _playerStats;
@@ -155,7 +156,7 @@ public partial class MainViewModel : BaseViewModel
     public MainViewModel(ConfigService config, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         TrayService tray, SettingsViewModel settings, SystemMetricsService metrics,
-        ModManagerService mods, DiscordBotService bot,
+        ModManagerService mods, SourceModService sourceMod, DiscordBotService bot,
         ConfigEditorService configEditor, PlayerStatsService playerStats, PerfHistoryService perfHistory,
         SteamWorkshopService workshop, WorkshopDbService workshopDb,
         NetworkMonitorService network, TemplateService templates, UserService users,
@@ -176,6 +177,7 @@ public partial class MainViewModel : BaseViewModel
         _tray            = tray;
         _metrics         = metrics;
         _mods            = mods;
+        _sourceMod       = sourceMod;
         _bot             = bot;
         _configEditor    = configEditor;
         _playerStats     = playerStats;
@@ -199,7 +201,7 @@ public partial class MainViewModel : BaseViewModel
 
         manager.StatusChanged += (id, status) =>
         {
-            WpfApplication.Current.Dispatcher.Invoke(() =>
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
             {
                 OnPropertyChanged(nameof(RunningCount));
                 OnPropertyChanged(nameof(StoppedCount));
@@ -678,8 +680,8 @@ public partial class MainViewModel : BaseViewModel
     private ServerViewModel MakeVm(GameServer srv)
     {
         var vm = new ServerViewModel(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
-               _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler, _network,
-               _groupBans, _hygiene);
+               _sourceMod, _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler,
+               _network, _groupBans, _hygiene);
         vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));
         return vm;
     }

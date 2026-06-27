@@ -23,8 +23,9 @@ public interface IGamePlugin
     bool UseNativeConsole { get; }
 
     // Mod manager support
-    bool   SupportsOxide   { get; }   // uMod/Oxide compatible
-    string MinecraftFlavor { get; }   // "paper" | "forge" | "fabric" | "" = none
+    bool   SupportsOxide      { get; }   // uMod/Oxide compatible
+    string MinecraftFlavor    { get; }   // "paper" | "forge" | "fabric" | "" = none
+    bool   SupportsSourceMod  { get; }   // Source engine games that support SourceMod plugins
 
     // Workshop & config
     int          WorkshopAppId { get; }  // Steam Workshop app ID (0 = no workshop)

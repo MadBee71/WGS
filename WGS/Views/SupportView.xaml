@@ -60,7 +60,8 @@
                                         IsEnabled="{Binding UpdateDownloading, Converter={StaticResource InvBool}}"
                                         Command="{Binding CheckForWgsUpdateNowCommand}"/>
                                 <TextBlock Text="{Binding WgsUpdateCheckResult}" VerticalAlignment="Center"
-                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="10,0,0,0"/>
+                                           Foreground="{Binding WgsUpdateCheckResult, Converter={StaticResource UpdateResultColor}}"
+                                           FontSize="11" Margin="10,0,0,0"/>
                             </StackPanel>
 
                             <!-- Install update panel — visible when update is available and not yet downloading -->

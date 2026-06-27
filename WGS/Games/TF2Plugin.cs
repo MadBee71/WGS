@@ -16,6 +16,7 @@ public class TF2Plugin : GamePluginBase
     public override int    DefaultMaxPlayers => 24;
     public override bool   RequiresSteamLogin => true;
     public override bool   HasRcon         => true;
+    public override bool   SupportsSourceMod  => true;
 
         public override string  EngineFamily                                     => SourceRcon.Family;
     public override string? GetKickCommand(string p)                         => SourceRcon.Kick(p);
