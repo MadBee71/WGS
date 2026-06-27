@@ -34,9 +34,6 @@ jobs:
           print(f'Created {dst}')
           "
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
-
       - name: Build Installer
         run: |
           $tag = '${{ github.ref_name }}'.TrimStart('v')
