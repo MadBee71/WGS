@@ -20,6 +20,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly PerformanceMonitorService _perfMonitor;
     private readonly ConfigService         _config;
     private readonly ModManagerService     _mods;
+    private readonly SourceModService      _sourceMod;
     private readonly ConfigEditorService   _configEditor;
     private readonly PlayerStatsService    _playerStats;
     private readonly PerfHistoryService    _perfHistory;
@@ -188,6 +189,52 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public bool HasModSupport       => Plugin?.SupportsOxide == true
                                     || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
     public bool HasMinecraftSupport => !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
+
+    // ── SourceMod plugin manager ──────────────────────────────────────────────
+    public bool HasSourceModSupport => SourceModService.IsAvailable(Plugin, Server.InstallPath);
+
+    [ObservableProperty] private List<SourceModPlugin> _sourceModActive   = [];
+    [ObservableProperty] private List<SourceModPlugin> _sourceModDisabled = [];
+    [ObservableProperty] private bool   _sourceModBusy;
+    [ObservableProperty] private string _sourceModStatusText = string.Empty;
+
+    [RelayCommand]
+    private void RefreshSourceMod()
+    {
+        SourceModActive   = _sourceMod.GetActivePlugins(Server.InstallPath);
+        SourceModDisabled = _sourceMod.GetDisabledPlugins(Server.InstallPath);
+        SourceModStatusText = $"{SourceModActive.Count} active · {SourceModDisabled.Count} disabled";
+    }
+
+    [RelayCommand]
+    private void DisableSourceModPlugin(SourceModPlugin? plugin)
+    {
+        if (plugin == null) return;
+        try
+        {
+            _sourceMod.DisablePlugin(Server.InstallPath, plugin.FileName);
+            RefreshSourceMod();
+        }
+        catch (Exception ex)
+        {
+            SourceModStatusText = $"Error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void EnableSourceModPlugin(SourceModPlugin? plugin)
+    {
+        if (plugin == null) return;
+        try
+        {
+            _sourceMod.EnablePlugin(Server.InstallPath, plugin.FileName);
+            RefreshSourceMod();
+        }
+        catch (Exception ex)
+        {
+            SourceModStatusText = $"Error: {ex.Message}";
+        }
+    }
 
     public List<CpuCoreItem> CpuCores { get; }
     public string[] PriorityOptions { get; } = ["Normal", "AboveNormal", "High", "BelowNormal", "RealTime"];
@@ -365,6 +412,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public ServerViewModel(GameServer server, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         ConfigService config, ModManagerService mods,
+        SourceModService sourceMod,
         ConfigEditorService configEditor, PlayerStatsService playerStats,
         PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
         TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network,
@@ -379,6 +427,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _perfMonitor   = perfMonitor;
         _config        = config;
         _mods          = mods;
+        _sourceMod     = sourceMod;
         _configEditor  = configEditor;
         _playerStats   = playerStats;
         _perfHistory   = perfHistory;
@@ -2038,6 +2087,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         StopUpdateTimer();
         StopPerfMonitoring();
+        StopPlayerRefresh();
+        _workshopIdLookupTimer?.Stop();
+        _workshopIdLookupTimer?.Dispose();
+        _workshopIdLookupTimer = null;
 
         if (_rconLock.Wait(TimeSpan.FromSeconds(3)))
         {

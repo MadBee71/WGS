@@ -13,6 +13,7 @@
     <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
     <conv:ZeroToInverseVisibilityConverter x:Key="ZeroToInvVis"/>
     <conv:BoolToGridLengthConverter        x:Key="BoolToGridLength"/>
+    <conv:UpdateResultColorConverter       x:Key="UpdateResultColor"/>
     <conv:CountToVisibilityConverter       x:Key="CountToVis"/>
     <conv:FieldTypeToPasswordVisConverter  x:Key="FieldTypeToPasswordVis"/>
     <conv:FieldTypeToTextVisConverter      x:Key="FieldTypeToTextVis"/>

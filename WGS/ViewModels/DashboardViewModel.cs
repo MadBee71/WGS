@@ -54,7 +54,7 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable // #2: IDis
 
     private void OnMetricsUpdated()
     {
-        WpfApplication.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
             CpuPercent = _metrics.CpuPercent;
             RamUsedMb  = _metrics.RamUsedMb;
