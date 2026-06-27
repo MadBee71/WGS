@@ -20,9 +20,13 @@ public static class SelfUpdateService
                       ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe");
         var exeDir  = Path.GetDirectoryName(exePath)!;
 
-        var tempZip    = Path.Combine(exeDir, "_wgs_update.zip");
-        var newExePath = Path.Combine(exeDir, "_wgs_new.exe");
-        var batPath    = Path.Combine(exeDir, "_wgs_update.bat");
+        // Write temp files to %TEMP% so we never need write access to the install folder
+        // (which may be C:\Program Files\WGS\ — requires admin)
+        var tempDir    = Path.Combine(Path.GetTempPath(), "WGS_Update");
+        Directory.CreateDirectory(tempDir);
+        var tempZip    = Path.Combine(tempDir, "_wgs_update.zip");
+        var newExePath = Path.Combine(tempDir, "_wgs_new.exe");
+        var batPath    = Path.Combine(tempDir, "_wgs_update.bat");
 
         try
         {
@@ -152,10 +156,7 @@ exit /b
     /// </summary>
     public static bool ApplyAndRestart()
     {
-        var exeDir  = Path.GetDirectoryName(
-            Environment.ProcessPath
-            ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe"))!;
-        var batPath = Path.Combine(exeDir, "_wgs_update.bat");
+        var batPath = Path.Combine(Path.GetTempPath(), "WGS_Update", "_wgs_update.bat");
 
         Process? proc = null;
         try
@@ -194,17 +195,15 @@ exit /b
     /// retry, so WGS is still on the OLD version despite appearing to update.</summary>
     public static bool CleanupLeftovers()
     {
-        var exeDir = Path.GetDirectoryName(
-            Environment.ProcessPath
-            ?? Path.Combine(AppContext.BaseDirectory, "WindowsGameServer.exe"))!;
+        var tempDir = Path.Combine(Path.GetTempPath(), "WGS_Update");
 
-        var updateFailed = File.Exists(Path.Combine(exeDir, "_wgs_new.exe"));
+        var updateFailed = File.Exists(Path.Combine(tempDir, "_wgs_new.exe"));
 
         foreach (var name in new[] { "_wgs_update.bat", "_wgs_update.zip", "_wgs_new.exe" })
         {
             try
             {
-                var path = Path.Combine(exeDir, name);
+                var path = Path.Combine(tempDir, name);
                 if (File.Exists(path)) File.Delete(path);
             }
             catch { }
