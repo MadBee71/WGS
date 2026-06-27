@@ -180,6 +180,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<TrayService>();
         s.AddSingleton<SystemMetricsService>();
         s.AddSingleton<ModManagerService>();
+        s.AddSingleton<SourceModService>();
         s.AddSingleton<DiscordBotService>();
         s.AddSingleton<ConfigEditorService>();
         s.AddSingleton<PlayerStatsService>();

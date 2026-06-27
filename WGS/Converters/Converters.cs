@@ -131,3 +131,12 @@ public class BoolToGridLengthConverter : IValueConverter
             : new GridLength(0);
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
+
+public class UpdateResultColorConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is string s && s.StartsWith("✅")
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3F, 0xB9, 0x50))
+            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x8B, 0x94, 0x9E));
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}

@@ -16,6 +16,7 @@ public class L4D2Plugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 8;
     public override bool   HasRcon          => true;
+    public override bool   SupportsSourceMod  => true;
     public override bool   RequiresSteamLogin => true;
 
     public override string  EngineFamily                                     => SourceRcon.Family;
