@@ -38,6 +38,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public GameServer Server { get; }
     public IGamePlugin? Plugin { get; }
+    private const int MaxConsoleLines = 2000;
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public ObservableCollection<BackupEntry> Backups { get; } = [];
     public ObservableCollection<string> ActionLog { get; } = [];
@@ -1947,6 +1948,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
             Log.Add(msg);
+            while (Log.Count > MaxConsoleLines)
+                Log.RemoveAt(0);
             if (!string.IsNullOrWhiteSpace(ConsoleFilter))
                 OnPropertyChanged(nameof(FilteredLog));
         });
