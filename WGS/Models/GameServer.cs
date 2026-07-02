@@ -68,6 +68,8 @@ public class GameServer
     public string Notes { get; set; } = string.Empty;
     /// <summary>Saved console command shortcuts shown as one-click buttons in the Console tab.</summary>
     public List<QuickCommand> QuickCommands { get; set; } = [];
+    /// <summary>Log watcher rules — triggers actions when a keyword appears in the server log.</summary>
+    public List<LogWatchRule> LogWatchRules { get; set; } = [];
 
     /// <summary>
     /// PID of the launched process, persisted to disk so WGS can reattach to a still-running
@@ -89,4 +91,17 @@ public class QuickCommand
 {
     public string Label   { get; set; } = string.Empty;
     public string Command { get; set; } = string.Empty;
+}
+
+public enum LogWatchAction { Restart, Stop, SendRcon, Notify }
+
+public class LogWatchRule
+{
+    public string         Keyword     { get; set; } = string.Empty;
+    public LogWatchAction Action      { get; set; } = LogWatchAction.Notify;
+    /// <summary>RCON command to send when Action == SendRcon.</summary>
+    public string         RconCommand { get; set; } = string.Empty;
+    /// <summary>Minimum minutes between triggers for this rule (0 = no cooldown).</summary>
+    public int            CooldownMin { get; set; } = 5;
+    public bool           Enabled     { get; set; } = true;
 }

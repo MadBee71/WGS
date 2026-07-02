@@ -31,6 +31,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly NetworkMonitorService  _network;
     private readonly GroupBanListService    _groupBans;
     private readonly ServerHygieneService   _hygiene;
+    private readonly ConfigPresetService    _presets;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -60,6 +61,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private List<Services.ConfigFileEntry> _configFiles = [];
     [ObservableProperty] private Services.ConfigFileEntry? _selectedConfigFile;
     [ObservableProperty] private string _configContent = string.Empty;
+
+    // Config Presets
+    [ObservableProperty] private List<Services.ConfigPreset> _availablePresets = [];
+    [ObservableProperty] private Services.ConfigPreset? _selectedPreset;
 
     // Players — reaaliaikainen lista
     [ObservableProperty] private List<Models.OnlinePlayer>    _onlinePlayers  = [];
@@ -417,7 +422,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         ConfigEditorService configEditor, PlayerStatsService playerStats,
         PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
         TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network,
-        GroupBanListService groupBans, ServerHygieneService hygiene)
+        GroupBanListService groupBans, ServerHygieneService hygiene,
+        ConfigPresetService presets)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -439,6 +445,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _network       = network;
         _groupBans     = groupBans;
         _hygiene       = hygiene;
+        _presets       = presets;
+        AvailablePresets = _presets.GetPresetsForGame(server.GameId);
+        SelectedPreset   = AvailablePresets.FirstOrDefault();
 
         _network.ServerStatsUpdated += OnServerStatsUpdated;
         FileBrowser.Initialize(server.InstallPath);
@@ -477,6 +486,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _useIncrementalBackups = Server.UseIncrementalBackups;
         _fullBackupEveryN  = Server.FullBackupEveryN;
         foreach (var qc in Server.QuickCommands) QuickCommands.Add(qc);
+        foreach (var r in Server.LogWatchRules)  LogWatchRules.Add(r);
 
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
@@ -838,6 +848,43 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     partial void OnConsoleFilterChanged(string value) => OnPropertyChanged(nameof(FilteredLog));
 
+    // ── Log Watcher rules ────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _newWatchKeyword    = string.Empty;
+    [ObservableProperty] private Models.LogWatchAction _newWatchAction = Models.LogWatchAction.Notify;
+    [ObservableProperty] private string _newWatchRcon       = string.Empty;
+    [ObservableProperty] private int    _newWatchCooldown   = 5;
+
+    public Models.LogWatchAction[] LogWatchActions { get; } = Enum.GetValues<Models.LogWatchAction>();
+    public ObservableCollection<Models.LogWatchRule> LogWatchRules { get; } = [];
+
+    [RelayCommand]
+    private void AddLogWatchRule()
+    {
+        if (string.IsNullOrWhiteSpace(NewWatchKeyword)) return;
+        var rule = new Models.LogWatchRule
+        {
+            Keyword     = NewWatchKeyword,
+            Action      = NewWatchAction,
+            RconCommand = NewWatchRcon,
+            CooldownMin = Math.Max(0, NewWatchCooldown),
+            Enabled     = true
+        };
+        LogWatchRules.Add(rule);
+        Server.LogWatchRules.Add(rule);
+        NewWatchKeyword  = string.Empty;
+        NewWatchRcon     = string.Empty;
+        NewWatchCooldown = 5;
+    }
+
+    [RelayCommand]
+    private void RemoveLogWatchRule(Models.LogWatchRule? rule)
+    {
+        if (rule == null) return;
+        LogWatchRules.Remove(rule);
+        Server.LogWatchRules.Remove(rule);
+    }
+
     // ── RCON ─────────────────────────────────────────────────────────────────
 
     [RelayCommand]
@@ -982,6 +1029,40 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (System.IO.Directory.Exists(Server.InstallPath))
             System.Diagnostics.Process.Start("explorer.exe", Server.InstallPath);
+    }
+
+    // ── Config Presets ───────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void LoadPresets()
+    {
+        AvailablePresets = _presets.GetPresetsForGame(Server.GameId);
+        SelectedPreset   = AvailablePresets.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void ApplyPreset()
+    {
+        if (SelectedPreset == null) return;
+
+        var result = WpfMsgBox.Show(
+            $"Apply preset \"{SelectedPreset.Name}\" to server \"{Server.DisplayName}\"?\n\n" +
+            $"{SelectedPreset.Description}\n\n" +
+            "A backup of the original config file will be created automatically.",
+            "Apply Config Preset",
+            WpfMsgBoxButton.YesNo,
+            WpfMsgBoxImage.Question);
+
+        if (result != WpfMsgBoxResult.Yes) return;
+
+        var backup = _presets.ApplyPreset(Server, SelectedPreset);
+        if (backup == null)
+        {
+            AppendLog($"[WGS] ⚠ Config file not found: {SelectedPreset.ConfigFile}", ConsoleMessageType.Warning);
+            return;
+        }
+
+        AppendLog($"[WGS] ✔ Preset \"{SelectedPreset.Name}\" applied. Backup: {System.IO.Path.GetFileName(backup)}", ConsoleMessageType.System);
     }
 
     // ── Auto Update timer ────────────────────────────────────────────────────

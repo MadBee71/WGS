@@ -33,6 +33,10 @@
                               Content="Start WGS automatically with Windows" Margin="0,14,0,0"/>
                     <TextBlock Text="Adds WGS to Windows startup (current user only, no UAC prompt)."
                                FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                    <CheckBox IsChecked="{Binding OptimizeRamBeforeStart}" Style="{StaticResource DarkCheckBox}"
+                              Content="Optimize system RAM before starting a server" Margin="0,14,0,0"/>
+                    <TextBlock Text="Flushes unused memory from background processes before each server launch to free up physical RAM. May cause a brief pause."
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>

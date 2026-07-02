@@ -1,0 +1,13 @@
+{
+  "GameId": "rust",
+  "Name": "Vanilla",
+  "Description": "Default vanilla settings",
+  "ConfigFile": "server\\cfg\\server.cfg",
+  "Values": {
+    "server.maxplayers": "50",
+    "server.worldsize": "3500",
+    "server.seed": "12345",
+    "server.pve": "false",
+    "server.radiation": "true"
+  }
+}
