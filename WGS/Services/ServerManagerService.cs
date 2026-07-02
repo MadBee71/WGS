@@ -47,7 +47,11 @@ public class ServerManagerService
     // FXServer/txAdmin) — both leak through as garbled text in the embedded console otherwise.
     private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[a-zA-Z]|\x1B\][^\x07\x1B]*(\x07|\x1B\\)", RegexOptions.Compiled);
     private readonly NetworkMonitorService _network;
+    private readonly ConfigService _config;
     private readonly ConcurrentDictionary<string, ServerInstance> _running = new();
+
+    [DllImport("psapi.dll", SetLastError = true)]
+    private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
     public event Action<string, ConsoleMessage>? LogReceived;
     public event Action<string, ServerStatus>?  StatusChanged;
@@ -58,6 +62,7 @@ public class ServerManagerService
 
     public ServerManagerService(ConfigService config, NetworkMonitorService network)
     {
+        _config  = config;
         _network = network;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => KillAll();
     }
@@ -428,6 +433,17 @@ public class ServerManagerService
             }
         };
 
+        if (_config.OptimizeRamBeforeStart)
+        {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            try
+            {
+                foreach (var p in Process.GetProcesses())
+                    try { EmptyWorkingSet(p.Handle); } catch { }
+            }
+            catch { }
+        }
+
         try
         {
             proc.Start();
@@ -590,6 +606,14 @@ public class ServerManagerService
 
     public void SendCommand(string serverId, string command)
         => _ = SendCommandAsync(serverId, command);
+
+    public void InjectLogLine(string serverId, string text, ConsoleMessageType type = ConsoleMessageType.System)
+    {
+        var msg = new ConsoleMessage { Text = text, Type = type };
+        if (_running.TryGetValue(serverId, out var inst))
+            inst.AddToLog(msg);
+        LogReceived?.Invoke(serverId, msg);
+    }
 
     public bool IsRunning(string serverId)
         => _running.TryGetValue(serverId, out var inst) && inst.Process?.HasExited == false;

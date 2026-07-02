@@ -32,10 +32,12 @@ public partial class MainViewModel : BaseViewModel
     private readonly ServerGroupService        _groups;
     private readonly GroupBanListService       _groupBans;
     private readonly ServerHygieneService      _hygiene;
+    private readonly ConfigPresetService       _presets;
     private readonly WebApiService             _webApi;
     private readonly ScheduledTaskService      _scheduler;
     private readonly RemoteMachineService      _remoteMachines;
     private readonly CrashPredictionService    _crashPrediction;
+    private readonly LogWatcherService         _logWatcher;
     private readonly UPnPService               _upnp;
     private readonly WakeOnDemandService       _wakeOnDemand;
     private readonly System.Timers.Timer       _autoSaveTimer;
@@ -163,10 +165,11 @@ public partial class MainViewModel : BaseViewModel
         ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
         RemoteMachineService remoteMachines, CrashPredictionService crashPrediction,
         UPnPService upnp, WakeOnDemandService wakeOnDemand, GroupBanListService groupBans,
-        ServerHygieneService hygiene)
+        ServerHygieneService hygiene, ConfigPresetService presets, LogWatcherService logWatcher)
     {
         _groupBans = groupBans;
         _hygiene   = hygiene;
+        _presets   = presets;
         _config          = config;
         _sortMode        = config.SortMode; // restore last-used sort order without triggering a save
         _manager         = manager;
@@ -192,6 +195,7 @@ public partial class MainViewModel : BaseViewModel
         _scheduler       = scheduler;
         _remoteMachines  = remoteMachines;
         _crashPrediction = crashPrediction;
+        _logWatcher      = logWatcher;
         _upnp            = upnp;
         _wakeOnDemand    = wakeOnDemand;
         Settings         = settings;
@@ -408,9 +412,13 @@ public partial class MainViewModel : BaseViewModel
         _crashPrediction.PredictionRaised += OnCrashPrediction;
         manager.LogReceived += (id, msg) =>
         {
-            var name = WpfApplication.Current?.Dispatcher?.Invoke(() =>
-                Servers.FirstOrDefault(v => v.Server.Id == id)?.Server.DisplayName);
-            if (name != null) _crashPrediction.CheckLogLine(id, name, msg.Text);
+            var server = WpfApplication.Current?.Dispatcher?.Invoke(() =>
+                Servers.FirstOrDefault(v => v.Server.Id == id)?.Server);
+            if (server != null)
+            {
+                _crashPrediction.CheckLogLine(id, server.DisplayName, msg.Text);
+                _logWatcher.CheckLine(server, msg.Text);
+            }
         };
     }
 
@@ -681,7 +689,7 @@ public partial class MainViewModel : BaseViewModel
     {
         var vm = new ServerViewModel(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
                _sourceMod, _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler,
-               _network, _groupBans, _hygiene);
+               _network, _groupBans, _hygiene, _presets);
         vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));
         return vm;
     }
