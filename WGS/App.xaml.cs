@@ -183,6 +183,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<SourceModService>();
         s.AddSingleton<DiscordBotService>();
         s.AddSingleton<ConfigEditorService>();
+        s.AddSingleton<ConfigPresetService>();
         s.AddSingleton<PlayerStatsService>();
         s.AddSingleton<PerfHistoryService>();
         s.AddSingleton<SteamWorkshopService>();
@@ -197,6 +198,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<WebApiService>();
         s.AddSingleton<RemoteMachineService>();
         s.AddSingleton<CrashPredictionService>();
+        s.AddSingleton<LogWatcherService>();
         s.AddSingleton<WakeOnDemandService>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<SettingsViewModel>();
