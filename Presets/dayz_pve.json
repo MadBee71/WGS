@@ -1,0 +1,14 @@
+{
+  "GameId": "dayz",
+  "Name": "PvE — No Raiding",
+  "Description": "PvE server, no player damage, no base raiding",
+  "ConfigFile": "serverDZ.cfg",
+  "Values": {
+    "disableVoN": "0",
+    "vonCodecQuality": "20",
+    "disable3rdPerson": "0",
+    "disableCrosshair": "0",
+    "enableWhitelist": "0",
+    "maxPlayers": "60"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "GameId": "rust",
+  "Name": "5x Loot",
+  "Description": "High loot server, 5x gather rate, large map",
+  "ConfigFile": "server\\cfg\\server.cfg",
+  "Values": {
+    "server.maxplayers": "100",
+    "server.worldsize": "4500",
+    "server.pve": "false",
+    "server.radiation": "true",
+    "server.itemdespawn": "300"
+  }
+}

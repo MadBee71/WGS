@@ -82,6 +82,7 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _steamLogin          = string.Empty;
     [ObservableProperty] private string _steamPassword       = string.Empty;
     [ObservableProperty] private bool   _startWithWindows;
+    [ObservableProperty] private bool   _optimizeRamBeforeStart;
 
     private const string RunKey  = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "WindowsGameServer";
@@ -171,6 +172,7 @@ public partial class SettingsViewModel : BaseViewModel
         CrashPredictionHighCpuOnly = _config.CrashPredictionHighCpuOnly;
         CrashPredictionHighCpuPercent = _config.CrashPredictionHighCpuPercent;
         EnableUPnP               = _config.EnableUPnP;
+        OptimizeRamBeforeStart   = _config.OptimizeRamBeforeStart;
         StartWithWindows         = GetStartWithWindows();
     }
 
@@ -219,6 +221,7 @@ public partial class SettingsViewModel : BaseViewModel
         _config.CrashPredictionHighCpuOnly = CrashPredictionHighCpuOnly;
         _config.CrashPredictionHighCpuPercent = CrashPredictionHighCpuPercent > 0 ? CrashPredictionHighCpuPercent : 98.0;
         _config.EnableUPnP             = EnableUPnP;
+        _config.OptimizeRamBeforeStart = OptimizeRamBeforeStart;
         if (!EnableUPnP) { UpnpStatus = "Stopped"; OnPropertyChanged(nameof(UpnpIsFound)); }
         _config.Save(); // single save — all settings written atomically
 
