@@ -21,6 +21,8 @@ public interface IGamePlugin
     bool HasRcon { get; }
     bool HasHeavyInstall { get; }
     bool UseNativeConsole { get; }
+    /// <summary>When true, steam://connect uses ServerPort instead of QueryPort (e.g. Palworld).</summary>
+    bool UseGamePortForConnect { get; }
 
     // Mod manager support
     bool   SupportsOxide      { get; }   // uMod/Oxide compatible
