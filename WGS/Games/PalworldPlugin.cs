@@ -26,7 +26,8 @@ public class PalworldPlugin : GamePluginBase, IWorkshopPlugin, IRestPlayersPlugi
     // Redirected stdio has been linked to intermittent "SECURE CRT: Invalid parameter
     // detected" engine crashes after running for a while. Give it its own native console
     // window instead (same approach as Wreckfest/Wreckfest2).
-    public override bool   UseNativeConsole => true;
+    public override bool   UseNativeConsole      => true;
+    public override bool   UseGamePortForConnect => true;
     public override int    DefaultPort      => 8211;
     public override int    DefaultQueryPort => 8212;
     public override int    DefaultMaxPlayers => 32;

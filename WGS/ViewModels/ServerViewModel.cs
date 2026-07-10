@@ -1617,7 +1617,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void JoinServer()
     {
         var ip   = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
-        var port = Server.QueryPort > 0 ? Server.QueryPort : Server.ServerPort;
+        var port = (Plugin?.UseGamePortForConnect == true || Server.QueryPort == 0) ? Server.ServerPort : Server.QueryPort;
         var uri  = $"steam://connect/{ip}:{port}";
         try
         {
@@ -1630,7 +1630,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void CopyConnectionLink()
     {
         var ip   = string.IsNullOrEmpty(Server.ServerIp) || Server.ServerIp == "0.0.0.0" ? "127.0.0.1" : Server.ServerIp;
-        var port = Server.QueryPort > 0 ? Server.QueryPort : Server.ServerPort;
+        var port = (Plugin?.UseGamePortForConnect == true || Server.QueryPort == 0) ? Server.ServerPort : Server.QueryPort;
         var link = $"steam://connect/{ip}:{port}";
         try
         {
