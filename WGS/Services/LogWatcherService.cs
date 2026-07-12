@@ -36,7 +36,11 @@ public class LogWatcherService
                 continue;
 
             cooldowns[key] = now;
-            _ = TriggerAsync(server, rule, line);
+            _ = TriggerAsync(server, rule, line).ContinueWith(
+                t => _manager.InjectLogLine(server.Id,
+                    $"[LogWatch] Action {rule.Action} failed: {t.Exception?.InnerException?.Message ?? t.Exception?.Message}",
+                    ConsoleMessageType.Error),
+                TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 
