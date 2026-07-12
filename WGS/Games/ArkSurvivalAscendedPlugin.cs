@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ArkSurvivalAscendedPlugin : GamePluginBase
+public class ArkSurvivalAscendedPlugin : GamePluginBase, IWipePlugin
 {
     public override string GameId          => "arksurvivalascended";
     public override string GameName        => "ARK: Survival Ascended";
@@ -15,9 +15,34 @@ public class ArkSurvivalAscendedPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 40;
 
-    public override string BuildStartArguments(GameServer s)
-        => $"TheIsland_WP?listen?SessionName=\"{s.ServerName}\"?Port={s.ServerPort}?QueryPort={s.QueryPort}?MaxPlayers={s.MaxPlayers}";
+    // IWipePlugin
+    public IEnumerable<string> GetMapWipePaths(GameServer server)
+    {
+        var map = server.GameSpecificSettings.TryGetValue("mapName", out var m) ? m : "TheIsland_WP";
+        return [$@"ShooterGame\Saved\SavedArks\{map}.ark",
+                $@"ShooterGame\Saved\SavedArks\*.arktribe",
+                $@"ShooterGame\Saved\SavedArks\*.arkprofile"];
+    }
 
-    public override Dictionary<string, string> GetDefaultSettings() => new();
-    public override List<ConfigField> GetConfigFields() => BaseFields();
+    public IEnumerable<string> GetFullWipePaths(GameServer server) => GetMapWipePaths(server);
+
+    public override string BuildStartArguments(GameServer s)
+    {
+        var map = S(s, "mapName", "TheIsland_WP");
+        return $"{map}?listen?SessionName=\"{s.ServerName}\"?Port={s.ServerPort}?QueryPort={s.QueryPort}?MaxPlayers={s.MaxPlayers}";
+    }
+
+    public override Dictionary<string, string> GetDefaultSettings() => new()
+    {
+        ["mapName"] = "TheIsland_WP",
+    };
+
+    public override List<ConfigField> GetConfigFields()
+    {
+        var fields = BaseFields();
+        fields.Add(new() { Key = "mapName", Label = "Map", FieldType = ConfigFieldType.Dropdown,
+            DefaultValue = "TheIsland_WP",
+            Options = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP", "Genesis_WP", "Gen2_WP", "Svartalfheim_WP"] });
+        return fields;
+    }
 }

@@ -83,6 +83,10 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _steamPassword       = string.Empty;
     [ObservableProperty] private bool   _startWithWindows;
     [ObservableProperty] private bool   _optimizeRamBeforeStart;
+    [ObservableProperty] private bool   _healthCheckEnabled;
+    [ObservableProperty] private int    _healthCheckFailThreshold;
+    [ObservableProperty] private Services.HealthCheckAction _healthCheckAction;
+    public Services.HealthCheckAction[] HealthCheckActions { get; } = Enum.GetValues<Services.HealthCheckAction>();
 
     private const string RunKey  = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "WindowsGameServer";
@@ -172,7 +176,10 @@ public partial class SettingsViewModel : BaseViewModel
         CrashPredictionHighCpuOnly = _config.CrashPredictionHighCpuOnly;
         CrashPredictionHighCpuPercent = _config.CrashPredictionHighCpuPercent;
         EnableUPnP               = _config.EnableUPnP;
-        OptimizeRamBeforeStart   = _config.OptimizeRamBeforeStart;
+        OptimizeRamBeforeStart    = _config.OptimizeRamBeforeStart;
+        HealthCheckEnabled        = _config.HealthCheckEnabled;
+        HealthCheckFailThreshold  = _config.HealthCheckFailThreshold;
+        HealthCheckAction         = _config.HealthCheckAction;
         StartWithWindows         = GetStartWithWindows();
     }
 
@@ -221,7 +228,10 @@ public partial class SettingsViewModel : BaseViewModel
         _config.CrashPredictionHighCpuOnly = CrashPredictionHighCpuOnly;
         _config.CrashPredictionHighCpuPercent = CrashPredictionHighCpuPercent > 0 ? CrashPredictionHighCpuPercent : 98.0;
         _config.EnableUPnP             = EnableUPnP;
-        _config.OptimizeRamBeforeStart = OptimizeRamBeforeStart;
+        _config.OptimizeRamBeforeStart   = OptimizeRamBeforeStart;
+        _config.HealthCheckEnabled       = HealthCheckEnabled;
+        _config.HealthCheckFailThreshold = HealthCheckFailThreshold;
+        _config.HealthCheckAction        = HealthCheckAction;
         if (!EnableUPnP) { UpnpStatus = "Stopped"; OnPropertyChanged(nameof(UpnpIsFound)); }
         _config.Save(); // single save — all settings written atomically
 

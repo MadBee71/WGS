@@ -145,6 +145,55 @@ public class SteamWorkshopService
     }
 
 
+    // ── Outdated check ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the mods whose Steam time_updated is newer than what WGS last downloaded.
+    /// Queries the Steam API in one batch call (max 100 items per request).
+    /// </summary>
+    public async Task<List<WorkshopMod>> CheckForOutdatedModsAsync(GameServer server)
+    {
+        var mods = _db.GetModsForServer(server.Id);
+        if (mods.Count == 0) return [];
+
+        try
+        {
+            // Build batch request
+            var formData = new List<KeyValuePair<string, string>>
+            {
+                new("itemcount", mods.Count.ToString()),
+            };
+            for (int i = 0; i < mods.Count; i++)
+                formData.Add(new($"publishedfileids[{i}]", mods[i].ModId.ToString()));
+
+            var resp = await _http.PostAsync(
+                "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/",
+                new FormUrlEncodedContent(formData));
+
+            if (!resp.IsSuccessStatusCode) return [];
+
+            var doc     = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+            var details = doc.RootElement.GetProperty("response").GetProperty("publishedfiledetails");
+
+            var outdated = new List<WorkshopMod>();
+            foreach (var d in details.EnumerateArray())
+            {
+                if (!d.TryGetProperty("publishedfileid", out var idEl)) continue;
+                if (!ulong.TryParse(idEl.GetString(), out var id)) continue;
+                if (!d.TryGetProperty("time_updated", out var tsEl)) continue;
+
+                var steamUpdated = DateTimeOffset.FromUnixTimeSeconds(tsEl.GetInt64()).LocalDateTime;
+                var mod          = mods.FirstOrDefault(m => m.ModId == id);
+                if (mod == null) continue;
+
+                if (steamUpdated > mod.LastUpdated.AddMinutes(5)) // 5-min grace to avoid timezone noise
+                    outdated.Add(mod);
+            }
+            return outdated;
+        }
+        catch { return []; }
+    }
+
     // ── Update all ────────────────────────────────────────────────────────────
 
     public async Task UpdateAllModsAsync(GameServer server, IGamePlugin plugin,

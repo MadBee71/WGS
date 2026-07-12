@@ -72,6 +72,9 @@ public class ServerManagerService
 
     public int RunningCount => _running.Count;
 
+    public GameServer? GetServer(string serverId)
+        => _running.TryGetValue(serverId, out var i) ? i.Server : null;
+
     /// <summary>Other currently-running servers in the same group and of the same game, used for ban-list sync.</summary>
     public IEnumerable<GameServer> GetRunningGroupSiblings(GameServer server)
         => _running.Values
@@ -536,7 +539,9 @@ public class ServerManagerService
         var plugin = GameRegistry.Get(server.GameId);
         var stopCmd = plugin?.GetStopCommand(server);
 
-        if (stopCmd != null && inst.Process?.HasExited == false)
+        // Native-console games don't redirect stdin — StandardInput is null and must not be written to
+        var nativeConsole = plugin?.UseNativeConsole == true;
+        if (stopCmd != null && !nativeConsole && inst.Process?.HasExited == false)
         {
             try { await inst.Process.StandardInput.WriteLineAsync(stopCmd); }
             catch { }

@@ -38,6 +38,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly RemoteMachineService      _remoteMachines;
     private readonly CrashPredictionService    _crashPrediction;
     private readonly LogWatcherService         _logWatcher;
+    private readonly ServerHealthService       _healthCheck;
     private readonly UPnPService               _upnp;
     private readonly WakeOnDemandService       _wakeOnDemand;
     private readonly System.Timers.Timer       _autoSaveTimer;
@@ -165,7 +166,8 @@ public partial class MainViewModel : BaseViewModel
         ServerGroupService groups, WebApiService webApi, ScheduledTaskService scheduler,
         RemoteMachineService remoteMachines, CrashPredictionService crashPrediction,
         UPnPService upnp, WakeOnDemandService wakeOnDemand, GroupBanListService groupBans,
-        ServerHygieneService hygiene, ConfigPresetService presets, LogWatcherService logWatcher)
+        ServerHygieneService hygiene, ConfigPresetService presets, LogWatcherService logWatcher,
+        ServerHealthService healthCheck)
     {
         _groupBans = groupBans;
         _hygiene   = hygiene;
@@ -196,6 +198,7 @@ public partial class MainViewModel : BaseViewModel
         _remoteMachines  = remoteMachines;
         _crashPrediction = crashPrediction;
         _logWatcher      = logWatcher;
+        _healthCheck     = healthCheck;
         _upnp            = upnp;
         _wakeOnDemand    = wakeOnDemand;
         Settings         = settings;
@@ -249,6 +252,8 @@ public partial class MainViewModel : BaseViewModel
         _autoSaveTimer = new System.Timers.Timer(5000) { AutoReset = true };
         _autoSaveTimer.Elapsed += (_, _) => Save();
         _autoSaveTimer.Start();
+
+        _healthCheck.StartMonitoring();
 
         // Wire up Discord bot callbacks — same Dispatcher fix as WebAPI
         _bot.GetServers    = () => Servers.Select(v => v.Server);

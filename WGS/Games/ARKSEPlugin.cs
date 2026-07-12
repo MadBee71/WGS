@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin
+public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
 {
     public override string GameId          => "arkse";
     public override string GameName        => "ARK: Survival Evolved";
@@ -39,6 +39,18 @@ public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin
         args += " -server -log";
         return args;
     }
+
+    // IWipePlugin — ARK saves under ShooterGame/Saved/SavedArks/
+    public IEnumerable<string> GetMapWipePaths(GameServer server)
+    {
+        var map = server.GameSpecificSettings.TryGetValue("mapName", out var m) ? m : "TheIsland";
+        return [$@"ShooterGame\Saved\SavedArks\{map}.ark",
+                $@"ShooterGame\Saved\SavedArks\{map}_AntiCorruptionBackup.bak",
+                $@"ShooterGame\Saved\SavedArks\*.arktribe",
+                $@"ShooterGame\Saved\SavedArks\*.arkprofile"];
+    }
+
+    public IEnumerable<string> GetFullWipePaths(GameServer server) => GetMapWipePaths(server);
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
