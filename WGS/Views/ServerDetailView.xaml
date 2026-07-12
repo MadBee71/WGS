@@ -1879,7 +1879,12 @@
                                 <Button Content="⬆ Update All" Style="{StaticResource GhostButton}"
                                         Command="{Binding UpdateAllModsCommand}"
                                         IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
-                                        ToolTip="Re-download all active mods via SteamCMD"/>
+                                        ToolTip="Re-download all active mods via SteamCMD"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="🔍 Check Updates" Style="{StaticResource GhostButton}"
+                                        Command="{Binding CheckOutdatedModsCommand}"
+                                        IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"
+                                        ToolTip="Compare installed mods against Steam — shows which ones have newer versions"/>
                             </StackPanel>
                             <!-- Direct ID install -->
                             <TextBlock Text="Install by Workshop ID" Style="{StaticResource FieldLabel}"/>
@@ -1917,6 +1922,32 @@
                                 <TextBlock Text="No mods installed." FontSize="13"
                                            Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
                                            Visibility="{Binding WorkshopDbMods.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
+
+                                <!-- Outdated mods banner -->
+                                <Border Margin="0,0,0,12" Padding="10,8" CornerRadius="6"
+                                        Background="#1ED29922" BorderBrush="#80D29922" BorderThickness="1"
+                                        Visibility="{Binding OutdatedMods.Count, Converter={StaticResource ZeroToInvVis}, Mode=OneWay}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="⚠ " FontSize="13" Foreground="#D29922"/>
+                                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#D29922"
+                                                       Text="{Binding OutdatedMods.Count, StringFormat='{}{0} outdated mod(s) found'}"/>
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding OutdatedMods}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                                               Text="{Binding ModName}" Margin="0,1"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="⬆ Update Outdated" Style="{StaticResource PrimaryButton}"
+                                                HorizontalAlignment="Left" Margin="0,8,0,0"
+                                                Command="{Binding UpdateOutdatedModsCommand}"
+                                                IsEnabled="{Binding WorkshopBusy, Converter={StaticResource InvBool}}"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <ItemsControl ItemsSource="{Binding WorkshopDbMods}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

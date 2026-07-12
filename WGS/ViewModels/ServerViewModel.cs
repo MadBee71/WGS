@@ -108,11 +108,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private List<Services.WorkshopItem>   _workshopItems = [];
     [ObservableProperty] private List<Services.WorkshopMod>    _workshopDbMods = [];
     [ObservableProperty] private List<Services.WorkshopItem>   _workshopSearchResults = [];
+    [ObservableProperty] private List<Services.WorkshopMod>    _outdatedMods = [];
     [ObservableProperty] private string _workshopItemId      = string.Empty;
     [ObservableProperty] private string _workshopSearchQuery = string.Empty;
     [ObservableProperty] private bool   _workshopBusy;
     [ObservableProperty] private string _workshopItemIdPreview = string.Empty;
     private System.Timers.Timer? _workshopIdLookupTimer;
+    private ulong _workshopIdLookupPending; // written before timer Start, read inside handler
 
     partial void OnWorkshopItemIdChanged(string value)
     {
@@ -120,12 +122,19 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WorkshopItemIdPreview = string.Empty;
         if (!ulong.TryParse(value, out var id) || id == 0) return;
 
-        _workshopIdLookupTimer ??= new System.Timers.Timer(500) { AutoReset = false };
-        _workshopIdLookupTimer.Elapsed -= WorkshopIdLookupElapsed;
-        _workshopIdLookupTimer.Elapsed += WorkshopIdLookupElapsed;
-        _workshopIdLookupTimer.Start();
+        _workshopIdLookupPending = id;
 
-        void WorkshopIdLookupElapsed(object? _, System.Timers.ElapsedEventArgs __) => _ = LookupWorkshopItemNameAsync(id);
+        if (_workshopIdLookupTimer == null)
+        {
+            _workshopIdLookupTimer = new System.Timers.Timer(500) { AutoReset = false };
+            // Handler registered once — reads _workshopIdLookupPending set before each Start()
+            _workshopIdLookupTimer.Elapsed += (_, _) => _ = LookupWorkshopItemNameAsync(_workshopIdLookupPending);
+        }
+        else
+        {
+            _workshopIdLookupTimer.Interval = 500;
+        }
+        _workshopIdLookupTimer.Start();
     }
 
     private async Task LookupWorkshopItemNameAsync(ulong id)
@@ -1605,6 +1614,45 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
             await _workshop.UpdateAllModsAsync(Server, Plugin, progress);
             AppendLog("[Workshop] ✅ All mods updated.", ConsoleMessageType.System);
+            await RefreshWorkshopAsync();
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task CheckOutdatedModsAsync()
+    {
+        if (Plugin == null || !HasWorkshop) return;
+        WorkshopBusy = true;
+        try
+        {
+            OutdatedMods = await _workshop.CheckForOutdatedModsAsync(Server);
+            if (OutdatedMods.Count == 0)
+                AppendLog("[Workshop] All mods are up to date.", ConsoleMessageType.System);
+            else
+                AppendLog($"[Workshop] {OutdatedMods.Count} outdated mod(s) found.", ConsoleMessageType.Warning);
+        }
+        catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
+        finally { WorkshopBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task UpdateOutdatedModsAsync()
+    {
+        if (Plugin == null || !HasWorkshop || OutdatedMods.Count == 0) return;
+        WorkshopBusy = true;
+        try
+        {
+            var toUpdate = OutdatedMods.ToList();
+            for (int i = 0; i < toUpdate.Count; i++)
+            {
+                var mod = toUpdate[i];
+                AppendLog($"[Workshop] Updating {mod.ModName} ({i + 1}/{toUpdate.Count})...", ConsoleMessageType.System);
+                await _workshop.InstallItemAsync(Server, Plugin, mod.ModId);
+            }
+            AppendLog($"[Workshop] ✅ {toUpdate.Count} mod(s) updated.", ConsoleMessageType.System);
+            OutdatedMods = [];
             await RefreshWorkshopAsync();
         }
         catch (Exception ex) { AppendLog($"[Workshop] ❌ {ex.Message}", ConsoleMessageType.Error); }
