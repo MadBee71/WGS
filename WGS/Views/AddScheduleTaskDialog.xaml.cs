@@ -18,7 +18,9 @@ public partial class AddScheduleTaskDialog : Window
     private void CbAction_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (CommandPanel != null)
-            CommandPanel.Visibility = CbAction.SelectedIndex == 5 ? Visibility.Visible : Visibility.Collapsed;
+            CommandPanel.Visibility  = CbAction.SelectedIndex == 5 ? Visibility.Visible : Visibility.Collapsed;
+        if (BroadcastPanel != null)
+            BroadcastPanel.Visibility = CbAction.SelectedIndex == 8 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CbQuickCommand_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -37,11 +39,23 @@ public partial class AddScheduleTaskDialog : Window
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
-        var action = (ScheduledActionType)CbAction.SelectedIndex;
+        // Map combobox index to enum (Wipe=6, WipeMap=7, Broadcast=8 added after QuickCommand=5)
+        var action = CbAction.SelectedIndex switch
+        {
+            6 => ScheduledActionType.Wipe,
+            7 => ScheduledActionType.WipeMap,
+            8 => ScheduledActionType.Broadcast,
+            _ => (ScheduledActionType)CbAction.SelectedIndex,
+        };
 
         if (action == ScheduledActionType.QuickCommand && string.IsNullOrWhiteSpace(TbCommand.Text))
         {
             System.Windows.MessageBox.Show("Enter a console command to send.", "Error");
+            return;
+        }
+        if (action == ScheduledActionType.Broadcast && string.IsNullOrWhiteSpace(TbBroadcast.Text))
+        {
+            System.Windows.MessageBox.Show("Enter the message to broadcast.", "Error");
             return;
         }
 
@@ -70,12 +84,21 @@ public partial class AddScheduleTaskDialog : Window
             if (CbIntervalUnit.SelectedIndex == 1) intervalMinutes *= 60; // Hours -> minutes
         }
 
-        var day = (DayOfWeek)(CbDay.SelectedIndex + 1); // Monday=1
+        // Monday=index 0 → DayOfWeek.Monday(1) … Saturday=index 5 → DayOfWeek.Saturday(6)
+        // Sunday=index 6 → DayOfWeek.Sunday(0) — cast +1 would overflow to (DayOfWeek)7
+        var day = CbDay.SelectedIndex == 6 ? DayOfWeek.Sunday : (DayOfWeek)(CbDay.SelectedIndex + 1);
+
+        var command = action switch
+        {
+            ScheduledActionType.QuickCommand => TbCommand.Text.Trim(),
+            ScheduledActionType.Broadcast    => TbBroadcast.Text.Trim(),
+            _                                => string.Empty,
+        };
 
         Result = new ScheduledTask
         {
             Action          = action,
-            Command         = action == ScheduledActionType.QuickCommand ? TbCommand.Text.Trim() : string.Empty,
+            Command         = command,
             Frequency       = freq,
             TimeOfDay       = time,
             DayOfWeek       = freq == ScheduleFrequency.Weekly ? day : DayOfWeek.Monday,

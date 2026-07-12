@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class RustPlugin : GamePluginBase, IWorkshopPlugin
+public class RustPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
 {
     public override string GameId        => "rust";
     public override string GameName      => "Rust";
@@ -67,6 +67,22 @@ public class RustPlugin : GamePluginBase, IWorkshopPlugin
 
         return args;
     }
+
+    // IWipePlugin — Rust saves under server/<identity>/
+    public IEnumerable<string> GetMapWipePaths(GameServer server)
+    {
+        var identity = server.GameSpecificSettings.TryGetValue("identity", out var id) ? id : "server1";
+        // Procedural map + player data files (full wipe = same as map wipe for Rust)
+        return [$@"server\{identity}\proceduralmap.*.map",
+                $@"server\{identity}\proceduralmap.*.sav",
+                $@"server\{identity}\player.blueprints.*.db",
+                $@"server\{identity}\player.deaths.*.db",
+                $@"server\{identity}\player.identities.*.db",
+                $@"server\{identity}\player.states.*.db",
+                $@"server\{identity}\player.tokens.*.db"];
+    }
+
+    public IEnumerable<string> GetFullWipePaths(GameServer server) => GetMapWipePaths(server);
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {

@@ -37,6 +37,33 @@
                               Content="Optimize system RAM before starting a server" Margin="0,14,0,0"/>
                     <TextBlock Text="Flushes unused memory from background processes before each server launch to free up physical RAM. May cause a brief pause."
                                FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+
+                    <!-- Health Check -->
+                    <CheckBox IsChecked="{Binding HealthCheckEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Enable server freeze detection (Health Check)" Margin="0,14,0,0"/>
+                    <TextBlock Text="Checks every 60 seconds whether a running server actually responds to queries. If it stops responding, the action below is triggered."
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Consecutive failures before trigger:" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
+                                 Text="{Binding HealthCheckFailThreshold, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Column="4" Text="Action:" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <ComboBox Grid.Column="6" Style="{StaticResource DarkComboBox}"
+                                  ItemsSource="{Binding HealthCheckActions}"
+                                  SelectedItem="{Binding HealthCheckAction}"/>
+                    </Grid>
+
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>

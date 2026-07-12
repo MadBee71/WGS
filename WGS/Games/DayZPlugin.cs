@@ -4,7 +4,7 @@ using WGS.Services;
 
 namespace WGS.Games;
 
-public class DayZPlugin : GamePluginBase, IWorkshopPlugin
+public class DayZPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
 {
     public override string GameId           => "dayz";
     public override string GameName         => "DayZ";
@@ -51,6 +51,17 @@ public class DayZPlugin : GamePluginBase, IWorkshopPlugin
 
         return args;
     }
+
+    // IWipePlugin — DayZ stores map data in the profiles folder
+    public IEnumerable<string> GetMapWipePaths(GameServer server)
+    {
+        var profiles = server.GameSpecificSettings.TryGetValue("profiles", out var p) ? p : "profiles";
+        // storage_* directories hold player/world state; *.db files hold persistence
+        return [$@"{profiles}\storage_1\*",
+                $@"{profiles}\*.db"];
+    }
+
+    public IEnumerable<string> GetFullWipePaths(GameServer server) => GetMapWipePaths(server);
 
     public override string? GetStopCommand(GameServer server) => "#shutdown";
 
