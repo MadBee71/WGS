@@ -624,6 +624,28 @@ public partial class MainViewModel : BaseViewModel
         // Count running servers
         var running = Servers.Where(s => s.IsRunning).ToList();
 
+        // Warn if this update requires a newer .NET runtime than currently running
+        if (Environment.Version.Major < 10)
+        {
+            var dotnetWarning = System.Windows.MessageBox.Show(
+                $"WGS {LatestVersion} requires .NET 10 Desktop Runtime, but you are currently running .NET {Environment.Version.Major}.\n\n" +
+                "You must install .NET 10 Desktop Runtime before updating, otherwise WGS will not start after the update.\n\n" +
+                "Download it now from:\nhttps://dotnet.microsoft.com/download/dotnet/10.0\n\n" +
+                "Install .NET 10 Desktop Runtime (Windows x64), then come back and update.\n\n" +
+                "Do you want to open the download page now?",
+                "⚠️ .NET 10 Required",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            if (dotnetWarning == System.Windows.MessageBoxResult.Yes)
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    "https://dotnet.microsoft.com/download/dotnet/10.0") { UseShellExecute = true }); }
+                catch { }
+            }
+            return;
+        }
+
         // Build confirmation message
         string msg = running.Count > 0
             ? $"WGS will update to {LatestVersion}.\n\n" +
