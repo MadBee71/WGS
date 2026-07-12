@@ -22,7 +22,7 @@ public static class PluginCompilerService
 
         var references = BuildReferences();
         if (references.Count == 0)
-            return (null, "Could not locate .NET runtime assemblies. Make sure .NET 8 Runtime is installed.");
+            return (null, "Could not locate .NET runtime assemblies. Make sure .NET 10 Desktop Runtime is installed.");
 
         var syntaxTree  = CSharpSyntaxTree.ParseText(source);
         var compilation = CSharpCompilation.Create(
