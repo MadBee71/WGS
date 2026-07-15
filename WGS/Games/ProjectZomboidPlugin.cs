@@ -17,8 +17,10 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
 
-    // Project Zomboid has no standalone exe — launched via its bundled JRE
+    // Project Zomboid has no standalone exe — launched via its bundled JRE.
+    // Working directory must be InstallPath (not jre64\bin\) so Windows finds SDL3.dll and other natives.
     public override string Executable      => @"jre64\bin\java.exe";
+    public override string? GetWorkingDirectory(GameServer server) => server.InstallPath;
     public override int    DefaultPort     => 16261;
     public override int    DefaultQueryPort => 16262;
     public override int    DefaultMaxPlayers => 32;

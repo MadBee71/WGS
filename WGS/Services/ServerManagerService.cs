@@ -293,9 +293,11 @@ public class ServerManagerService
         // WorkingDirectory must be the exe's own folder (not just InstallPath) — but a bare PATH
         // command (e.g. "java") has no directory component at all, so GetDirectoryName returns ""
         // (not null), which would otherwise launch with WGS's own folder as the working directory
-        // instead of the server's.
+        // instead of the server's. Plugins can override via GetWorkingDirectory() when the exe lives
+        // in a sub-folder but the server must run from install root (e.g. Project Zomboid).
         var exeDirRaw = Path.GetDirectoryName(exe);
-        var exeDir = string.IsNullOrEmpty(exeDirRaw) ? server.InstallPath : exeDirRaw;
+        var exeDir = plugin.GetWorkingDirectory(server)
+                     ?? (string.IsNullOrEmpty(exeDirRaw) ? server.InstallPath : exeDirRaw);
 
         // SteamClientAppId == 0 means "don't write steam_appid.txt or set Steam env vars"
         // SteamClientAppId > 0 means explicit override; otherwise fall back to SteamAppId
