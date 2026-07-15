@@ -29,27 +29,37 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
         var identity = S(s, "identity", "servertest");
         var userHome = System.IO.Directory.GetParent(s.InstallPath)?.FullName ?? s.InstallPath;
 
-        // Read classpath from StartServer64.bat if present, otherwise use known B41 default
-        var batPath   = System.IO.Path.Combine(s.InstallPath, "StartServer64.bat");
-        var classpath = "java/istack-commons-runtime.jar;java/jassimp.jar;java/javacord-2.0.17-shaded.jar;" +
-                        "java/javax.activation-api.jar;java/jaxb-api.jar;java/jaxb-runtime.jar;java/lwjgl.jar;" +
-                        "java/lwjgl-natives-windows.jar;java/lwjgl-glfw.jar;java/lwjgl-glfw-natives-windows.jar;" +
-                        "java/lwjgl-jemalloc.jar;java/lwjgl-jemalloc-natives-windows.jar;java/lwjgl-opengl.jar;" +
-                        "java/lwjgl-opengl-natives-windows.jar;java/lwjgl_util.jar;java/sqlite-jdbc-3.27.2.1.jar;" +
-                        "java/trove-3.0.3.jar;java/uncommons-maths-1.2.3.jar;java/commons-compress-1.18.jar;java/";
-        if (System.IO.File.Exists(batPath))
+        // Build absolute classpath from install root so working directory doesn't matter
+        var javaDir   = System.IO.Path.Combine(s.InstallPath, "java");
+        var b41Jars   = new[]
         {
-            var line = System.IO.File.ReadLines(batPath)
-                           .FirstOrDefault(l => l.TrimStart().StartsWith("SET PZ_CLASSPATH="));
-            if (line != null)
-                classpath = line.Substring(line.IndexOf('=') + 1).Trim();
+            "istack-commons-runtime.jar", "jassimp.jar", "javacord-2.0.17-shaded.jar",
+            "javax.activation-api.jar", "jaxb-api.jar", "jaxb-runtime.jar", "lwjgl.jar",
+            "lwjgl-natives-windows.jar", "lwjgl-glfw.jar", "lwjgl-glfw-natives-windows.jar",
+            "lwjgl-jemalloc.jar", "lwjgl-jemalloc-natives-windows.jar", "lwjgl-opengl.jar",
+            "lwjgl-opengl-natives-windows.jar", "lwjgl_util.jar", "sqlite-jdbc-3.27.2.1.jar",
+            "trove-3.0.3.jar", "uncommons-maths-1.2.3.jar", "commons-compress-1.18.jar",
+        };
+        // Use all jars found in java/ — covers both B41 and B42
+        string classpath;
+        if (System.IO.Directory.Exists(javaDir))
+        {
+            var jars = System.IO.Directory.GetFiles(javaDir, "*.jar")
+                           .Select(j => $"\"{j}\"");
+            classpath = string.Join(";", jars) + $";\"{javaDir}\"";
+        }
+        else
+        {
+            classpath = string.Join(";", b41Jars.Select(j => $"\"{System.IO.Path.Combine(javaDir, j)}\""))
+                        + $";\"{javaDir}\"";
         }
 
+        var natives = $"{s.InstallPath}\\natives;{s.InstallPath}\\natives\\win64;{s.InstallPath}";
         return
             $"-Djava.awt.headless=true -Dzomboid.steam=1 -Dzomboid.znetlog=1 " +
             $"-XX:+UseZGC -XX:-CreateCoredumpOnCrash -XX:-OmitStackTraceInFastThrow " +
-            $"-Xms4g -Xmx8g -Djava.library.path=natives/;natives/win64/;. " +
-            $"-cp \"{classpath}\" zombie.network.GameServer " +
+            $"-Xms4g -Xmx8g \"-Djava.library.path={natives}\" " +
+            $"-cp {classpath} zombie.network.GameServer " +
             $"-statistic 0 -port {s.ServerPort} -servername {identity}" +
             (string.IsNullOrWhiteSpace(s.CustomArgs) ? "" : $" {s.CustomArgs}");
     }
