@@ -30,6 +30,10 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 
+    // Override to force a specific working directory when the exe lives in a sub-folder
+    // but the server expects to run from the install root (e.g. Project Zomboid jre64\bin\java.exe).
+    public virtual string? GetWorkingDirectory(GameServer server) => null;
+
     /// <summary>For SteamAppId == 0 games that can still be auto-installed from a direct zip download
     /// (e.g. FiveM/RedM's FXServer) — return the current build number and its download URL, or null
     /// if this game truly requires a manual install WGS can't automate.</summary>
