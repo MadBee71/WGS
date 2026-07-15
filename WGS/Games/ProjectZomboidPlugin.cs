@@ -29,16 +29,15 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
         var identity = S(s, "identity", "servertest");
         var userHome = System.IO.Directory.GetParent(s.InstallPath)?.FullName ?? s.InstallPath;
 
-        // B42+ ships a single fat jar; B41 ships individual jars
-        var isB42 = System.IO.File.Exists(System.IO.Path.Combine(s.InstallPath, "java", "projectzomboid.jar"));
-        var classpath = isB42
-            ? "java/;java/projectzomboid.jar/"
-            : "java/istack-commons-runtime.jar;java/jassimp.jar;java/javacord-2.0.17-shaded.jar;" +
-              "java/javax.activation-api.jar;java/jaxb-api.jar;java/jaxb-runtime.jar;java/lwjgl.jar;" +
-              "java/lwjgl-natives-windows.jar;java/lwjgl-glfw.jar;java/lwjgl-glfw-natives-windows.jar;" +
-              "java/lwjgl-jemalloc.jar;java/lwjgl-jemalloc-natives-windows.jar;java/lwjgl-opengl.jar;" +
-              "java/lwjgl-opengl-natives-windows.jar;java/lwjgl_util.jar;java/sqlite-jdbc-3.27.2.1.jar;" +
-              "java/trove-3.0.3.jar;java/uncommons-maths-1.2.3.jar;java/commons-compress-1.18.jar;java/";
+        // Build classpath from all jars found in the java/ folder — works for any version
+        var javaDir   = System.IO.Path.Combine(s.InstallPath, "java");
+        var classpath = "java/";
+        if (System.IO.Directory.Exists(javaDir))
+        {
+            var jars = System.IO.Directory.GetFiles(javaDir, "*.jar")
+                           .Select(j => "java/" + System.IO.Path.GetFileName(j));
+            classpath = string.Join(";", jars) + ";java/";
+        }
 
         return
             $"\"-Djava.awt.headless=true\" \"-Dzomboid.steam=1\" \"-Dzomboid.znetlog=1\" \"-Duser.home={userHome}\" " +
