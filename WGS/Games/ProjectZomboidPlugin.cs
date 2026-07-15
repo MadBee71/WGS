@@ -16,7 +16,9 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
     public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
-    public override string Executable      => "ProjectZomboidServer.bat";
+
+    // Project Zomboid has no standalone exe — launched via its bundled JRE
+    public override string Executable      => @"jre64\bin\java.exe";
     public override int    DefaultPort     => 16261;
     public override int    DefaultQueryPort => 16262;
     public override int    DefaultMaxPlayers => 32;
@@ -24,8 +26,18 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
 
     public override string BuildStartArguments(GameServer s)
     {
-        var identity = S(s, "identity", "servertest");
-        return $"-servername {identity}";
+        var identity  = S(s, "identity", "servertest");
+        // -Duser.home points to the parent of InstallPath so Zomboid saves go to <parent>\Zomboid\
+        var userHome  = System.IO.Directory.GetParent(s.InstallPath)?.FullName ?? s.InstallPath;
+
+        return
+            $"\"-Djava.awt.headless=true\" \"-Dzomboid.steam=1\" \"-Dzomboid.znetlog=1\" \"-Duser.home={userHome}\" " +
+            "\"-XX:+UseZGC\" \"-XX:-CreateCoredumpOnCrash\" \"-XX:-OmitStackTraceInFastThrow\" " +
+            "-Xms4g -Xmx8g \"-Djava.library.path=natives/;natives/win64/;.\" \"-Dstatistic=0\" " +
+            "-cp \"java/;java/projectzomboid.jar/\" " +
+            "zombie.network.GameServer " +
+            $"-port {s.Port} -servername {identity}" +
+            (string.IsNullOrWhiteSpace(s.CustomArgs) ? "" : $" {s.CustomArgs}");
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
