@@ -12,6 +12,7 @@ public interface IGamePlugin
     int SteamClientAppId { get; }  // AppID for steam_appid.txt (0 = same as SteamAppId)
     int GameStoreAppId { get; }    // Game's store AppID for Steam CDN images (may differ from server AppID)
     string Executable { get; }
+    string? GetWorkingDirectory(GameServer server);
     int DefaultPort { get; }
     int DefaultQueryPort { get; }
     int DefaultSteamPort { get; }
