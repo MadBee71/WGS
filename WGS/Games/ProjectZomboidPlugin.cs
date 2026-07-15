@@ -36,7 +36,7 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
             "-Xms4g -Xmx8g \"-Djava.library.path=natives/;natives/win64/;.\" \"-Dstatistic=0\" " +
             "-cp \"java/;java/projectzomboid.jar/\" " +
             "zombie.network.GameServer " +
-            $"-port {s.Port} -servername {identity}" +
+            $"-port {s.ServerPort} -servername {identity}" +
             (string.IsNullOrWhiteSpace(s.CustomArgs) ? "" : $" {s.CustomArgs}");
     }
 
