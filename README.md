@@ -3,8 +3,8 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-1.3.1-blue)
-  ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+  ![Version](https://img.shields.io/badge/version-1.4.2-blue)
+  ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
   ![Games](https://img.shields.io/badge/supported_games-101+-orange)
