@@ -653,7 +653,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         try
         {
-            await _steamCmd.InstallOrUpdateAsync(Server.Id, Plugin.SteamAppId, Server.InstallPath, login, password, Plugin.SteamBranch);
+            var branch = Server.GameSpecificSettings.TryGetValue("steamBranch", out var b) && !string.IsNullOrWhiteSpace(b) ? b : Plugin.SteamBranch;
+            await _steamCmd.InstallOrUpdateAsync(Server.Id, Plugin.SteamAppId, Server.InstallPath, login, password, branch);
             Server.Status = ServerStatus.Stopped;
             OnPropertyChanged(nameof(InstalledVersionText));
             AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
