@@ -16,6 +16,7 @@ public sealed class WakeOnDemandService : IDisposable
     private readonly NotificationService _notifications;
     private readonly Dictionary<string, CancellationTokenSource> _watchers  = new();
     private readonly Dictionary<string, CancellationTokenSource> _idleWatchers = new();
+    private readonly Dictionary<string, DateTime> _idleShutdownTimes = new();
     private readonly object _lock = new();
 
     /// <summary>Raised after an idle-shutdown backup completes, so an open Backups tab can refresh.</summary>
@@ -38,7 +39,17 @@ public sealed class WakeOnDemandService : IDisposable
             if (_watchers.ContainsKey(server.Id)) return;
             var cts = new CancellationTokenSource();
             _watchers[server.Id] = cts;
-            _ = ListenAsync(server, cts.Token);
+            // After an idle shutdown, wait 5 minutes before listening again so that
+            // game-client reconnect retries don't immediately wake the server back up.
+            TimeSpan delay = TimeSpan.Zero;
+            if (_idleShutdownTimes.TryGetValue(server.Id, out var t))
+            {
+                _idleShutdownTimes.Remove(server.Id);
+                var elapsed = DateTime.UtcNow - t;
+                var cooldown = TimeSpan.FromMinutes(5);
+                if (elapsed < cooldown) delay = cooldown - elapsed;
+            }
+            _ = ListenAsync(server, cts.Token, delay);
         }
     }
 
@@ -80,13 +91,18 @@ public sealed class WakeOnDemandService : IDisposable
         }
     }
 
-    private async Task ListenAsync(GameServer server, CancellationToken ct)
+    private async Task ListenAsync(GameServer server, CancellationToken ct, TimeSpan delay = default)
     {
         // Race TCP and UDP on the same port number — OS allows both simultaneously since they are
         // separate protocols. Most games use UDP (Valheim, Rust, ARK, Palworld, DayZ…) but some
         // use TCP (Minecraft family, FiveM…). First signal from either protocol wins.
         using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var linked = innerCts.Token;
+
+        if (delay > TimeSpan.Zero)
+        {
+            try { await Task.Delay(delay, ct); } catch (OperationCanceledException) { return; }
+        }
 
         bool triggered = false;
         try
@@ -162,7 +178,11 @@ public sealed class WakeOnDemandService : IDisposable
                 }
                 else if (DateTime.UtcNow - idleStart >= timeout)
                 {
-                    lock (_lock) { _idleWatchers.Remove(server.Id); }
+                    lock (_lock)
+                    {
+                        _idleWatchers.Remove(server.Id);
+                        _idleShutdownTimes[server.Id] = DateTime.UtcNow;
+                    }
                     try { await _manager.StopAsync(server); } catch { }
                     if (server.BackupOnShutdown)
                     {
