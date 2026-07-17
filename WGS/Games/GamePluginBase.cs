@@ -127,10 +127,17 @@ public abstract class GamePluginBase : IGamePlugin
     protected string S(GameServer server, string key, string fallback = "")
         => server.GameSpecificSettings.TryGetValue(key, out var v) ? v : fallback;
 
-    protected List<ConfigField> BaseFields() =>
-    [
-        new() { Key = "serverName",  Label = "Server name",   FieldType = ConfigFieldType.Text,     DefaultValue = GameName + " Server" },
-        new() { Key = "maxPlayers",  Label = "Max players",        FieldType = ConfigFieldType.Number,   DefaultValue = DefaultMaxPlayers.ToString(), Min = 1, Max = 256 },
-        new() { Key = "serverPass",  Label = "Password",          FieldType = ConfigFieldType.Password, DefaultValue = "" },
-    ];
+    protected List<ConfigField> BaseFields()
+    {
+        var fields = new List<ConfigField>
+        {
+            new() { Key = "serverName", Label = "Server name",  FieldType = ConfigFieldType.Text,     DefaultValue = GameName + " Server" },
+            new() { Key = "maxPlayers", Label = "Max players",  FieldType = ConfigFieldType.Number,   DefaultValue = DefaultMaxPlayers.ToString(), Min = 1, Max = 256 },
+            new() { Key = "serverPass", Label = "Password",     FieldType = ConfigFieldType.Password, DefaultValue = "" },
+        };
+        if (SteamAppId > 0)
+            fields.Add(new() { Key = "steamBranch", Label = "Beta branch", FieldType = ConfigFieldType.Text, DefaultValue = SteamBranch,
+                               Description = "SteamCMD beta branch to use (e.g. \"public\", \"experimental\"). Leave empty for the default release branch." });
+        return fields;
+    }
 }
