@@ -17,23 +17,25 @@ public class SoulmaskPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
+        var map       = S(s, "map",       "Level01_Main");
         var mode      = S(s, "gameMode",  "pve");
         var adminPass = S(s, "adminPass", "");
         var pass      = S(s, "serverPass", "");
 
-        var args = $"Level01_Main -server -log -UTF8Output " +
+        var args = $"{map} -server -log -UTF8Output " +
                    $"-Port={s.ServerPort} -QueryPort={s.QueryPort} " +
                    $"-SteamServerName=\"{s.ServerName}\" -MaxPlayers={s.MaxPlayers}" +
                    $" -{mode}";
 
-        if (!string.IsNullOrWhiteSpace(pass))      args += $" -PSW=\"{pass}\"";
-        if (!string.IsNullOrWhiteSpace(adminPass))  args += $" -adminpsw=\"{adminPass}\"";
+        if (!string.IsNullOrWhiteSpace(pass))     args += $" -PSW=\"{pass}\"";
+        if (!string.IsNullOrWhiteSpace(adminPass)) args += $" -adminpsw=\"{adminPass}\"";
 
         return args;
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
+        ["map"]       = "Level01_Main",
         ["gameMode"]  = "pve",
         ["adminPass"] = "",
     };
@@ -42,6 +44,9 @@ public class SoulmaskPlugin : GamePluginBase
     {
         var fields = BaseFields();
         fields.AddRange([
+            new() { Key = "map",       Label = "Map",            FieldType = ConfigFieldType.Dropdown, DefaultValue = "Level01_Main",
+                    Options = ["Level01_Main", "DLC_Level01_Main"],
+                    Description = "Level01_Main = base game. DLC_Level01_Main = Civilizations DLC (requires owning the DLC)." },
             new() { Key = "gameMode",  Label = "Game mode",      FieldType = ConfigFieldType.Dropdown, DefaultValue = "pve", Options = ["pve", "pvp"] },
             new() { Key = "adminPass", Label = "Admin password",  FieldType = ConfigFieldType.Password, DefaultValue = "" },
         ]);
