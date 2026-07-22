@@ -57,6 +57,7 @@ public static class GameRegistry
         Register(new HLOpForPlugin());
         // Open World
         Register(new FiveMPlugin());
+        Register(new FiveMEnhancedPlugin());
         // Racing
         Register(new WreckfestPlugin());
         Register(new Wreckfest2Plugin());
