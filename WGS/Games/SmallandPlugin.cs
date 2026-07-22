@@ -15,6 +15,8 @@ public class SmallandPlugin : GamePluginBase
     public override int    DefaultQueryPort => 7778;
     public override int    DefaultMaxPlayers => 8;
 
+    public override string? GetWorkingDirectory(GameServer s) => s.InstallPath;
+
     public override string BuildStartArguments(GameServer s)
         => $"-log -port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers}";
 
