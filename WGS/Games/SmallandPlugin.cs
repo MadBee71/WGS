@@ -15,11 +15,47 @@ public class SmallandPlugin : GamePluginBase
     public override int    DefaultQueryPort => 7778;
     public override int    DefaultMaxPlayers => 8;
 
+    // Smalland dedicated server EOS credentials — public, same for all servers, from the official start-server.bat.
+    private const string EosDeploymentId   = "50f2b148496e4cbbbdeefbecc2ccd6a3";
+    private const string EosDedicatedClientId     = "xyza78918KT08TkA6emolUay8yhvAAy2";
+    private const string EosDedicatedClientSecret = "aN2GtVw7aHb6hx66HwohNM+qktFaO3vtrLSbGdTzZWk";
+
     public override string? GetWorkingDirectory(GameServer s) => s.InstallPath;
 
     public override string BuildStartArguments(GameServer s)
-        => $"-log -port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers}";
+    {
+        var serverName = S(s, "serverName", "My Server");
+        var worldName  = S(s, "worldName",  "World");
+        var map = $"/Game/Maps/WorldGame/WorldGame_Smalland" +
+                  $"?SERVERNAME={serverName}?WORLDNAME={worldName}?CROSSPLAY" +
+                  $"?lengthofdayseconds=1800?lengthofseasonseconds=10800" +
+                  $"?creaturehealthmodifier=100?creaturedamagemodifier=100" +
+                  $"?creaturerespawnratemodifier=100?resourcerespawnratemodifier=100" +
+                  $"?creaturespawnchancemodifier=100?craftingtimemodifier=100" +
+                  $"?craftingfuelmodifier=100?stormfrequencymodifier=100" +
+                  $"?nourishmentlossmodifier=100?falldamagemodifier=100?SESSIONPLATFORM=pc";
+        return $"\"{map}\"" +
+               $" -ini:Engine:[EpicOnlineServices]:DeploymentId={EosDeploymentId}" +
+               $" -ini:Engine:[EpicOnlineServices]:DedicatedServerClientId={EosDedicatedClientId}" +
+               $" -ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret={EosDedicatedClientSecret}" +
+               $" -port={s.ServerPort} -NOSTEAM -log";
+    }
 
-    public override Dictionary<string, string> GetDefaultSettings() => new();
-    public override List<ConfigField> GetConfigFields() => BaseFields();
+    public override Dictionary<string, string> GetDefaultSettings() => new()
+    {
+        ["serverName"] = "My Server",
+        ["worldName"]  = "World",
+    };
+
+    public override List<ConfigField> GetConfigFields()
+    {
+        var fields = BaseFields();
+        fields.AddRange([
+            new() { Key = "serverName", Label = "Server Name",  FieldType = ConfigFieldType.Text, DefaultValue = "My Server",
+                    Description = "Server name visible in the server browser." },
+            new() { Key = "worldName",  Label = "World Name",   FieldType = ConfigFieldType.Text, DefaultValue = "World",
+                    Description = "Name of the world/save file." },
+        ]);
+        return fields;
+    }
 }
