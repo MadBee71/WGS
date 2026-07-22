@@ -106,10 +106,12 @@ public static class PluginCompilerService
 
         // 3. WGS own assemblies — in single-file publish the DLLs are extracted to a temp
         // directory, not AppContext.BaseDirectory. Use already-loaded assemblies instead.
+#pragma warning disable IL3000
         var loadedPaths = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
             .Select(a => a.Location)
             .Distinct();
+#pragma warning restore IL3000
         foreach (var dll in loadedPaths)
         {
             try
