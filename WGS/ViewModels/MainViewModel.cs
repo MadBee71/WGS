@@ -649,7 +649,7 @@ public partial class MainViewModel : BaseViewModel
         // Build confirmation message
         string msg = running.Count > 0
             ? $"WGS will update to {LatestVersion}.\n\n" +
-              $"{running.Count} server{(running.Count == 1 ? "" : "s")} {(running.Count == 1 ? "is" : "are")} currently running and will be stopped before the update.\n\n" +
+              $"{running.Count} server{(running.Count == 1 ? "" : "s")} currently running will keep running during the update — WGS will reattach to them automatically after restart.\n\n" +
               "WGS will restart automatically after the update."
             : $"WGS will update to {LatestVersion} and restart automatically.";
 
@@ -662,14 +662,7 @@ public partial class MainViewModel : BaseViewModel
         if (result != System.Windows.MessageBoxResult.OK) return;
 
         UpdateDownloading = true;
-        UpdateStatusText  = "Stopping servers...";
-
-        // Stop all running servers gracefully
-        foreach (var vm in running)
-        {
-            try { await vm.StopCommand.ExecuteAsync(null); }
-            catch { }
-        }
+        UpdateStatusText  = "Downloading update...";
 
         // Download and prepare update
         var progress = new Progress<(int pct, string msg)>(x =>
