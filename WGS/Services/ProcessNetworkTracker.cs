@@ -55,7 +55,7 @@ public static class ProcessNetworkTracker
                 offset += rowSize;
 
                 // State 5 = MIB_TCP_STATE_ESTAB — skip LISTEN, TIME_WAIT, CLOSE_WAIT etc.
-                if (row.State != 5) { offset += rowSize; continue; }
+                if (row.State != 5) continue;
 
                 int pid = (int)row.OwningPid;
                 result[pid] = result.TryGetValue(pid, out int c) ? c + 1 : 1;
