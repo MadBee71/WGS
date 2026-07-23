@@ -25,7 +25,7 @@ public class SmallandPlugin : GamePluginBase
     public override string BuildStartArguments(GameServer s)
     {
         var raw        = S(s, "serverName", "");
-        var serverName = !string.IsNullOrWhiteSpace(raw) ? raw :
+        var serverName = (!string.IsNullOrWhiteSpace(raw) && raw != "My Server") ? raw :
                          !string.IsNullOrWhiteSpace(s.ServerName) ? s.ServerName :
                          !string.IsNullOrWhiteSpace(s.DisplayName) ? s.DisplayName : "My Server";
         var worldName  = S(s, "worldName",  "World");
