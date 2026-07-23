@@ -24,9 +24,10 @@ public class SmallandPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var serverName = S(s, "serverName",
-            !string.IsNullOrWhiteSpace(s.ServerName) ? s.ServerName :
-            !string.IsNullOrWhiteSpace(s.DisplayName) ? s.DisplayName : "My Server");
+        var raw        = S(s, "serverName", "");
+        var serverName = !string.IsNullOrWhiteSpace(raw) ? raw :
+                         !string.IsNullOrWhiteSpace(s.ServerName) ? s.ServerName :
+                         !string.IsNullOrWhiteSpace(s.DisplayName) ? s.DisplayName : "My Server";
         var worldName  = S(s, "worldName",  "World");
         var map = $"/Game/Maps/WorldGame/WorldGame_Smalland" +
                   $"?SERVERNAME={serverName}?WORLDNAME={worldName}?CROSSPLAY" +
@@ -45,7 +46,7 @@ public class SmallandPlugin : GamePluginBase
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["serverName"] = "My Server",
+        ["serverName"] = "",
         ["worldName"]  = "World",
     };
 
@@ -54,7 +55,7 @@ public class SmallandPlugin : GamePluginBase
         var fields = BaseFields();
         fields.AddRange([
             new() { Key = "serverName", Label = "Server Name",  FieldType = ConfigFieldType.Text, DefaultValue = "My Server",
-                    Description = "Server name visible in the server browser." },
+                    Description = "Server name visible in the server browser. Leave empty to use the WGS server name." },
             new() { Key = "worldName",  Label = "World Name",   FieldType = ConfigFieldType.Text, DefaultValue = "World",
                     Description = "Name of the world/save file." },
         ]);
