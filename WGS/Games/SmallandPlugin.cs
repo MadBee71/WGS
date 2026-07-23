@@ -24,7 +24,9 @@ public class SmallandPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var serverName = S(s, "serverName", "My Server");
+        var serverName = S(s, "serverName",
+            !string.IsNullOrWhiteSpace(s.ServerName) ? s.ServerName :
+            !string.IsNullOrWhiteSpace(s.DisplayName) ? s.DisplayName : "My Server");
         var worldName  = S(s, "worldName",  "World");
         var map = $"/Game/Maps/WorldGame/WorldGame_Smalland" +
                   $"?SERVERNAME={serverName}?WORLDNAME={worldName}?CROSSPLAY" +
