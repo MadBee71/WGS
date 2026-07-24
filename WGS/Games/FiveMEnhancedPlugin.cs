@@ -20,8 +20,7 @@ public class FiveMEnhancedPlugin : GamePluginBase
 
     public override async Task<(string Build, string Url)?> GetManualDownloadInfoAsync(GameServer server)
     {
-        var useLatest = S(server, "buildChannel", "recommended") == "latest";
-        var info = useLatest ? await CfxEnhancedArtifactHelper.GetLatestAsync() : await CfxEnhancedArtifactHelper.GetRecommendedAsync();
+        var info = await CfxEnhancedArtifactHelper.GetLatestAsync();
         return info == null ? null : (info.Build, info.DownloadUrl);
     }
 
