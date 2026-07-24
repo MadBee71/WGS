@@ -10,7 +10,7 @@ public static class CfxEnhancedArtifactHelper
 {
     // Fixed download URL published on https://docs.fivem.net/docs/server-download/
     // under "FiveM for GTAV Enhanced". No versioned API exists yet (early access).
-    private const string DownloadUrl = "https://downloads.cfx-services.net/prod/019f8666-f8d0-7d16-9ea4-0ce263063f38/cfx-server_win_x64.zip";
+    private const string DownloadUrl = "https://downloads.cfx-services.net/prod/019f8fcf-2a44-74fa-bc9f-0f8974c10a75/cfx-server_win_x64.zip";
     private const string BuildLabel  = "latest";
 
     public record ArtifactInfo(string Build, string DownloadUrl);
