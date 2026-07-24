@@ -51,28 +51,28 @@ public class RedMPlugin : GamePluginBase
     // server defaulting to the same "default" profile, which causes them to collide.
     public override string BuildStartArguments(GameServer s)
     {
-        var serverProfile = S(s, "serverProfile", "default");
-        var txAdminPort   = S(s, "txAdminPort",   "40121");
-        return $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\" +set serverProfile \"{serverProfile}\" +set txAdminPort \"{txAdminPort}\"";
+        var txDataPath = S(s, "TXHOST_DATA_PATH", "....txData");
+        var txaPort    = S(s, "TXHOST_TXA_PORT",  "40121");
+        return $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\" +set TXHOST_DATA_PATH \"{txDataPath}\" +set TXHOST_TXA_PORT \"{txaPort}\"";
     }
 
     public override string? GetStopCommand(GameServer server) => "quit";
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["serverProfile"] = "default",
-        ["buildChannel"]  = "recommended",
-        ["txAdminPort"]   = "40121",
+        ["TXHOST_DATA_PATH"] = "....txData",
+        ["TXHOST_TXA_PORT"]  = "40121",
+        ["buildChannel"]     = "recommended",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
-        fields.Add(new() { Key = "serverProfile", Label = "TxAdmin Server Profile", FieldType = ConfigFieldType.Text, DefaultValue = "default",
-                            Description = "Server profile to load via txAdmin. Give each RedM server its own unique name here, or they'll all collide on the same \"default\" profile." });
-        fields.Add(new() { Key = "txAdminPort",   Label = "TxAdmin Port",           FieldType = ConfigFieldType.Text, DefaultValue = "40121",
+        fields.Add(new() { Key = "TXHOST_DATA_PATH", Label = "TxAdmin Data Path", FieldType = ConfigFieldType.Text, DefaultValue = "....txData",
+                            Description = "TxAdmin server data path (TXHOST_DATA_PATH). Give each RedM server its own unique path to avoid collisions." });
+        fields.Add(new() { Key = "TXHOST_TXA_PORT",  Label = "TxAdmin Port",      FieldType = ConfigFieldType.Text, DefaultValue = "40121",
                             Description = "Port txAdmin listens on. Default is 40121. Change if running FiveM and RedM side-by-side to avoid conflicts." });
-        fields.Add(new() { Key = "buildChannel",  Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
+        fields.Add(new() { Key = "buildChannel",      Label = "FXServer build channel", FieldType = ConfigFieldType.Dropdown,
                             DefaultValue = "recommended", Options = ["recommended", "latest"],
                             Description = "Recommended = stable, what Cfx.re currently recommends. Latest = newest features, can be buggy. The CFX license key, RCON password and everything else are set inside txAdmin itself after first launch — not here." });
         return fields;
