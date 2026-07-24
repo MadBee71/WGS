@@ -45,29 +45,25 @@ public class FiveMEnhancedPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var serverProfile = S(s, "serverProfile", "default");
-        var txAdminPort   = S(s, "txAdminPort",   "40120");
-        return $"+set serverProfile \"{serverProfile}\" +set txAdminPort \"{txAdminPort}\"";
+        var TXHOST_DATA_PATH = S(s, "TXHOST_DATA_PATH", "default");
+        var TXHOST_TXA_PORT = S(s, "TXHOST_TXA_PORT",   "40120");
+        return $"+set TXHOST_TXA_PORT \"{TXHOST_DATA_PATH}\" +set TXHOST_TXA_PORT \"{TXHOST_TXA_PORT}\"";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["serverProfile"] = "default",
-        ["buildChannel"]  = "recommended",
-        ["txAdminPort"]   = "40120",
+        ["TXHOST_DATA_PATH"] = "....txData",
+        ["TXHOST_TXA_PORT"]   = "40120",
     };
 
     public override List<ConfigField> GetConfigFields()
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "serverProfile", Label = "TxAdmin Server Profile", FieldType = ConfigFieldType.Text, DefaultValue = "default",
-                    Description = "Server profile to load via txAdmin." },
-            new() { Key = "txAdminPort",   Label = "TxAdmin Port",           FieldType = ConfigFieldType.Text, DefaultValue = "40120",
-                    Description = "Port txAdmin listens on. Default is 40120." },
-            new() { Key = "buildChannel",  Label = "Server build channel",   FieldType = ConfigFieldType.Dropdown,
-                    DefaultValue = "recommended", Options = ["recommended", "latest"],
-                    Description = "Recommended = stable. Latest = newest features, may be unstable. CFX license key and all other settings are configured inside txAdmin after first launch." },
+            new() { Key = "TXHOST_DATA_PATH", Label = "TxAdmin Data Path", FieldType = ConfigFieldType.Text, DefaultValue = "....txData",
+                    Description = "TxAdmin Server Data Path." },
+            new() { Key = "TXHOST_TXA_PORT",   Label = "TxAdmin Port",           FieldType = ConfigFieldType.Text, DefaultValue = "40120",
+                    Description = "TxAdmin Port listens on. Default is 40120." },
         ]);
         return fields;
     }
