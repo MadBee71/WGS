@@ -510,6 +510,8 @@ public partial class MainViewModel : BaseViewModel
             var vm = MakeVm(srv);
             vm.ServerNumber = num++;
             Servers.Add(vm);
+            if (!reattached && srv.WakeOnDemand)
+                _wakeOnDemand.Arm(srv);
             if (srv.AutoStart && !reattached)
                 _ = WpfApplication.Current?.Dispatcher?.InvokeAsync(() => vm.StartCommand.ExecuteAsync(null))
                         .Task.ContinueWith(t => Console.WriteLine($"[WGS] AutoStart failed for {srv.DisplayName}: {t.Exception?.InnerException?.Message}"),
