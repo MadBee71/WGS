@@ -74,9 +74,9 @@ public partial class FileBrowserViewModel : ObservableObject
     // ── Tietoturva: Path Traversal -suojaus ───────────────────────────────────
 
     /// <summary>
-    /// Palauttaa true vain jos polku on _rootPathin alla.
-    /// Normalisoi molemmat Path.GetFullPath:lla, joten "../" ja symlinkit
-    /// eivät voi paeta juurikansion ulkopuolelle.
+    /// Returns true only when the path is under _rootPath.
+    /// Both sides are normalised with Path.GetFullPath so "../" and symlinks
+    /// cannot escape the root directory.
     /// </summary>
     public bool IsPathSafe(string path)
     {
@@ -86,8 +86,8 @@ public partial class FileBrowserViewModel : ObservableObject
         {
             var full = Path.GetFullPath(path);
             var root = Path.GetFullPath(_rootPath);
-            // Varmistetaan erotinmerkki loppuun estämään prefix-huijaukset
-            // esim. root="C:\server" full="C:\server2\..." pitää hylätä
+            // Append the separator so prefix attacks are rejected:
+            // e.g. root="C:\server" must not match full="C:\server2\..."
             var rootWithSep = root.TrimEnd(Path.DirectorySeparatorChar)
                                   + Path.DirectorySeparatorChar;
             return full.StartsWith(rootWithSep, StringComparison.OrdinalIgnoreCase)
@@ -179,7 +179,7 @@ public partial class FileBrowserViewModel : ObservableObject
             OpenForEdit(item);
         else
         {
-            // Ei-muokattavat tiedostot avataan järjestelmällä
+            // Non-editable files are opened with the system default handler
             try { System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo(item.FullPath) { UseShellExecute = true }); }
             catch (Exception ex) { StatusText = $"Error opening: {ex.Message}"; }
@@ -259,7 +259,7 @@ public partial class FileBrowserViewModel : ObservableObject
         EditorDirty      = false;
     }
 
-    // Kutsutaan kun tekstisisältö muuttuu (bindingin kautta)
+    // Called when editor text content changes (via binding)
     public void NotifyEditorChanged() => EditorDirty = true;
 
     // ── Lataus (Download) ─────────────────────────────────────────────────────
@@ -319,7 +319,7 @@ public partial class FileBrowserViewModel : ObservableObject
         catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
     }
 
-    // ── Nimeäminen ────────────────────────────────────────────────────────────
+    // ── Rename ────────────────────────────────────────────────────────────────
 
     [RelayCommand]
     private void RenameItem(FileItem? item)
@@ -339,7 +339,7 @@ public partial class FileBrowserViewModel : ObservableObject
             ShowRenameBox = false;
             return;
         }
-        // Estä polkusegmentit uudessa nimessä
+        // Reject path separators and traversal sequences in the new name
         if (NewName.Contains('/') || NewName.Contains('\\') || NewName.Contains(".."))
         {
             StatusText    = "Error: Name must not contain path separators.";
@@ -371,14 +371,14 @@ public partial class FileBrowserViewModel : ObservableObject
         catch { }
     }
 
-    // ── Leivänmuru ────────────────────────────────────────────────────────────
+    // ── Breadcrumb ────────────────────────────────────────────────────────────
 
     private void BuildBreadcrumb()
     {
         Breadcrumb.Clear();
         var root  = Path.GetFullPath(_rootPath);
         var curr  = Path.GetFullPath(CurrentPath);
-        // Näytetään vain juuresta alkaava suhteellinen polku
+        // Show relative path starting from the root
         var rel   = Path.GetRelativePath(root, curr);
         Breadcrumb.Add(Path.GetFileName(root.TrimEnd(Path.DirectorySeparatorChar)));
         if (rel != ".")

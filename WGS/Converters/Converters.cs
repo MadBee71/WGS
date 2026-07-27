@@ -121,7 +121,7 @@ public class FractionToHeightConverter : IValueConverter
 
 /// <summary>
 /// Palauttaa GridLength "*" kun bool on true, "0" kun false.
-/// Käytetään editoripaneelin leveyden toggle-näyttöön ilman erillistä näkyvyys-saraketta.
+/// Used to toggle the editor panel width without a separate visibility column.
 /// </summary>
 public class BoolToGridLengthConverter : IValueConverter
 {

@@ -85,7 +85,7 @@
                                  BorderBrush="#30363D" BorderThickness="1" Padding="10,8"
                                  PasswordChanged="SteamPassBox_PasswordChanged"/>
                     <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
-                               Text="⚠ Password is stored in plain text. Use a dedicated Steam account for servers."/>
+                               Text="Password is encrypted with Windows DPAPI and stored securely. Use a dedicated Steam account for servers."/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>
                 </StackPanel>
@@ -410,10 +410,15 @@
                 <StackPanel>
                     <TextBlock Text="User Management" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
                         Manage web dashboard users. Each user has an individual token for API access.
-                        Default admin password is "admin" — change it after first login.
                     </TextBlock>
+                    <Border Background="#2D1A1A" BorderBrush="#F85149" BorderThickness="3,0,0,0"
+                            Padding="10,8" Margin="0,0,0,12"
+                            Visibility="{Binding DataContext.Settings.AdminPasswordIsDefault, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                        <TextBlock FontSize="12" Foreground="#F85149" TextWrapping="Wrap"
+                                   Text="⚠ The admin account still uses the default password 'admin'. Change it below before enabling the Web API."/>
+                    </Border>
 
                     <!-- Add user form -->
                     <Grid Margin="0,0,0,10">

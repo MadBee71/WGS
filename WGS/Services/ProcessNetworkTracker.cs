@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 namespace WGS.Services;
 
 /// <summary>
-/// Hakee TCP-yhteyksien PID-omistajuustiedot iphlpapi.dll:stä.
-/// Ei vaadi korotettuja oikeuksia (admin), toimii Windows 7+.
+/// Reads TCP connection PID ownership from iphlpapi.dll.
+/// Does not require elevated privileges; works on Windows 7+.
 /// </summary>
 public static class ProcessNetworkTracker
 {
@@ -29,8 +29,8 @@ public static class ProcessNetworkTracker
     }
 
     /// <summary>
-    /// Palauttaa TCP-yhteyksien lukumäärän per PID.
-    /// Kutsutaan taustaketjulta — ei UI-threadia.
+    /// Returns TCP connection counts keyed by PID.
+    /// Called from a background thread — never the UI thread.
     /// </summary>
     public static Dictionary<int, int> GetConnectionCountsByPid()
     {

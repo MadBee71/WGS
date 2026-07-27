@@ -39,12 +39,12 @@
                             Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"/>
                     <Button Content="{Binding Loc.BtnStop}" Style="{StaticResource DangerButton}" Margin="0,0,4,0"
                             Command="{Binding StopCommand}" IsEnabled="{Binding CanStop}"/>
-                    <Button Content="💀" Style="{StaticResource DangerButton}" Margin="0,0,4,0" Width="36" Padding="0"
-                            Command="{Binding KillCommand}" IsEnabled="{Binding CanStop}" ToolTip="Kill process immediately"/>
+                    <Button Content="💀 Kill" Style="{StaticResource DangerButton}" Margin="0,0,4,0" Padding="8,4"
+                            Command="{Binding KillCommand}" IsEnabled="{Binding CanStop}" ToolTip="Kill process immediately (no save)"/>
                     <Button Content="🖥" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding ShowWindowCommand}" IsEnabled="{Binding IsRunning}" ToolTip="Bring server console to front"
                             Visibility="{Binding UseNativeConsole, Converter={StaticResource BoolToVis}}"/>
-                    <Button Content="↺" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
+                    <Button Content="↺ Restart" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Padding="8,4"
                             Command="{Binding RestartCommand}" IsEnabled="{Binding CanStop}" ToolTip="Restart"/>
                     <Button Content="{Binding Loc.BtnInstall}" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                             Command="{Binding InstallCommand}" IsEnabled="{Binding IsInstalling, Converter={StaticResource InvBool}}"/>
@@ -56,7 +56,7 @@
                     <Button Content="🔗" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
                             Command="{Binding CopyConnectionLinkCommand}"
                             ToolTip="Copy steam://connect link to clipboard"/>
-                    <Button Content="⧉" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Width="36" Padding="0"
+                    <Button Content="⧉ Clone" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Padding="8,4"
                             Command="{Binding DataContext.CloneServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}"
                             ToolTip="Clone server (copy config, allocate new ports)"/>
@@ -92,7 +92,7 @@
                         <TextBlock Text=" MB" FontSize="12" VerticalAlignment="Bottom" Margin="1,0,0,1"
                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    <ProgressBar Value="{Binding MemoryMb}" Maximum="16384" Width="120"
+                    <ProgressBar Value="{Binding MemoryMb}" Maximum="{Binding RamBarMax}" Width="120"
                                  Style="{StaticResource DarkProgressBar}" Foreground="{StaticResource AccentGreenBrush}"/>
                 </StackPanel>
                 <!-- Bandwidth -->
@@ -277,9 +277,10 @@
                     <Border Grid.Row="3" Background="{StaticResource BgSurfaceBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,8">
                         <StackPanel>
-                            <TextBlock Text="Quick Commands" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"
-                                       Foreground="{StaticResource TextMutedBrush}"
-                                       ToolTip="One-click console command shortcuts you save below. Click a button to send its command instantly — hover a button to see exactly what it sends. Click ✕ to remove one. These can also be scheduled to run automatically from the Schedule tab."/>
+                            <TextBlock Text="Quick Commands" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,2"
+                                       Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="One-click console shortcuts. Click a button to send — hover to see the command. Schedulable from the Schedule tab."
+                                       FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,4"/>
                             <WrapPanel>
                                 <ItemsControl ItemsSource="{Binding QuickCommands}">
                                     <ItemsControl.ItemsPanel>
@@ -386,55 +387,55 @@
 
                                 <StackPanel Grid.Row="0" Grid.Column="0">
                                     <TextBlock Text="Display name" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.DisplayName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.DisplayName, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="0" Grid.Column="2">
                                     <TextBlock Text="Server name (in-game)" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.ServerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.ServerName, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Grid.Column="0">
                                     <TextBlock Text="IP address" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.ServerIp, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.ServerIp, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="2">
                                     <TextBlock Text="Max players" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.MaxPlayers, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.MaxPlayers, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="4" Grid.Column="0">
                                     <TextBlock Text="Game port" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.ServerPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.ServerPort, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="4" Grid.Column="2">
                                     <TextBlock Text="Query port" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.QueryPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.QueryPort, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="6" Grid.Column="0">
                                     <TextBlock Text="Steam port" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.SteamPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.SteamPort, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="6" Grid.Column="2">
                                     <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.ServerPassword, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.ServerPassword, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="8" Grid.Column="0"
                                             Visibility="{Binding HasRcon, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="RCON port" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.RconPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.RconPort, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="8" Grid.Column="2"
                                             Visibility="{Binding HasRcon, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="RCON password" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.RconPassword, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.RconPassword, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="3">
                                     <TextBlock Text="GSLT (Login Token)" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding Server.Gslt, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Text="{Binding Server.Gslt, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="12" Grid.Column="0" Grid.ColumnSpan="3">
@@ -727,7 +728,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0" Text="{Binding Server.InstallPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DarkTextBox}"/>
+                                    <TextBox Grid.Column="0" Text="{Binding Server.InstallPath, UpdateSourceTrigger=LostFocus}" Style="{StaticResource DarkTextBox}"/>
                                     <Button Grid.Column="1" Content="📁 Open" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
                                             Command="{Binding OpenInstallFolderCommand}"/>
                                 </Grid>
@@ -753,7 +754,7 @@
                             <StackPanel>
                                 <TextBlock Text="Server Templates" Style="{StaticResource SectionHeader}"/>
 
-                                <!-- Tallennuslomake -->
+                                <!-- Save form -->
                                 <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="6"
                                         Padding="10,8" Margin="0,4,0,10">
                                     <StackPanel>
@@ -795,7 +796,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Suodatuspalkki -->
+                                <!-- Filter bar -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                     <TextBlock Text="Filter:" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
                                                VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -808,7 +809,7 @@
                                              ToolTip="Filter by tag"/>
                                 </StackPanel>
 
-                                <!-- Mallilista -->
+                                <!-- Template list -->
                                 <TextBlock Text="No templates for this game." FontSize="12"
                                            Foreground="{StaticResource TextMutedBrush}"
                                            Visibility="{Binding FilteredTemplates.Count, Converter={StaticResource ZeroToVis}, Mode=OneWay}"/>
@@ -854,7 +855,7 @@
                                                         </StackPanel>
                                                     </StackPanel>
 
-                                                    <!-- Toimintopainikkeet -->
+                                                    <!-- Action buttons -->
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <Button Content="↺" Style="{StaticResource GhostButton}"
                                                                 Width="32" Padding="0" Margin="0,0,2,0"
@@ -863,12 +864,12 @@
                                                                 CommandParameter="{Binding}"/>
                                                         <Button Content="⎘" Style="{StaticResource GhostButton}"
                                                                 Width="32" Padding="0" Margin="0,0,2,0"
-                                                                ToolTip="Kloonaa malli"
+                                                                ToolTip="Clone template"
                                                                 Command="{Binding DataContext.CloneTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"/>
                                                         <Button Content="📤" Style="{StaticResource GhostButton}"
                                                                 Width="32" Padding="0" Margin="0,0,2,0"
-                                                                ToolTip="Vie tiedostoon"
+                                                                ToolTip="Export to file"
                                                                 Command="{Binding DataContext.ExportTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"/>
                                                         <Button Content="🗑" Style="{StaticResource DangerButton}"

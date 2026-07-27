@@ -62,10 +62,10 @@ public class PlayerStatsService
             CREATE INDEX IF NOT EXISTS idx_sessions_steamid  ON sessions(steam_id);
             CREATE INDEX IF NOT EXISTS idx_sessions_jointime ON sessions(join_time);
 
-            -- Migraatio: lisaa steam_id jos puuttuu vanhasta skeemasta
+            -- Migration: add steam_id column if missing from older schema
             ALTER TABLE sessions ADD COLUMN steam_id TEXT NOT NULL DEFAULT '' ;
             """;
-        // ALTER TABLE epäonnistuu jos sarake on jo olemassa — se on ok
+        // ALTER TABLE fails if the column already exists — that is fine
         try { cmd.ExecuteNonQuery(); }
         catch
         {
@@ -116,7 +116,7 @@ public class PlayerStatsService
         {
             using var db  = OpenDb();
             using var cmd = db.CreateCommand();
-            // Yritä ensin SteamID-matchilla, fallback nimellä
+            // Try SteamID match first, fall back to name
             var where = !string.IsNullOrEmpty(steamId)
                 ? "server_id = $s AND steam_id = $id AND leave_time IS NULL"
                 : "server_id = $s AND player_name = $p AND leave_time IS NULL";
@@ -170,7 +170,7 @@ public class PlayerStatsService
         catch { return []; }
     }
 
-    /// <summary>Palauttaa per-pelaaja tilastot: sessioita, peliaika, viimeksi nähty.</summary>
+    /// <summary>Returns per-player statistics: sessions, play time, last seen.</summary>
     public List<PlayerStats> GetPlayerStats(string serverId, int limit = 50)
     {
         if (!_available) return [];

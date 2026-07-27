@@ -20,10 +20,10 @@ public class WebApiService : IDisposable
 
     public bool   IsRunning   { get; private set; }
     public int    Port        { get; private set; } = 8765;
-    // Fallback single-token (käytetään jos UserService ei ole saatavilla)
+    // Fallback single-token (used when UserService is not available)
     public string Token       { get; private set; } = Guid.NewGuid().ToString("N");
 
-    // Injektoidaan käyttäjähallintaa varten
+    // Injected for user management
     public UserService? Users { get; set; }
 
     // Callbacks wired by MainViewModel
@@ -445,8 +445,8 @@ public class WebApiService : IDisposable
                 var id     = parts[2];
                 var action = parts.Length >= 4 ? parts[3] : string.Empty;
 
-                // Viewer ei saa käynnistää, pysäyttää, varmuuskopioida eikä lähettää komentoja
-                var writeActions = new[] { "start", "stop", "restart", "update", "cmd", "backup" }; // #3: backup lisätty
+                // Viewers may not start, stop, backup, or send commands
+                var writeActions = new[] { "start", "stop", "restart", "update", "cmd", "backup" };
                 if (isViewer && Array.IndexOf(writeActions, action) >= 0)
                 {
                     resp.StatusCode = 403;
