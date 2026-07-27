@@ -35,13 +35,13 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable // #2: IDis
 
         _metrics.MetricsUpdated    += OnMetricsUpdated;
         _network.Updated           += OnNetworkUpdated;
-        _servers.CollectionChanged += OnServersChanged; // #2: nimetty — voidaan derekisteröidä
+        _servers.CollectionChanged += OnServersChanged; // named handler — can be unregistered
 
         OnMetricsUpdated();
         UpdateServerCounts();
     }
 
-    // #2: Derekisteröi kaikki event-handlerit
+    // Unregister all event handlers
     public void Dispose()
     {
         _metrics.MetricsUpdated    -= OnMetricsUpdated;

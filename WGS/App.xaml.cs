@@ -85,7 +85,7 @@ public partial class App : System.Windows.Application
         // (Add Server, etc.) the moment WGS was restarted.
         Games.GameRegistry.LoadCustomPlugins(ViewModels.PluginCreatorViewModel.PluginsPath);
 
-        // UI-säikeen poikkeukset
+        // UI thread exceptions
         DispatcherUnhandledException += (_, ex) =>
         {
             WriteLog($"DISPATCHER: {ex.Exception}");
@@ -96,11 +96,11 @@ public partial class App : System.Windows.Application
             ex.Handled = true;
         };
 
-        // Background-säikeiden poikkeukset
+        // Background thread exceptions
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
             WriteLog($"APPDOMAIN: {ex.ExceptionObject}");
 
-        // Task-poikkeukset
+        // Task exceptions
         System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, ex) =>
         {
             WriteLog($"TASK: {ex.Exception}");

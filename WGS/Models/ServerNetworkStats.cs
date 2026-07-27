@@ -7,7 +7,7 @@ public class ServerNetworkStats
     public double BytesInPerSec   { get; set; }
     public double BytesOutPerSec  { get; set; }
 
-    // Viimeiset 60 näytettä (2 min @ 2 s välein) sparklinea varten
+    // Last 60 samples (2 min @ 2 s interval) for the sparkline
     public Queue<double> HistoryIn  { get; } = new(60);
     public Queue<double> HistoryOut { get; } = new(60);
 

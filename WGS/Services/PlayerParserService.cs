@@ -39,7 +39,7 @@ public static class PlayerParserService
         var result = new List<OnlinePlayer>();
         try
         {
-            // Yksinkertainen regex-pohjainen parsija — ei tarvita Newtonsoft tässä
+            // Simple regex-based parser — no Newtonsoft dependency needed here
             var entries = Regex.Matches(response,
                 @"\{[^}]*""DisplayName""\s*:\s*""(?<name>[^""]*)""\s*,\s*" +
                 @"""SteamID""\s*:\s*(?<steam>\d+)\s*,\s*" +

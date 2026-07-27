@@ -79,7 +79,7 @@ public class UserService
             """;
         cmd.ExecuteNonQuery();
 
-        // Migraatio: lisaa last_login jos puuttuu
+        // Migration: add last_login column if missing (older schema)
         try
         {
             using var alt = db.CreateCommand();
@@ -204,7 +204,7 @@ public class UserService
             cmd.Parameters.AddWithValue("$r", role.ToString());
             cmd.Parameters.AddWithValue("$t", Guid.NewGuid().ToString("N"));
             cmd.ExecuteNonQuery();
-            WriteAudit("system", "create_user", $"user={username} role={role}", db); // #4: auditointi metodin sisään
+            WriteAudit("system", "create_user", $"user={username} role={role}", db);
         }
         catch { }
     }
@@ -295,6 +295,9 @@ public class UserService
         catch { }
     }
 
+    /// <summary>Returns true when the built-in admin account still has the default "admin" password.</summary>
+    public bool IsAdminPasswordDefault() => _available && ValidatePassword("admin", "admin", out _);
+
     // ── Audit log ─────────────────────────────────────────────────────────────
 
     public List<AuditEntry> GetAuditLog(int limit = 100)
@@ -322,7 +325,7 @@ public class UserService
         catch { return []; }
     }
 
-    // Julkinen overload ilman olemassa olevaa yhteyttä
+    // Public overload without an existing connection
     public void WriteAudit(string username, string action, string detail = "")
     {
         if (!_available) return;

@@ -14,6 +14,7 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly DiscordBotService   _bot;
     private readonly WebApiService       _webApi;
     private readonly UPnPService         _upnp;
+    private readonly UserService         _users;
 
     // ── Webhook notifications ─────────────────────────────────────────────────
     [ObservableProperty] private bool   _discordEnabled;
@@ -112,9 +113,11 @@ public partial class SettingsViewModel : BaseViewModel
         }
     }
 
+    public bool AdminPasswordIsDefault => _users.IsAdminPasswordDefault();
+
     public SettingsViewModel(NotificationService notifications, ConfigService config,
                              SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi,
-                             UPnPService upnp)
+                             UPnPService upnp, UserService users)
     {
         _notifications = notifications;
         _config        = config;
@@ -122,6 +125,7 @@ public partial class SettingsViewModel : BaseViewModel
         _bot           = bot;
         _webApi        = webApi;
         _upnp          = upnp;
+        _users         = users;
         _bot.StatusChanged += msg => WpfApplication.Current?.Dispatcher?.Invoke(() => {
             BotStatus = msg;
             OnPropertyChanged(nameof(BotIsRunning));

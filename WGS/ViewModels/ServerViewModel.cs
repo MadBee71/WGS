@@ -52,6 +52,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _statusText = string.Empty;
     [ObservableProperty] private double _cpuPercent;
     [ObservableProperty] private long _memoryMb;
+    [ObservableProperty] private long _ramBarMax = 4096;
+
+    partial void OnMemoryMbChanged(long value)
+    {
+        if (value > RamBarMax) RamBarMax = Math.Max(value + value / 4, 4096);
+    }
     [ObservableProperty] private bool _rconConnected;
     [ObservableProperty] private string _consoleFilter   = string.Empty;
     [ObservableProperty] private string _modStatusText   = string.Empty;
@@ -593,6 +599,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [RelayCommand]
     private async Task KillAsync()
     {
+        var confirm = WpfMsgBox.Show(
+            "This will forcibly kill the server process immediately — the game will not save. Continue?",
+            "Kill Process", WpfMsgBoxButton.YesNo, WpfMsgBoxImage.Warning);
+        if (confirm != WpfMsgBoxResult.Yes) return;
         try
         {
             await _manager.KillAsync(Server);
@@ -1744,7 +1754,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Player Management ─────────────────────────────────────────────────────
 
-    // Vanhanmallinen tekstisyöttö (yhteensopivuus)
+    // Legacy text input (backwards compat)
     [ObservableProperty] private string _playerInput = string.Empty;
 
     [RelayCommand]
@@ -2216,7 +2226,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _manager.PortsReassigned   -= OnPortsReassigned;
         _steamCmd.OutputReceived   -= OnSteamOutput;
         _steamCmd.ProgressChanged  -= OnSteamProgress;
-        _network.ServerStatsUpdated -= OnServerStatsUpdated; // #1: estää muistivuodon poistetuille palvelimille
+        _network.ServerStatsUpdated -= OnServerStatsUpdated; // prevents memory leaks for removed servers
 
         StopUpdateTimer();
         StopPerfMonitoring();
