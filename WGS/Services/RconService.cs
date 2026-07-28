@@ -12,6 +12,9 @@ public enum RconProtocol
     /// single-packet UDP "quake rcon" format on the SAME port as the game traffic, with no
     /// persistent connection/handshake. See https://docs.fivem.net/docs/server-manual/server-commands/#rcon</summary>
     LegacyUdp,
+    /// <summary>BattlEye RCON (UDP) used by Arma Reforger, DayZ, Arma 3.
+    /// Login and commands are framed as BE + CRC32 + 0xFF + type + payload packets.</summary>
+    BattlEyeUdp,
 }
 
 /// <summary>
@@ -29,16 +32,24 @@ public class RconService : IDisposable
     private UdpClient? _udp;
     private string _udpPassword = "";
 
+    // BattlEye state
+    private byte _beSeq;
+
     public RconService(RconProtocol protocol = RconProtocol.SourceTcp) => _protocol = protocol;
 
-    public bool IsConnected => _protocol == RconProtocol.LegacyUdp
-        ? _udp != null && _authenticated
-        : _client?.Connected == true && _authenticated;
+    public bool IsConnected => _protocol switch
+    {
+        RconProtocol.LegacyUdp    => _udp != null && _authenticated,
+        RconProtocol.BattlEyeUdp  => _udp != null && _authenticated,
+        _                          => _client?.Connected == true && _authenticated,
+    };
 
     public async Task<bool> ConnectAsync(string host, int port, string password)
     {
         if (_protocol == RconProtocol.LegacyUdp)
             return await ConnectLegacyUdpAsync(host, port, password);
+        if (_protocol == RconProtocol.BattlEyeUdp)
+            return await ConnectBattlEyeAsync(host, port, password);
 
         try
         {
@@ -62,6 +73,8 @@ public class RconService : IDisposable
     {
         if (_protocol == RconProtocol.LegacyUdp)
             return await SendLegacyUdpCommandAsync(command);
+        if (_protocol == RconProtocol.BattlEyeUdp)
+            return await SendBattlEyeCommandAsync(command);
 
         if (!IsConnected) return "[RCON] Not connected";
         var id = _requestId++;
@@ -146,6 +159,148 @@ public class RconService : IDisposable
         catch (OperationCanceledException) { /* total timeout reached, return what we have */ }
 
         return sb.ToString();
+    }
+
+    // ── BattlEye RCON (UDP) ──────────────────────────────────────────────────
+    // Protocol used by Arma Reforger, DayZ, Arma 3.
+    // Packet format: "BE" (2) + CRC32 of rest (4 LE) + 0xFF + type (1) + payload
+    // Types: 0x00 = login, 0x01 = command, 0x02 = server message ack
+
+    private async Task<bool> ConnectBattlEyeAsync(string host, int port, string password)
+    {
+        try
+        {
+            _udp?.Dispose();
+            _udp = new UdpClient();
+            _udp.Client.ReceiveTimeout = 5000;
+            _udp.Connect(host, port);
+            _udpPassword = password;
+            _beSeq = 0;
+
+            var loginPacket = BuildBePacket(0x00, Encoding.UTF8.GetBytes(password));
+            await _udp.SendAsync(loginPacket, loginPacket.Length);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            UdpReceiveResult result;
+            try { result = await _udp.ReceiveAsync(cts.Token); }
+            catch { _authenticated = false; return false; }
+
+            var buf = result.Buffer;
+            // Response: BE(2) + CRC(4) + 0xFF + type(0x00) + result(1)
+            if (buf.Length < 9 || buf[0] != 'B' || buf[1] != 'E' || buf[7] != 0x00)
+            {
+                _authenticated = false;
+                return false;
+            }
+            _authenticated = buf[8] == 0x01;
+            return _authenticated;
+        }
+        catch
+        {
+            _authenticated = false;
+            return false;
+        }
+    }
+
+    private async Task<string> SendBattlEyeCommandAsync(string command)
+    {
+        if (_udp == null || !_authenticated) return "[RCON] Not connected";
+        try
+        {
+            var seq = _beSeq++;
+            var cmdBytes = Encoding.UTF8.GetBytes(command);
+            var payload = new byte[1 + cmdBytes.Length];
+            payload[0] = seq;
+            Buffer.BlockCopy(cmdBytes, 0, payload, 1, cmdBytes.Length);
+
+            await _udp.SendAsync(BuildBePacket(0x01, payload));
+
+            // Collect response — may be split across multiple UDP packets
+            var parts = new SortedDictionary<int, byte[]>();
+            int totalParts = 1;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+            while (parts.Count < totalParts)
+            {
+                UdpReceiveResult result;
+                try { result = await _udp.ReceiveAsync(cts.Token); }
+                catch (OperationCanceledException) { break; }
+
+                var buf = result.Buffer;
+                if (buf.Length < 8 || buf[0] != 'B' || buf[1] != 'E') continue;
+
+                var type = buf.Length > 7 ? buf[7] : (byte)0xFF;
+
+                // Unsolicited server message (type 0x02) — must ACK or server disconnects
+                if (type == 0x02 && buf.Length > 8)
+                {
+                    await _udp.SendAsync(BuildBePacket(0x02, [buf[8]]));
+                    continue;
+                }
+
+                if (type != 0x01 || buf.Length < 10) continue;
+
+                // Multi-packet response: buf[9] == 0x00 followed by total_count + index
+                if (buf.Length > 11 && buf[9] == 0x00)
+                {
+                    totalParts = buf[10];
+                    int idx  = buf[11];
+                    var data = new byte[buf.Length - 12];
+                    Buffer.BlockCopy(buf, 12, data, 0, data.Length);
+                    parts[idx] = data;
+                }
+                else
+                {
+                    // Single-packet response — data starts at byte 9
+                    var data = new byte[Math.Max(0, buf.Length - 9)];
+                    if (data.Length > 0)
+                        Buffer.BlockCopy(buf, 9, data, 0, data.Length);
+                    parts[0] = data;
+                    break;
+                }
+            }
+
+            var sb = new StringBuilder();
+            foreach (var part in parts.Values)
+                sb.Append(Encoding.UTF8.GetString(part));
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            return $"[RCON] Error: {ex.Message}";
+        }
+    }
+
+    private byte[] BuildBePacket(byte type, byte[] payload)
+    {
+        // CRC covers everything from 0xFF onward
+        var content = new byte[2 + payload.Length];
+        content[0] = 0xFF;
+        content[1] = type;
+        Buffer.BlockCopy(payload, 0, content, 2, payload.Length);
+
+        var crc = ComputeCrc32(content, 0, content.Length);
+        var packet = new byte[6 + content.Length];
+        packet[0] = (byte)'B';
+        packet[1] = (byte)'E';
+        packet[2] = (byte)(crc        & 0xFF);
+        packet[3] = (byte)((crc >> 8) & 0xFF);
+        packet[4] = (byte)((crc >> 16)& 0xFF);
+        packet[5] = (byte)((crc >> 24)& 0xFF);
+        Buffer.BlockCopy(content, 0, packet, 6, content.Length);
+        return packet;
+    }
+
+    private static uint ComputeCrc32(byte[] data, int offset, int length)
+    {
+        uint crc = 0xFFFFFFFF;
+        for (int i = offset; i < offset + length; i++)
+        {
+            crc ^= data[i];
+            for (int j = 0; j < 8; j++)
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+        }
+        return ~crc;
     }
 
     private async Task SendPacketAsync(int type, string body, int id = 1)

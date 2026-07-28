@@ -116,18 +116,38 @@ public static class PlayerParserService
         return result;
     }
 
-    // ── Dispatch: valitse parseri pelimoottorityypin mukaan ───────────────────
+    // ── BattlEye (Arma Reforger, DayZ, Arma 3): "players" command ───────────
+    // Header: "Players on server: [Player#] ; [Player UID] ; [Player Name]"
+    // Data:   "1 ; e26a9da4-9ef5-4a46-a257-e28f3d1044fa ; SVOford [ARMAholic]"
+    private static readonly Regex BattlEyePlayerLine = new(
+        @"^(?<slot>\d+)\s*;\s*(?<uid>[0-9a-f\-]{36})\s*;\s*(?<name>.+)$",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    public static List<OnlinePlayer> ParseBattlEyePlayers(string response)
+    {
+        var result = new List<OnlinePlayer>();
+        foreach (Match m in BattlEyePlayerLine.Matches(response))
+            result.Add(new OnlinePlayer
+            {
+                Name    = m.Groups["name"].Value.Trim(),
+                SteamId = m.Groups["uid"].Value.Trim(),
+            });
+        return result;
+    }
+
+    // ── Dispatch: choose parser by engine family ──────────────────────────────
     public static List<OnlinePlayer> Parse(string engineFamily, string response)
     {
         if (string.IsNullOrWhiteSpace(response)) return [];
         return engineFamily.ToLowerInvariant() switch
         {
-            "source"   => ParseSourceStatus(response),
-            "rust"     => ParseRustPlayerList(response),
-            "minecraft"=> ParseMinecraftList(response),
-            "ark"      => ParseArkPlayers(response),
-            "unreal"   => ParseUnrealPlayers(response),
-            _          => ParseGeneric(response),
+            "source"    => ParseSourceStatus(response),
+            "rust"      => ParseRustPlayerList(response),
+            "minecraft" => ParseMinecraftList(response),
+            "ark"       => ParseArkPlayers(response),
+            "unreal"    => ParseUnrealPlayers(response),
+            "battleye"  => ParseBattlEyePlayers(response),
+            _           => ParseGeneric(response),
         };
     }
 

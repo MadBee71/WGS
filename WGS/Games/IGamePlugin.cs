@@ -92,8 +92,8 @@ public interface IGamePlugin
     string? GetBroadcastCommand(string message);
 
     /// <summary>
-    /// Tunniste RCON-vastauksen parserille.
-    /// Arvot: "source" | "rust" | "minecraft" | "ark" | "unreal" | ""
+    /// Token that selects the RCON response parser.
+    /// Values: "source" | "rust" | "minecraft" | "ark" | "unreal" | "battleye" | ""
     /// </summary>
     string EngineFamily { get; }
 }

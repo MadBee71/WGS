@@ -21,10 +21,20 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlug
     public override int    DefaultPort      => 2302;
     public override int    DefaultQueryPort => 17777;
     public override int    DefaultMaxPlayers => 16;
+    public override bool   HasRcon          => true;
+    public override string EngineFamily     => "battleye";
 
     // A2S query — Reforger exposes Steam Query on -a2sPort instead of RCON
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort;
+
+    public override string? GetPlayersCommand()               => "players";
+    public override string? GetBroadcastCommand(string msg)   => $"say -1 {msg}";
+    // Arma Reforger RCON kick takes the player UID
+    public override string? GetKickCommand(string target)              => $"kick {target}";
+    public override string? GetKickCommand(string target, string reason) => $"kick {target}";
+    public override string? GetBanCommand(string target)               => $"ban {target}";
+    public override string? GetBanCommand(string target, string reason) => $"ban {target}";
 
     public override string BuildStartArguments(GameServer s)
     {
@@ -48,6 +58,7 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlug
         var adminPass  = S(server, "adminPassword","").Replace("\\", "\\\\").Replace("\"", "\\\"");
         var scenarioId = S(server, "scenarioId", "{ECC61978EDCC2B5A}Missions/23_Campaign.conf");
 
+        var rconPort = server.RconPort > 0 ? server.RconPort : 19999;
         var json = $$"""
 {
   "bindPort": {{server.ServerPort}},
@@ -57,8 +68,8 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlug
     "port": {{server.QueryPort}}
   },
   "rcon": {
-    "address": "127.0.0.1",
-    "port": 19999,
+    "address": "0.0.0.0",
+    "port": {{rconPort}},
     "password": "{{adminPass}}",
     "permission": "admin"
   },
@@ -92,9 +103,12 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlug
     {
         var fields = BaseFields();
         fields.AddRange([
-            new() { Key = "scenarioId",    Label = "Scenario ID",      FieldType = ConfigFieldType.Text,     DefaultValue = "{ECC61978EDCC2B5A}Missions/23_Campaign.conf" },
-            new() { Key = "adminPassword", Label = "Admin password",   FieldType = ConfigFieldType.Password, DefaultValue = "" },
-            new() { Key = "configFile",    Label = "Config file",      FieldType = ConfigFieldType.Text,     DefaultValue = "serverConfig.json" },
+            new() { Key = "scenarioId",    Label = "Scenario ID",      FieldType = ConfigFieldType.Text,     DefaultValue = "{ECC61978EDCC2B5A}Missions/23_Campaign.conf",
+                    Description = "Scenario to load on startup (from the server config)." },
+            new() { Key = "adminPassword", Label = "Admin / RCON password", FieldType = ConfigFieldType.Password, DefaultValue = "",
+                    Description = "Used for both in-game admin login and BattlEye RCON. Also set as the RCON password in WGS so the RCON tab can connect." },
+            new() { Key = "configFile",    Label = "Config file",      FieldType = ConfigFieldType.Text,     DefaultValue = "serverConfig.json",
+                    Description = "Relative path to serverConfig.json inside the install folder." },
         ]);
         return fields;
     }
