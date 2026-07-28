@@ -117,10 +117,12 @@ public static class PlayerParserService
     }
 
     // ── BattlEye (Arma Reforger, DayZ, Arma 3): "players" command ───────────
-    // Header: "Players on server: [Player#] ; [Player UID] ; [Player Name]"
-    // Data:   "1 ; e26a9da4-9ef5-4a46-a257-e28f3d1044fa ; SVOford [ARMAholic]"
+    // Arma Reforger format:  "0   192.168.1.1:2001   45   e26a9da4-...-fa   PlayerName"
+    // No-IP format:          "0   e26a9da4-...-fa   PlayerName"
+    // Semicolon format:      "0 ; e26a9da4-...-fa ; PlayerName"
+    // Optional suffix:       " (-)" at end of name line
     private static readonly Regex BattlEyePlayerLine = new(
-        @"^(?<slot>\d+)\s*;\s*(?<uid>[0-9a-f\-]{36})\s*;\s*(?<name>.+)$",
+        @"^\d+[\s;]+(?:\d+\.\d+\.\d+\.\d+:\d+[\s;]+\d+[\s;]+)?(?<uid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[\s;]+(?<name>.+?)(?:\s*\(-\))?\s*$",
         RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
     public static List<OnlinePlayer> ParseBattlEyePlayers(string response)

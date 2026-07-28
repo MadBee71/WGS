@@ -1412,6 +1412,20 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (restPlugin.LastRestApiError != null)
                 AppendLog($"[REST API] {restPlugin.LastRestApiError}", ConsoleMessageType.Warning);
         }
+        else if (RconConnected && _rcon != null && Plugin.GetPlayersCommand() != null)
+        {
+            // Prefer RCON when connected — gives UIDs and real names even for games that
+            // also support A2S (e.g. Arma Reforger). A2S is the fallback below.
+            var cmd = Plugin.GetPlayersCommand()!;
+            string response;
+            await _rconLock.WaitAsync();
+            try   { response = await _rcon.SendCommandAsync(cmd); }
+            catch { return; }
+            finally { _rconLock.Release(); }
+
+            if (string.IsNullOrWhiteSpace(response)) return;
+            parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+        }
         else if (Plugin is Games.IA2SQueryPlugin a2sPlugin)
         {
             parsed = await Services.A2SQueryService.QueryPlayersAsync(
