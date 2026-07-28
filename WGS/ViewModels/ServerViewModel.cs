@@ -942,6 +942,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         RconConnected = ok;
         AppendLog(ok ? "[RCON] " + Loc.RconConnectedMsg : "[RCON] " + Loc.RconFailedMsg,
             ok ? ConsoleMessageType.System : ConsoleMessageType.Error);
+
+        if (ok) _ = FetchOnlinePlayersAsync();
     }
 
     [RelayCommand]
