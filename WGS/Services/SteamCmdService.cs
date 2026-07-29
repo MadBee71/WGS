@@ -65,6 +65,21 @@ public class SteamCmdService
             throw new InvalidOperationException("Cannot create install directory: " + ex.Message, ex);
         }
 
+        // Warn early if the target drive is critically low on space.
+        try
+        {
+            var root = Path.GetPathRoot(installPath);
+            if (root != null)
+            {
+                var drive = new DriveInfo(root);
+                var freeGb = drive.AvailableFreeSpace / 1_073_741_824.0;
+                if (freeGb < 10)
+                    OutputReceived?.Invoke(serverId,
+                        $"[WGS] ⚠ Low disk space on {root}: {freeGb:F1} GB free. Install may fail if the server files don't fit.");
+            }
+        }
+        catch { }
+
         var loginArg  = (login != null && password != null)
             ? $"+login {login} {password}"
             : "+login anonymous";

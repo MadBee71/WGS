@@ -17,6 +17,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable // #2: IDis
     [ObservableProperty] private long   _ramTotalMb;
     [ObservableProperty] private double _ramPercent;
     [ObservableProperty] private IReadOnlyList<DriveStats> _drives = [];
+    [ObservableProperty] private string _lowDiskWarning = string.Empty;
+    public bool HasLowDiskWarning => !string.IsNullOrEmpty(LowDiskWarning);
     [ObservableProperty] private int    _serverCount;
     [ObservableProperty] private int    _onlineCount;
     [ObservableProperty] private int    _stoppedCount;
@@ -61,6 +63,15 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable // #2: IDis
             RamTotalMb = _metrics.RamTotalMb;
             RamPercent = RamTotalMb > 0 ? Math.Round((double)RamUsedMb / RamTotalMb * 100.0, 1) : 0;
             Drives     = _metrics.Drives;
+
+            var lowDrives = _metrics.Drives
+                .Where(d => d.TotalGb > 0 && (d.TotalGb - d.UsedGb) < 10)
+                .Select(d => $"{d.Name.TrimEnd('\\')} ({d.TotalGb - d.UsedGb:F1} GB free)")
+                .ToList();
+            LowDiskWarning = lowDrives.Count > 0
+                ? "⚠ Low disk space: " + string.Join(", ", lowDrives)
+                : string.Empty;
+            OnPropertyChanged(nameof(HasLowDiskWarning));
 
             OnPropertyChanged(nameof(RamUsedGb));
             OnPropertyChanged(nameof(RamTotalGb));

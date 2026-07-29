@@ -65,6 +65,14 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Low disk space warning banner -->
+                <Border Background="#4DFF6B00" BorderBrush="#FFFF6B00" BorderThickness="1"
+                        CornerRadius="6" Padding="12,8" Margin="0,0,0,12"
+                        Visibility="{Binding HasLowDiskWarning, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding LowDiskWarning}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="#FFFF9040" TextWrapping="Wrap"/>
+                </Border>
+
                 <!-- Disk Cards — one per drive -->
                 <ItemsControl ItemsSource="{Binding Drives}">
                     <ItemsControl.ItemsPanel>
