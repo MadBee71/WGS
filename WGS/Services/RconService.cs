@@ -34,6 +34,9 @@ public class RconService : IDisposable
 
     // BattlEye state
     private byte _beSeq;
+    private CancellationTokenSource? _beReceiveCts;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _beResponses = new();
+    private SemaphoreSlim _beResponseReady = new(0);
 
     public RconService(RconProtocol protocol = RconProtocol.SourceTcp) => _protocol = protocol;
 
@@ -193,6 +196,14 @@ public class RconService : IDisposable
                 return false;
             }
             _authenticated = buf[8] == 0x01;
+            if (_authenticated)
+            {
+                // Start background receive loop — ACKs server messages immediately so the
+                // server never considers us timed out between command polls.
+                _beReceiveCts?.Cancel();
+                _beReceiveCts = new CancellationTokenSource();
+                _ = Task.Run(() => BattlEyeReceiveLoopAsync(_beReceiveCts.Token));
+            }
             return _authenticated;
         }
         catch
@@ -200,6 +211,37 @@ public class RconService : IDisposable
             _authenticated = false;
             return false;
         }
+    }
+
+    private async Task BattlEyeReceiveLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                UdpReceiveResult result;
+                try { result = await _udp!.ReceiveAsync(ct); }
+                catch { return; }
+
+                var buf = result.Buffer;
+                if (buf.Length < 8 || buf[0] != 'B' || buf[1] != 'E') continue;
+
+                var type = buf[7];
+
+                if (type == 0x02 && buf.Length > 8)
+                {
+                    // ACK server keepalive message immediately — if we miss these the server
+                    // considers us disconnected and stops sending command responses.
+                    try { await _udp!.SendAsync(BuildBePacket(0x02, [buf[8]])); } catch { }
+                }
+                else if (type == 0x01 && buf.Length >= 10)
+                {
+                    _beResponses.Enqueue(buf);
+                    _beResponseReady.Release();
+                }
+            }
+        }
+        catch { }
     }
 
     private async Task<string> SendBattlEyeCommandAsync(string command)
@@ -213,36 +255,27 @@ public class RconService : IDisposable
             payload[0] = seq;
             Buffer.BlockCopy(cmdBytes, 0, payload, 1, cmdBytes.Length);
 
+            // Drain any stale responses before sending so we get the right reply.
+            while (_beResponses.TryDequeue(out _)) { }
+            while (_beResponseReady.CurrentCount > 0) _beResponseReady.Wait(0);
+
             await _udp.SendAsync(BuildBePacket(0x01, payload));
 
-            // Collect response — may be split across multiple UDP packets
+            // Collect response from the background loop — may be split across multiple packets.
             var parts = new SortedDictionary<int, byte[]>();
             int totalParts = 1;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
             while (parts.Count < totalParts)
             {
-                UdpReceiveResult result;
-                try { result = await _udp.ReceiveAsync(cts.Token); }
+                try { await _beResponseReady.WaitAsync(cts.Token); }
                 catch (OperationCanceledException) { break; }
 
-                var buf = result.Buffer;
-                if (buf.Length < 8 || buf[0] != 'B' || buf[1] != 'E') continue;
+                if (!_beResponses.TryDequeue(out var buf)) continue;
 
-                var type = buf.Length > 7 ? buf[7] : (byte)0xFF;
-
-                // Unsolicited server message (type 0x02) — must ACK or server disconnects
-                if (type == 0x02 && buf.Length > 8)
-                {
-                    await _udp.SendAsync(BuildBePacket(0x02, [buf[8]]));
-                    continue;
-                }
-
-                if (type != 0x01 || buf.Length < 10) continue;
-
-                // Multi-packet response: buf[9] == 0x00 followed by total_count + index
                 if (buf.Length > 11 && buf[9] == 0x00)
                 {
+                    // Multi-packet response
                     totalParts = buf[10];
                     int idx  = buf[11];
                     var data = new byte[buf.Length - 12];
@@ -362,6 +395,8 @@ public class RconService : IDisposable
     public void Disconnect()
     {
         _authenticated = false;
+        _beReceiveCts?.Cancel();
+        _beReceiveCts = null;
         _stream?.Dispose();
         _client?.Dispose();
         _udp?.Dispose();
