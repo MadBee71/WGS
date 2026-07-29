@@ -113,7 +113,8 @@ public partial class SettingsViewModel : BaseViewModel
         }
     }
 
-    public bool AdminPasswordIsDefault => _users.IsAdminPasswordDefault();
+    // Cached async result — PBKDF2 check is expensive; never run on the UI thread.
+    [ObservableProperty] private bool _adminPasswordIsDefault;
 
     public SettingsViewModel(NotificationService notifications, ConfigService config,
                              SteamCmdService steamCmd, DiscordBotService bot, WebApiService webApi,
@@ -131,6 +132,11 @@ public partial class SettingsViewModel : BaseViewModel
             OnPropertyChanged(nameof(BotIsRunning));
         });
         Load();
+        // Run PBKDF2 check off the UI thread so settings opens instantly.
+        _ = Task.Run(() => _users.IsAdminPasswordDefault())
+              .ContinueWith(t => WpfApplication.Current?.Dispatcher?.Invoke(
+                  () => AdminPasswordIsDefault = t.Result),
+                  TaskScheduler.Default);
     }
 
     private void Load()
