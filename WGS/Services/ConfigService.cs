@@ -125,16 +125,41 @@ public class ConfigService
             EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent,
             CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent, HasSeenOnboarding,
             OptimizeRamBeforeStart, HealthCheckEnabled, HealthCheckFailThreshold, HealthCheckAction);
-        File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
+        WriteAtomic(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 
     public List<GameServer> LoadServers()
     {
+        // Primary file missing or empty → try the atomic backup (.bak) left by File.Replace
+        if (!File.Exists(ServersFile) || new FileInfo(ServersFile).Length == 0)
+        {
+            var bak = ServersFile + ".bak";
+            if (File.Exists(bak) && new FileInfo(bak).Length > 0)
+                try { File.Copy(bak, ServersFile, overwrite: true); } catch { }
+        }
         if (!File.Exists(ServersFile)) return [];
-        try   { return JsonConvert.DeserializeObject<List<GameServer>>(File.ReadAllText(ServersFile)) ?? []; }
+        try
+        {
+            var list = JsonConvert.DeserializeObject<List<GameServer>>(File.ReadAllText(ServersFile));
+            return list?.Count > 0 ? list : [];
+        }
         catch { return []; }
     }
 
     public void SaveServers(IEnumerable<GameServer> servers)
-        => File.WriteAllText(ServersFile, JsonConvert.SerializeObject(servers, Formatting.Indented));
+        => WriteAtomic(ServersFile, JsonConvert.SerializeObject(servers, Formatting.Indented));
+
+    // Write to a temp file on the same volume then atomically replace — a BSOD mid-write
+    // leaves the old file intact instead of producing an empty or corrupt file.
+    private static void WriteAtomic(string path, string content)
+    {
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, content);
+        var bak = path + ".bak";
+        // File.Replace is a single rename syscall — atomic on NTFS
+        if (File.Exists(path))
+            File.Replace(tmp, path, bak);
+        else
+            File.Move(tmp, path);
+    }
 }
