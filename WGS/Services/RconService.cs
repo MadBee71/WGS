@@ -254,13 +254,11 @@ public class RconService : IDisposable
             payload[0] = seq;
             Buffer.BlockCopy(cmdBytes, 0, payload, 1, cmdBytes.Length);
 
-            // Drain any stale responses before sending so we get the right reply.
-            while (_beResponses.TryDequeue(out _)) { }
-            while (_beResponseReady.CurrentCount > 0) _beResponseReady.Wait(0);
-
             await _udp.SendAsync(BuildBePacket(0x01, payload));
 
-            // Collect response from the background loop — may be split across multiple packets.
+            // Collect response packets that match our sequence number.
+            // The background loop enqueues ALL type-0x01 packets; we filter by seq so a stale
+            // packet arriving between the send and our WaitAsync can never be mistaken for ours.
             var parts = new SortedDictionary<int, byte[]>();
             int totalParts = 1;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -271,6 +269,7 @@ public class RconService : IDisposable
                 catch (OperationCanceledException) { break; }
 
                 if (!_beResponses.TryDequeue(out var buf)) continue;
+                if (buf.Length < 9 || buf[8] != seq) continue; // wrong sequence — discard
 
                 if (buf.Length > 11 && buf[9] == 0x00)
                 {
