@@ -269,7 +269,6 @@ public class RconService : IDisposable
                 catch (OperationCanceledException) { break; }
 
                 if (!_beResponses.TryDequeue(out var buf)) continue;
-                if (buf.Length < 9 || buf[8] != seq) continue; // wrong sequence — discard
 
                 if (buf.Length > 11 && buf[9] == 0x00)
                 {
