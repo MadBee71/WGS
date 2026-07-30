@@ -140,6 +140,9 @@ public partial class App : System.Windows.Application
         Exit += OnApplicationExit;
     }
 
+    /// <summary>Set to true before a self-update restart so OnApplicationExit leaves servers running for reattach.</summary>
+    public static bool IsRestartingForUpdate { get; set; }
+
     private static void OnApplicationExit(object sender, System.Windows.ExitEventArgs e)
     {
         try
@@ -148,6 +151,10 @@ public partial class App : System.Windows.Application
             var manager = Services.GetRequiredService<ServerManagerService>();
 
             mainVm.Save();
+
+            // When restarting for a self-update, leave servers running so the new
+            // WGS instance can reattach to them via RunningPid.
+            if (IsRestartingForUpdate) return;
 
             foreach (var serverVm in mainVm.Servers)
             {

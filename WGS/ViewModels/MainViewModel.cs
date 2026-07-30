@@ -691,6 +691,7 @@ public partial class MainViewModel : BaseViewModel
             return;
         }
 
+        App.IsRestartingForUpdate = true;
         bool launched = Services.SelfUpdateService.ApplyAndRestart();
         if (!launched)
         {
