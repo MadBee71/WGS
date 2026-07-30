@@ -175,7 +175,6 @@ public class RconService : IDisposable
         {
             _udp?.Dispose();
             _udp = new UdpClient();
-            _udp.Client.ReceiveTimeout = 5000;
             _udp.Connect(host, port);
             _udpPassword = password;
             _beSeq = 0;
