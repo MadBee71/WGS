@@ -35,8 +35,16 @@ public class RconService : IDisposable
     // BattlEye state
     private byte _beSeq;
     private CancellationTokenSource? _beReceiveCts;
-    private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _beResponses = new();
-    private SemaphoreSlim _beResponseReady = new(0);
+    private readonly Dictionary<byte, BeInflight> _beInflight = new();
+    private readonly object _beInflightLock = new();
+
+    private sealed class BeInflight
+    {
+        public readonly TaskCompletionSource<string> Tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int TotalParts = 1;
+        public readonly SortedDictionary<int, byte[]> Parts = new();
+    }
 
     public RconService(RconProtocol protocol = RconProtocol.SourceTcp) => _protocol = protocol;
 
@@ -229,14 +237,48 @@ public class RconService : IDisposable
 
                 if (type == 0x02 && buf.Length > 8)
                 {
-                    // ACK server keepalive message immediately — if we miss these the server
-                    // considers us disconnected and stops sending command responses.
-                    try { await _udp!.SendAsync(BuildBePacket(0x02, [buf[8]])); } catch { }
+                    var ack = BuildBePacket(0x02, new byte[] { buf[8] });
+                    try { await _udp!.SendAsync(ack, ack.Length); } catch { }
                 }
-                else if (type == 0x01 && buf.Length >= 10)
+                else if (type == 0x01 && buf.Length >= 9)
                 {
-                    _beResponses.Enqueue(buf);
-                    _beResponseReady.Release();
+                    var seq = buf[8];
+
+                    BeInflight? inf;
+                    lock (_beInflightLock) _beInflight.TryGetValue(seq, out inf);
+                    if (inf == null) continue;
+
+                    // Empty payload (length==9) = bare command ACK, no data yet — keep waiting
+                    if (buf.Length == 9) continue;
+
+                    bool complete;
+                    if (buf[9] == 0x00 && buf.Length > 11)
+                    {
+                        // Multi-packet fragment
+                        inf.TotalParts = buf[10];
+                        int idx = buf[11];
+                        var part = new byte[buf.Length - 12];
+                        Buffer.BlockCopy(buf, 12, part, 0, part.Length);
+                        inf.Parts[idx] = part;
+                        complete = inf.Parts.Count >= inf.TotalParts;
+                    }
+                    else
+                    {
+                        // Single-packet response — data starts at byte 9
+                        var part = new byte[buf.Length - 9];
+                        Buffer.BlockCopy(buf, 9, part, 0, part.Length);
+                        inf.Parts[0] = part;
+                        complete = true;
+                    }
+
+                    if (complete)
+                    {
+                        lock (_beInflightLock) _beInflight.Remove(seq);
+                        var sb = new StringBuilder();
+                        foreach (var p in inf.Parts.Values)
+                            sb.Append(Encoding.UTF8.GetString(p));
+                        inf.Tcs.TrySetResult(sb.ToString());
+                    }
                 }
             }
         }
@@ -249,51 +291,26 @@ public class RconService : IDisposable
         try
         {
             var seq = _beSeq++;
+            var inf = new BeInflight();
+            lock (_beInflightLock) _beInflight[seq] = inf;
+
             var cmdBytes = Encoding.UTF8.GetBytes(command);
             var payload = new byte[1 + cmdBytes.Length];
             payload[0] = seq;
             Buffer.BlockCopy(cmdBytes, 0, payload, 1, cmdBytes.Length);
+            var packet = BuildBePacket(0x01, payload);
+            await _udp.SendAsync(packet, packet.Length);
 
-            await _udp.SendAsync(BuildBePacket(0x01, payload));
-
-            // Collect response packets that match our sequence number.
-            // The background loop enqueues ALL type-0x01 packets; we filter by seq so a stale
-            // packet arriving between the send and our WaitAsync can never be mistaken for ours.
-            var parts = new SortedDictionary<int, byte[]>();
-            int totalParts = 1;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-
-            while (parts.Count < totalParts)
+            try
             {
-                try { await _beResponseReady.WaitAsync(cts.Token); }
-                catch (OperationCanceledException) { break; }
-
-                if (!_beResponses.TryDequeue(out var buf)) continue;
-
-                if (buf.Length > 11 && buf[9] == 0x00)
-                {
-                    // Multi-packet response
-                    totalParts = buf[10];
-                    int idx  = buf[11];
-                    var data = new byte[buf.Length - 12];
-                    Buffer.BlockCopy(buf, 12, data, 0, data.Length);
-                    parts[idx] = data;
-                }
-                else
-                {
-                    // Single-packet response — data starts at byte 9
-                    var data = new byte[Math.Max(0, buf.Length - 9)];
-                    if (data.Length > 0)
-                        Buffer.BlockCopy(buf, 9, data, 0, data.Length);
-                    parts[0] = data;
-                    break;
-                }
+                return await inf.Tcs.Task.WaitAsync(cts.Token);
             }
-
-            var sb = new StringBuilder();
-            foreach (var part in parts.Values)
-                sb.Append(Encoding.UTF8.GetString(part));
-            return sb.ToString();
+            catch (OperationCanceledException)
+            {
+                lock (_beInflightLock) _beInflight.Remove(seq);
+                return "";
+            }
         }
         catch (Exception ex)
         {
@@ -394,6 +411,12 @@ public class RconService : IDisposable
         _authenticated = false;
         _beReceiveCts?.Cancel();
         _beReceiveCts = null;
+        lock (_beInflightLock)
+        {
+            foreach (var inf in _beInflight.Values)
+                inf.Tcs.TrySetCanceled();
+            _beInflight.Clear();
+        }
         _stream?.Dispose();
         _client?.Dispose();
         _udp?.Dispose();
