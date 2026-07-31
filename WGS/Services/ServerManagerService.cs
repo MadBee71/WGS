@@ -64,7 +64,7 @@ public class ServerManagerService
     {
         _config  = config;
         _network = network;
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => KillAll();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { if (!App.IsRestartingForUpdate) KillAll(); };
     }
 
     public ServerInstance? GetInstance(string serverId)
