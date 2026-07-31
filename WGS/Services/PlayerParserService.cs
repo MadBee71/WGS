@@ -117,23 +117,43 @@ public static class PlayerParserService
     }
 
     // ── BattlEye (Arma Reforger, DayZ, Arma 3): "players" command ───────────
-    // Arma Reforger format:  "0   192.168.1.1:2001   45   e26a9da4-...-fa   PlayerName"
-    // No-IP format:          "0   e26a9da4-...-fa   PlayerName"
-    // Semicolon format:      "0 ; e26a9da4-...-fa ; PlayerName"
-    // Optional suffix:       " (-)" at end of name line
-    private static readonly Regex BattlEyePlayerLine = new(
-        @"^\d+[\s;]+(?:\d+\.\d+\.\d+\.\d+:\d+[\s;]+\d+[\s;]+)?(?<uid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[\s;]+(?<name>.+?)(?:\s*\(-\))?\s*$",
-        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    // Actual format (name comes BEFORE the GUID):
+    //   "0   PlayerName   e26a9da4-...-fa"               (AR, no IP)
+    //   "0   PlayerName   192.168.1.1:2304   43   GUID"  (DayZ/A3, with IP+ping)
+    //   "0 ; PlayerName ; e26a9da4-...-fa"               (semicolon variant)
+    private static readonly Regex BeGuid = new(
+        @"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex BeIpPort = new(
+        @"\s*\d+\.\d+\.\d+\.\d+(?::\d+)?\s*", RegexOptions.Compiled);
 
     public static List<OnlinePlayer> ParseBattlEyePlayers(string response)
     {
         var result = new List<OnlinePlayer>();
-        foreach (Match m in BattlEyePlayerLine.Matches(response))
-            result.Add(new OnlinePlayer
-            {
-                Name    = m.Groups["name"].Value.Trim(),
-                SteamId = m.Groups["uid"].Value.Trim(),
-            });
+        foreach (var rawLine in response.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            // Must start with a player index number
+            if (!char.IsDigit(line.Length > 0 ? line[0] : ' ')) continue;
+
+            var guidMatch = BeGuid.Match(line);
+            if (!guidMatch.Success) continue;
+
+            var guid = guidMatch.Value;
+
+            // Strip leading player number (and optional semicolons/spaces)
+            var afterNum = Regex.Replace(line, @"^\d+[\s;]+", "");
+
+            // Name is everything BEFORE the GUID; strip IP:port, trailing numbers (ping), (-) suffix
+            var beforeGuid = afterNum[..afterNum.IndexOf(guid, StringComparison.OrdinalIgnoreCase)];
+            var name = BeIpPort.Replace(beforeGuid, " ").Trim();
+            name = Regex.Replace(name, @"\s+\d+\s*$", "").Trim();  // trailing ping
+            name = Regex.Replace(name, @"\s*\(-\)\s*$", "").Trim();
+            name = Regex.Replace(name, @"[\s;]+$", "").Trim();
+
+            if (!string.IsNullOrWhiteSpace(name))
+                result.Add(new OnlinePlayer { Name = name, SteamId = guid });
+        }
         return result;
     }
 
