@@ -10,8 +10,8 @@
   ![Games](https://img.shields.io/badge/supported_games-101+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
-  [![Website](assets/www.png)](https://wgsserver.com)
-  [![Discord](assets/discord.png)](https://discord.gg/5RhsnPtMPn)
+  <a href="https://wgsserver.com"><img src="assets/www.png" width="120"/></a>
+  <a href="https://discord.gg/5RhsnPtMPn"><img src="assets/discord.png" width="120"/></a>
 
 </div>
 
