@@ -10,7 +10,8 @@
   ![Games](https://img.shields.io/badge/supported_games-101+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
-  🌐 **[wgsserver.com](https://wgsserver.com)** — website, full game list, installation guide & user manual
+  [![Website](https://img.shields.io/badge/website-wgsserver.com-00adff?logo=googlechrome&logoColor=white)](https://wgsserver.com)
+  [![Discord](https://img.shields.io/badge/discord-WGS-5865F2?logo=discord&logoColor=white)](https://discord.gg/5RhsnPtMPn)
 
 </div>
 
