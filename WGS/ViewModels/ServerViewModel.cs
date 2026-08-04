@@ -943,7 +943,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         AppendLog(ok ? "[RCON] " + Loc.RconConnectedMsg : "[RCON] " + Loc.RconFailedMsg,
             ok ? ConsoleMessageType.System : ConsoleMessageType.Error);
 
-        if (ok) _ = FetchOnlinePlayersAsync();
+        if (ok)
+        {
+            // BattlEye: the background receive loop is started inside ConnectAsync via Task.Run,
+            // which is not guaranteed to be listening before the first command is sent.
+            // A short delay lets the loop start and lets the server settle after login.
+            if (engineFamily == "battleye")
+                await Task.Delay(500);
+            _ = FetchOnlinePlayersAsync();
+        }
     }
 
     [RelayCommand]

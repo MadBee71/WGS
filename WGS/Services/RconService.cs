@@ -222,14 +222,15 @@ public class RconService : IDisposable
 
     private async Task BattlEyeReceiveLoopAsync(CancellationToken ct)
     {
-        try
+        while (!ct.IsCancellationRequested)
         {
-            while (!ct.IsCancellationRequested)
-            {
-                UdpReceiveResult result;
-                try { result = await _udp!.ReceiveAsync(ct); }
-                catch { return; }
+            UdpReceiveResult result;
+            try { result = await _udp!.ReceiveAsync(ct); }
+            catch { return; }
 
+            // Wrap packet processing so a malformed packet can't kill the receive loop.
+            try
+            {
                 var buf = result.Buffer;
                 if (buf.Length < 8 || buf[0] != 'B' || buf[1] != 'E') continue;
 
@@ -295,8 +296,8 @@ public class RconService : IDisposable
                     }
                 }
             }
+            catch { /* skip malformed packet — keep the loop alive */ }
         }
-        catch { }
     }
 
     private async Task<string> SendBattlEyeCommandAsync(string command)
