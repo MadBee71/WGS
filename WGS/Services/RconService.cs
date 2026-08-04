@@ -242,10 +242,24 @@ public class RconService : IDisposable
                 }
                 else if (type == 0x01 && buf.Length >= 9)
                 {
-                    var seq = buf[8];
+                    var responseSeq = buf[8];
 
+                    byte inflightKey;
                     BeInflight? inf;
-                    lock (_beInflightLock) _beInflight.TryGetValue(seq, out inf);
+                    lock (_beInflightLock)
+                    {
+                        if (_beInflight.TryGetValue(responseSeq, out inf))
+                        {
+                            inflightKey = responseSeq;
+                        }
+                        else if (_beInflight.Count > 0)
+                        {
+                            // AR Reforger echoes a different seq than what was sent — match oldest pending
+                            inflightKey = _beInflight.Keys.Min();
+                            inf = _beInflight[inflightKey];
+                        }
+                        else { continue; }
+                    }
                     if (inf == null) continue;
 
                     // Empty payload (length==9) = bare command ACK, no data yet — keep waiting
@@ -273,7 +287,7 @@ public class RconService : IDisposable
 
                     if (complete)
                     {
-                        lock (_beInflightLock) _beInflight.Remove(seq);
+                        lock (_beInflightLock) _beInflight.Remove(inflightKey);
                         var sb = new StringBuilder();
                         foreach (var p in inf.Parts.Values)
                             sb.Append(Encoding.UTF8.GetString(p));
