@@ -30,7 +30,7 @@ public class SmallandPlugin : GamePluginBase
                          !string.IsNullOrWhiteSpace(s.DisplayName) ? s.DisplayName : "My Server";
         var worldName  = S(s, "worldName", "World");
 
-        var map = $"/Game/Maps/WorldGame/WorldGame_Smalland?SERVERNAME=\"{serverName}\"?WORLDNAME=\"{worldName}\"";
+        var map = $"/Game/Maps/WorldGame/WorldGame_Smalland?SERVERNAME=\"{serverName}\"?WORLDNAME={worldName}";
 
         // Password — only append if set
         if (!string.IsNullOrWhiteSpace(s.ServerPassword))
