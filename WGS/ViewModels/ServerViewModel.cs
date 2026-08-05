@@ -943,6 +943,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         AppendLog(ok ? "[RCON] " + Loc.RconConnectedMsg : "[RCON] " + Loc.RconFailedMsg,
             ok ? ConsoleMessageType.System : ConsoleMessageType.Error);
 
+        // Attach diagnostic logger for BattlEye so receive-loop events appear in the console
+        if (ok && engineFamily == "battleye")
+            newRcon.DiagnosticLog = msg => AppendLog(msg, ConsoleMessageType.System);
+
         if (ok)
         {
             // BattlEye: the background receive loop is started inside ConnectAsync via Task.Run,

@@ -38,6 +38,9 @@ public class RconService : IDisposable
     private readonly Dictionary<byte, BeInflight> _beInflight = new();
     private readonly object _beInflightLock = new();
 
+    /// <summary>Diagnostic callback — set by the owner to receive raw BE protocol events.</summary>
+    public Action<string>? DiagnosticLog { get; set; }
+
     private sealed class BeInflight
     {
         public readonly TaskCompletionSource<string> Tcs =
@@ -232,12 +235,14 @@ public class RconService : IDisposable
             try
             {
                 var buf = result.Buffer;
+                DiagnosticLog?.Invoke($"[BE RX] {buf.Length} bytes  hdr=[{(buf.Length > 0 ? buf[0] : 0):X2} {(buf.Length > 1 ? buf[1] : 0):X2}]  type={( buf.Length > 7 ? buf[7].ToString("X2") : "??")}  seq={( buf.Length > 8 ? buf[8].ToString() : "??")}");
                 if (buf.Length < 8 || buf[0] != 'B' || buf[1] != 'E') continue;
 
                 var type = buf[7];
 
                 if (type == 0x02 && buf.Length > 8)
                 {
+                    DiagnosticLog?.Invoke($"[BE RX] Server keepalive seq={buf[8]} — ACKing");
                     var ack = BuildBePacket(0x02, new byte[] { buf[8] });
                     try { await _udp!.SendAsync(ack, ack.Length); } catch { }
                 }
@@ -252,14 +257,20 @@ public class RconService : IDisposable
                         if (_beInflight.TryGetValue(responseSeq, out inf))
                         {
                             inflightKey = responseSeq;
+                            DiagnosticLog?.Invoke($"[BE RX] Command response seq={responseSeq} — exact match, len={buf.Length}");
                         }
                         else if (_beInflight.Count > 0)
                         {
                             // AR Reforger echoes a different seq than what was sent — match oldest pending
                             inflightKey = _beInflight.Keys.Min();
                             inf = _beInflight[inflightKey];
+                            DiagnosticLog?.Invoke($"[BE RX] Command response seq={responseSeq} (no exact match) — fallback to inflight seq={inflightKey}, len={buf.Length}");
                         }
-                        else { continue; }
+                        else
+                        {
+                            DiagnosticLog?.Invoke($"[BE RX] Command response seq={responseSeq} — NO inflight entries, discarding");
+                            continue;
+                        }
                     }
                     if (inf == null) continue;
 
@@ -319,11 +330,13 @@ public class RconService : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             try
             {
+                DiagnosticLog?.Invoke($"[BE TX] Sent command seq={seq}, waiting for response...");
                 return await inf.Tcs.Task.WaitAsync(cts.Token);
             }
             catch (OperationCanceledException)
             {
                 lock (_beInflightLock) _beInflight.Remove(seq);
+                DiagnosticLog?.Invoke($"[BE TX] TIMEOUT waiting for response to seq={seq}");
                 return "";
             }
         }
