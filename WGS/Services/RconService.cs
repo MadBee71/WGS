@@ -47,6 +47,9 @@ public class RconService : IDisposable
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int TotalParts = 1;
         public readonly SortedDictionary<int, byte[]> Parts = new();
+        // Set when the 9-byte type=01 ACK arrives — signals that AR Reforger
+        // will deliver the actual response as a type=02 server message.
+        public bool AckReceived;
     }
 
     public RconService(RconProtocol protocol = RconProtocol.SourceTcp) => _protocol = protocol;
@@ -242,9 +245,32 @@ public class RconService : IDisposable
 
                 if (type == 0x02 && buf.Length > 8)
                 {
-                    DiagnosticLog?.Invoke($"[BE RX] Server keepalive seq={buf[8]} — ACKing");
+                    DiagnosticLog?.Invoke($"[BE RX] Server message seq={buf[8]}, len={buf.Length} — ACKing");
                     var ack = BuildBePacket(0x02, new byte[] { buf[8] });
                     try { await _udp!.SendAsync(ack, ack.Length); } catch { }
+
+                    // AR Reforger delivers command output as type=0x02 server messages
+                    // rather than as type=0x01 data responses. When a pending command
+                    // has already received its 9-byte ACK (AckReceived=true), treat the
+                    // first substantial type=0x02 message as the command response.
+                    // Short messages (≤40 bytes) are server keepalives — skip them.
+                    if (buf.Length > 40)
+                    {
+                        lock (_beInflightLock)
+                        {
+                            var ackedKey = _beInflight
+                                .Where(kvp => kvp.Value.AckReceived)
+                                .Select(kvp => (byte?)kvp.Key)
+                                .Min();
+                            if (ackedKey.HasValue && _beInflight.TryGetValue(ackedKey.Value, out var ackedInf))
+                            {
+                                _beInflight.Remove(ackedKey.Value);
+                                var content = Encoding.UTF8.GetString(buf, 9, buf.Length - 9);
+                                ackedInf.Tcs.TrySetResult(content);
+                                DiagnosticLog?.Invoke($"[BE RX] type=02 content ({buf.Length - 9} bytes) → delivered to cmd seq={ackedKey.Value}");
+                            }
+                        }
+                    }
                 }
                 else if (type == 0x01 && buf.Length >= 9)
                 {
@@ -274,8 +300,14 @@ public class RconService : IDisposable
                     }
                     if (inf == null) continue;
 
-                    // Empty payload (length==9) = bare command ACK, no data yet — keep waiting
-                    if (buf.Length == 9) continue;
+                    // Empty payload (length==9) = bare command ACK — AR Reforger will
+                    // deliver the actual response as a type=0x02 server message.
+                    if (buf.Length == 9)
+                    {
+                        inf.AckReceived = true;
+                        DiagnosticLog?.Invoke($"[BE RX] 9-byte ACK for seq={inflightKey} — waiting for type=02 content");
+                        continue;
+                    }
 
                     bool complete;
                     if (buf[9] == 0x00 && buf.Length > 11)
