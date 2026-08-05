@@ -271,7 +271,9 @@ public class RconService : IDisposable
                                 _beInflight.Remove(ackedKey.Value);
                                 var content = Encoding.UTF8.GetString(buf, 9, buf.Length - 9);
                                 ackedInf.Tcs.TrySetResult(content);
-                                DiagnosticLog?.Invoke($"[BE RX] type=02 content ({buf.Length - 9} bytes) → delivered to cmd seq={ackedKey.Value}");
+                                var preview = content.Replace('\n', '↵').Replace('\r', ' ').Replace('\0', '·');
+                                if (preview.Length > 200) preview = preview[..200] + "...";
+                                DiagnosticLog?.Invoke($"[BE RX] type=02 content ({buf.Length - 9} bytes) → delivered to cmd seq={ackedKey.Value}: [{preview}]");
                             }
                         }
                     }
