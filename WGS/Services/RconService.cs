@@ -232,7 +232,11 @@ public class RconService : IDisposable
         {
             UdpReceiveResult result;
             try { result = await _udp!.ReceiveAsync(ct); }
-            catch { return; }
+            catch (Exception ex)
+            {
+                DiagnosticLog?.Invoke($"[BE RX] Receive loop exiting: {ex.GetType().Name}: {ex.Message}");
+                return;
+            }
 
             // Wrap packet processing so a malformed packet can't kill the receive loop.
             try
