@@ -133,23 +133,34 @@ public static class PlayerParserService
         foreach (var rawLine in response.Split('\n'))
         {
             var line = rawLine.Trim();
-            // Must start with a player index number
-            if (!char.IsDigit(line.Length > 0 ? line[0] : ' ')) continue;
+            if (line.Length == 0) continue;
+            // Skip header lines (don't start with a digit)
+            if (!char.IsDigit(line[0])) continue;
 
             var guidMatch = BeGuid.Match(line);
             if (!guidMatch.Success) continue;
 
             var guid = guidMatch.Value;
 
-            // Strip leading player number (and optional semicolons/spaces)
-            var afterNum = Regex.Replace(line, @"^\d+[\s;]+", "");
-
-            // Name is everything BEFORE the GUID; strip IP:port, trailing numbers (ping), (-) suffix
-            var beforeGuid = afterNum[..afterNum.IndexOf(guid, StringComparison.OrdinalIgnoreCase)];
-            var name = BeIpPort.Replace(beforeGuid, " ").Trim();
-            name = Regex.Replace(name, @"\s+\d+\s*$", "").Trim();  // trailing ping
-            name = Regex.Replace(name, @"\s*\(-\)\s*$", "").Trim();
-            name = Regex.Replace(name, @"[\s;]+$", "").Trim();
+            // AR Reforger format: "1 ; <GUID> ; <Name>"  (GUID before name)
+            // DayZ/A3 format:     "0 <Name> <IP:Port> <Ping> <GUID>"  (name before GUID)
+            string name;
+            var afterGuid = line[(line.IndexOf(guid, StringComparison.OrdinalIgnoreCase) + guid.Length)..].Trim();
+            if (afterGuid.StartsWith(";"))
+            {
+                // AR Reforger: name is after the GUID
+                name = afterGuid.TrimStart(';').Trim();
+            }
+            else
+            {
+                // DayZ/A3: name is between the index number and the GUID
+                var afterNum = Regex.Replace(line, @"^\d+[\s;]+", "");
+                var beforeGuid = afterNum[..afterNum.IndexOf(guid, StringComparison.OrdinalIgnoreCase)];
+                name = BeIpPort.Replace(beforeGuid, " ").Trim();
+                name = Regex.Replace(name, @"\s+\d+\s*$", "").Trim();  // trailing ping
+                name = Regex.Replace(name, @"\s*\(-\)\s*$", "").Trim();
+                name = Regex.Replace(name, @"[\s;]+$", "").Trim();
+            }
 
             if (!string.IsNullOrWhiteSpace(name))
                 result.Add(new OnlinePlayer { Name = name, SteamId = guid });
