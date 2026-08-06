@@ -732,7 +732,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             var dlg = new Views.BuildChannelDialog(Plugin.GameName, recommended, latest, () => Plugin.GetAvailableBuildsAsync(Server))
             { Owner = System.Windows.Application.Current?.MainWindow };
             dlg.ShowDialog();
-            if (dlg.Result == Views.BuildChannelResult.Cancel) return;
+            if (dlg.Result == Views.BuildChannelResult.Cancel)
+            {
+                Server.Status = ServerStatus.Stopped;
+                RefreshStatus();
+                return;
+            }
             Server.GameSpecificSettings["buildChannel"] = dlg.Result == Views.BuildChannelResult.Latest ? "latest" : "recommended";
         }
 
