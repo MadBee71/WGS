@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 
 namespace WGS.Services;
 
@@ -104,6 +104,79 @@ public class PlayerStatsService
             cmd.Parameters.AddWithValue("$p",  playerName);
             cmd.Parameters.AddWithValue("$id", steamId);
             cmd.Parameters.AddWithValue("$t",  DateTime.UtcNow.ToString("o"));
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public void DiscardAbandonedOpenSessions(string serverId)
+    {
+        if (!_available) return;
+        try
+        {
+            using var db = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "DELETE FROM sessions WHERE server_id=$s AND leave_time IS NULL";
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public void CloseOpenSessions(string serverId)
+    {
+        if (!_available) return;
+        try
+        {
+            using var db = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "UPDATE sessions SET leave_time=$t WHERE server_id=$s AND leave_time IS NULL";
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public string GetKnownSteamId(string serverId, string playerName)
+    {
+        if (!_available || string.IsNullOrWhiteSpace(playerName)) return string.Empty;
+        try
+        {
+            using var db = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = """
+                SELECT steam_id FROM sessions
+                WHERE server_id=$s AND player_name=$p AND steam_id <> ''
+                ORDER BY id DESC LIMIT 1
+                """;
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$p", playerName);
+            return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+        }
+        catch { return string.Empty; }
+    }
+
+    public void UpdateOpenSessionSteamId(string serverId, string playerName, string steamId)
+    {
+        if (!_available || string.IsNullOrWhiteSpace(playerName) || string.IsNullOrWhiteSpace(steamId))
+            return;
+
+        try
+        {
+            using var db = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = """
+                UPDATE sessions SET steam_id=$id
+                WHERE id = (
+                    SELECT id FROM sessions
+                    WHERE server_id=$s AND player_name=$p AND leave_time IS NULL
+                    ORDER BY id DESC LIMIT 1
+                )
+                """;
+            cmd.Parameters.AddWithValue("$id", steamId);
+            cmd.Parameters.AddWithValue("$s", serverId);
+            cmd.Parameters.AddWithValue("$p", playerName);
             cmd.ExecuteNonQuery();
         }
         catch { }

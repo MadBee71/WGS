@@ -1,4 +1,4 @@
-namespace WGS.Models;
+﻿namespace WGS.Models;
 
 public class OnlinePlayer
 {
@@ -6,6 +6,7 @@ public class OnlinePlayer
     public string SteamId          { get; set; } = string.Empty;   // Steam64 tai UUID
     public int    Ping             { get; set; }
     public int    ConnectedSeconds { get; set; }
+    public string IpAddress         { get; set; } = string.Empty;
 
     public string ConnectedText => ConnectedSeconds switch
     {

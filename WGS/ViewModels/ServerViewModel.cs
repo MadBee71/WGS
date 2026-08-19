@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
@@ -39,6 +39,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public GameServer Server { get; }
     public IGamePlugin? Plugin { get; }
+
+    // Rich host behavior is intentionally opt-in only for runtime .cs plugins.
+    // Built-in and legacy custom games retain the stock WGS UI/behavior.
+    public bool IsRuntimeRichPlugin => PluginFolderHost.IsRuntimePlugin(Plugin);
+    public ObservableCollection<PluginTabVm> PluginTabs { get; } = [];
     private const int MaxConsoleLines = 2000;
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public ObservableCollection<BackupEntry> Backups { get; } = [];
@@ -461,6 +466,49 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _groupBans     = groupBans;
         _hygiene       = hygiene;
         _presets       = presets;
+
+        if (IsRuntimeRichPlugin && Plugin is IGameHostContextPlugin hostAware)
+        {
+            hostAware.InitializeHost(new GamePluginContext(
+                Server,
+                isRunning: () => _manager.IsRunning(Server.Id),
+                start: () => _manager.StartAsync(Server),
+                stop: () => _manager.StopAsync(Server),
+                kill: () => _manager.KillAsync(Server),
+                createBackup: async () =>
+                {
+                    var b = await _backup.CreateBackupAsync(Server);
+                    RefreshBackups();
+                    return new GamePluginBackupInfo
+                    {
+                        FilePath = b.FilePath,
+                        CreatedAt = b.CreatedAt,
+                        SizeBytes = b.SizeBytes,
+                        IsIncremental = b.IsIncremental
+                    };
+                },
+                getBackups: () => _backup.GetBackupsForServer(Server)
+                    .Select(b => new GamePluginBackupInfo
+                    {
+                        FilePath = b.FilePath,
+                        CreatedAt = b.CreatedAt,
+                        SizeBytes = b.SizeBytes,
+                        IsIncremental = b.IsIncremental
+                    })
+                    .ToList(),
+                sendCommand: SendRconOrConsole,
+                sendCommandNoWait: SendRconNoWait,
+                log: (message, level) => AppendLog(
+                    $"[Plugin] {message}",
+                    level switch
+                    {
+                        GamePluginLogLevel.Warning => ConsoleMessageType.Warning,
+                        GamePluginLogLevel.Error => ConsoleMessageType.Error,
+                        _ => ConsoleMessageType.System
+                    }),
+                openPath: OpenPluginPath));
+        }
+
         AvailablePresets = _presets.GetPresetsForGame(server.GameId);
         SelectedPreset   = AvailablePresets.FirstOrDefault();
 
@@ -503,10 +551,39 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         foreach (var qc in Server.QuickCommands) QuickCommands.Add(qc);
         foreach (var r in Server.LogWatchRules)  LogWatchRules.Add(r);
 
+        if (IsRuntimeRichPlugin && Plugin is IGameConfigSyncPlugin configSync)
+        {
+            try { configSync.LoadSettingsFromConfigs(Server); }
+            catch (Exception ex) { AppendLog($"[Plugin] Config load failed: {ex.Message}", ConsoleMessageType.Warning); }
+        }
+
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))
             .Select(f => new PluginFieldVm(server, f))
             .ToList() ?? [];
+
+        if (IsRuntimeRichPlugin && Plugin is IGameUiPlugin uiPlugin)
+        {
+            try
+            {
+                foreach (var tab in uiPlugin.GetPluginTabs(Server).OrderBy(t => t.Order))
+                {
+                    PluginTabs.Add(new PluginTabVm
+                    {
+                        Key = tab.Key,
+                        Header = tab.Header,
+                        ToolTip = tab.ToolTip,
+                        Order = tab.Order,
+                        Content = tab.CreateContent(Server)
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[Plugin] UI creation failed: {ex.Message}", ConsoleMessageType.Warning);
+                PluginTabs.Clear();
+            }
+        }
 
         RefreshStatus();
         RefreshBackups();
@@ -553,6 +630,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                     .ToList();
                 Server.GameSpecificSettings["__wgsWorkshopMods"] = string.Join(";", ids);
             }
+
+            if (IsRuntimeRichPlugin && Plugin is IGameConfigSyncPlugin configSync)
+                await configSync.SaveSettingsToConfigsAsync(Server);
 
             await _manager.StartAsync(Server);
             // StartPerfMonitoring() and StartUpdateTimer() are called from OnStatusChanged(Running)
@@ -1439,7 +1519,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             finally { _rconLock.Release(); }
 
             if (string.IsNullOrWhiteSpace(response)) return;
-            parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+            parsed = IsRuntimeRichPlugin && Plugin is IGamePlayerParserPlugin customParser
+                ? customParser.ParsePlayers(response)
+                : Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
         }
         else if (Plugin is Games.IA2SQueryPlugin a2sPlugin)
         {
@@ -1462,7 +1544,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             else return;
 
             if (string.IsNullOrWhiteSpace(response)) return;
-            parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
+            parsed = IsRuntimeRichPlugin && Plugin is IGamePlayerParserPlugin customParser
+                ? customParser.ParsePlayers(response)
+                : Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
         }
 
         // Keep the model in sync — used by Shut-down-when-empty and the web dashboard's
@@ -1911,6 +1995,95 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             _manager.SendCommand(Server.Id, cmd);
     }
 
+    private async Task<bool> SendRconNoWait(string cmd)
+    {
+        if (!RconConnected || _rcon == null) return false;
+        await _rconLock.WaitAsync();
+        try { return await _rcon.SendCommandNoWaitAsync(cmd); }
+        finally { _rconLock.Release(); }
+    }
+
+    private void OpenPluginPath(string path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+            if (!Directory.Exists(path) && !File.Exists(path))
+            {
+                AppendLog($"[Plugin] Path not found: {path}", ConsoleMessageType.Warning);
+                return;
+            }
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Plugin] Open path failed: {ex.Message}", ConsoleMessageType.Warning);
+        }
+    }
+
+    private void ApplyPluginPlayerEvent(PluginPlayerEvent ev)
+    {
+        if (string.IsNullOrWhiteSpace(ev.Name) && string.IsNullOrWhiteSpace(ev.SteamId))
+            return;
+
+        WpfApplication.Current?.Dispatcher?.Invoke(() =>
+        {
+            var current = OnlinePlayers.ToList();
+            var existing = current.FirstOrDefault(p =>
+                (!string.IsNullOrWhiteSpace(ev.SteamId) &&
+                 p.SteamId.Equals(ev.SteamId, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(ev.Name) &&
+                 p.Name.Equals(ev.Name, StringComparison.OrdinalIgnoreCase)));
+
+            if (ev.Joined)
+            {
+                if (existing == null)
+                {
+                    var knownId = !string.IsNullOrWhiteSpace(ev.SteamId)
+                        ? ev.SteamId
+                        : _playerStats.GetKnownSteamId(Server.Id, ev.Name);
+
+                    var player = new OnlinePlayer
+                    {
+                        Name = ev.Name,
+                        SteamId = knownId,
+                        IpAddress = ev.IpAddress
+                    };
+                    current.Add(player);
+                    OnlinePlayers = current;
+                    _playerStats.RecordJoin(Server.Id, player.Name, player.SteamId);
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(ev.Name)) existing.Name = ev.Name;
+                    if (!string.IsNullOrWhiteSpace(ev.SteamId))
+                    {
+                        existing.SteamId = ev.SteamId;
+                        _playerStats.UpdateOpenSessionSteamId(Server.Id, existing.Name, ev.SteamId);
+                    }
+                    if (!string.IsNullOrWhiteSpace(ev.IpAddress)) existing.IpAddress = ev.IpAddress;
+                    OnlinePlayers = current;
+                }
+            }
+            else if (existing != null)
+            {
+                current.Remove(existing);
+                OnlinePlayers = current;
+                _playerStats.RecordLeave(Server.Id, existing.Name, existing.SteamId);
+            }
+
+            Server.CurrentPlayers = OnlinePlayers.Count;
+            PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
+            PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+            RefreshActivityStats();
+        });
+    }
+
     // ── Templates ─────────────────────────────────────────────────────────────
 
     [ObservableProperty] private string _templateName        = string.Empty;
@@ -2121,9 +2294,32 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Events ───────────────────────────────────────────────────────────────
 
+    private void TryProcessPluginPlayerEvent(string line)
+    {
+        if (!IsRuntimeRichPlugin ||
+            Plugin is not IGamePlayerEventPlugin eventPlugin ||
+            string.IsNullOrWhiteSpace(line))
+            return;
+
+        try
+        {
+            var ev = eventPlugin.ParsePlayerEvent(line);
+            if (ev != null)
+                ApplyPluginPlayerEvent(ev);
+        }
+        catch (Exception ex)
+        {
+            // A game/plugin parser must never be able to break the WGS console pipeline.
+            System.Diagnostics.Debug.WriteLine($"[Plugin Player Event] {ex}");
+        }
+    }
+
     private void OnLogReceived(string serverId, ConsoleMessage msg)
     {
         if (serverId != Server.Id) return;
+
+        TryProcessPluginPlayerEvent(msg.Text);
+
         WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
             Log.Add(msg);
@@ -2165,6 +2361,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         else if (status == ServerStatus.Stopped || status == ServerStatus.Error)
         {
+            if (IsRuntimeRichPlugin)
+                _playerStats.CloseOpenSessions(Server.Id);
+
             WpfApplication.Current?.Dispatcher?.Invoke(() =>
             {
                 StopPerfMonitoring();
@@ -2219,7 +2418,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WpfApplication.Current?.Dispatcher?.BeginInvoke(() =>
         {
             foreach (var line in lines)
+            {
+                // Not every displayed console line comes through ServerManager.LogReceived.
+                // WGS-generated errors, Steam/install output, RCON responses, and other local
+                // messages use AppendLog directly. Rich player-event plugins should be able
+                // to observe the same complete console stream the user sees.
+                TryProcessPluginPlayerEvent(line);
+
                 Log.Add(new ConsoleMessage { Text = line, Type = type });
+            }
         });
     }
 

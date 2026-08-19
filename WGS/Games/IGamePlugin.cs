@@ -1,4 +1,4 @@
-using WGS.Models;
+﻿using WGS.Models;
 
 namespace WGS.Games;
 
@@ -108,6 +108,15 @@ public class ConfigField
     public string[]? Options { get; set; }
     public int Min { get; set; }
     public int Max { get; set; }
+
+    // Optional rich-plugin presentation metadata. Stock plugins can ignore these.
+    public string Section { get; set; } = string.Empty;
+    public int SectionOrder { get; set; }
+    public bool SectionCollapsedByDefault { get; set; }
+    public int Order { get; set; }
+    public bool Multiline { get; set; }
+    public bool Sensitive { get; set; }
+    public string Placement { get; set; } = string.Empty;
 }
 
 public enum ConfigFieldType { Text, Number, Password, Toggle, Dropdown, Slider }

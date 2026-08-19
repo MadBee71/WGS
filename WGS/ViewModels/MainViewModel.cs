@@ -1084,7 +1084,7 @@ public partial class MainViewModel : BaseViewModel
         };
         if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 
-        var (plugin, error) = WGS.Services.PluginCompilerService.CompileAndLoad(dlg.FileName);
+        var (plugin, error, updated) = WGS.Services.PluginFolderHost.InstallOrUpdate(dlg.FileName);
         if (plugin == null)
         {
             System.Windows.MessageBox.Show(error, "Import failed",
@@ -1092,19 +1092,20 @@ public partial class MainViewModel : BaseViewModel
             return;
         }
 
-        if (GameRegistry.All.Any(p => p.GameId == plugin.GameId))
-        {
-            System.Windows.MessageBox.Show(
-                $"Plugin '{plugin.GameId}' is already registered.",
-                "Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-            return;
-        }
-
-        GameRegistry.Register(plugin);
         OnPropertyChanged(nameof(AvailableGames));
+
+        var metadata = plugin as WGS.Games.IGamePluginMetadata;
+        var versionText = string.IsNullOrWhiteSpace(metadata?.PluginVersion)
+            ? ""
+            : $" v{metadata.PluginVersion}";
+
         System.Windows.MessageBox.Show(
-            $"✅ Plugin '{plugin.GameName}' imported successfully!",
-            "Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            updated
+                ? $"✅ Plugin '{plugin.GameName}'{versionText} updated successfully!\n\nIt will load automatically after WGS restarts."
+                : $"✅ Plugin '{plugin.GameName}'{versionText} installed successfully!\n\nIt will load automatically after WGS restarts.",
+            updated ? "Plugin updated" : "Plugin installed",
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Information);
     }
 
     [RelayCommand]

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,6 +84,10 @@ public partial class App : System.Windows.Application
         // right after being saved — never on a fresh startup — so they vanished from every list
         // (Add Server, etc.) the moment WGS was restarted.
         Games.GameRegistry.LoadCustomPlugins(ViewModels.PluginCreatorViewModel.PluginsPath);
+
+        // Runtime .cs plugins load last so an explicit imported plugin can intentionally
+        // replace a built-in or legacy custom GameId without changing stock game code.
+        PluginFolderHost.LoadAll();
 
         // UI thread exceptions
         DispatcherUnhandledException += (_, ex) =>

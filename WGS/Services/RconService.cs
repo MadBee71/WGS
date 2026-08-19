@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Net.Sockets;
 using System.Text;
 
@@ -96,6 +96,22 @@ public class RconService : IDisposable
         var resp = await ReadPacketAsync();
         return resp.body;
     }
+
+    /// <summary>
+    /// Sends a Source RCON command without waiting for a command response packet.
+    /// Returns false when the active protocol/connection does not support this mode.
+    /// </summary>
+    public async Task<bool> SendCommandNoWaitAsync(string command)
+    {
+        if (_protocol != RconProtocol.SourceTcp || !IsConnected || _stream == null)
+            return false;
+
+        var id = _requestId++;
+        await SendPacketAsync(2, command, id);
+        await _stream.FlushAsync();
+        return true;
+    }
+
 
     // ── FXServer legacy UDP rcon ─────────────────────────────────────────────
     // This protocol has no real handshake at all — every single packet carries the password,

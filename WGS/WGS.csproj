@@ -64,6 +64,15 @@
           $([System.String]::Copy('%(Filename)').StartsWith('System.Collections.Immutable'))" />
     </ItemGroup>
   </Target>
+
+  <!-- Runtime C# plugins need metadata for the WGS contract even when WGS itself is
+       published as one bundled executable. Runtime binding still uses the loaded WGS assembly. -->
+  <Target Name="PublishPluginContractReference" AfterTargets="Publish">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFiles="$(PublishDir)WindowsGameServer.PluginContract.dll"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
 
 
