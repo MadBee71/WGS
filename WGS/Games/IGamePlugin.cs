@@ -76,6 +76,7 @@ public interface IGamePlugin
     /// everything checks out. Checked right before launching the process.
     /// </summary>
     string? ValidateBeforeStart(GameServer server);
+    Dictionary<string, string> GetProcessEnvironmentVariables(GameServer server);
 
     // Player management via RCON (optional — return null if not supported)
     string? GetKickCommand(string playerName);

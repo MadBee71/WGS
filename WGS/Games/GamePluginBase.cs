@@ -95,6 +95,7 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual string? GetStopCommand(GameServer server) => null;
     public virtual Task PreStartAsync(GameServer server) => Task.CompletedTask;
     public virtual string? ValidateBeforeStart(GameServer server) => null;
+    public virtual Dictionary<string, string> GetProcessEnvironmentVariables(GameServer server) => [];
 
     // Player management — override in plugins that support RCON player commands
     public virtual string? GetKickCommand(string playerName)                => null;

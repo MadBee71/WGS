@@ -337,6 +337,9 @@ public class ServerManagerService
             psi.EnvironmentVariables["SteamGameId"]         = steamEnvId.ToString();
         }
 
+        foreach (var kvp in plugin.GetProcessEnvironmentVariables(server))
+            psi.EnvironmentVariables[kvp.Key] = kvp.Value;
+
         var inst = inst0;
 
         var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };

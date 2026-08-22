@@ -47,12 +47,13 @@ public class FiveMPlugin : GamePluginBase
 
     public override string? GetStopCommand(GameServer server) => "quit";
 
-    public override string BuildStartArguments(GameServer s)
+    public override string BuildStartArguments(GameServer s) => string.Empty;
+
+    public override Dictionary<string, string> GetProcessEnvironmentVariables(GameServer s) => new()
     {
-        var txDataPath = S(s, "TXHOST_DATA_PATH", "....txData");
-        var txaPort    = S(s, "TXHOST_TXA_PORT",  "40120");
-        return $"+set TXHOST_DATA_PATH \"{txDataPath}\" +set TXHOST_TXA_PORT \"{txaPort}\"";
-    }
+        ["TXHOST_DATA_PATH"] = S(s, "TXHOST_DATA_PATH", "....txData"),
+        ["TXHOST_TXA_PORT"]  = S(s, "TXHOST_TXA_PORT",  "40120"),
+    };
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
