@@ -50,11 +50,13 @@ public class RedMPlugin : GamePluginBase
     // serverProfile lets each WGS-managed server load its own txAdmin profile instead of every
     // server defaulting to the same "default" profile, which causes them to collide.
     public override string BuildStartArguments(GameServer s)
+        => $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\"";
+
+    public override Dictionary<string, string> GetProcessEnvironmentVariables(GameServer s) => new()
     {
-        var txDataPath = S(s, "TXHOST_DATA_PATH", "....txData");
-        var txaPort    = S(s, "TXHOST_TXA_PORT",  "40121");
-        return $"+set citizen_dir \"{s.InstallPath}\\server\\citizen\" +set TXHOST_DATA_PATH \"{txDataPath}\" +set TXHOST_TXA_PORT \"{txaPort}\"";
-    }
+        ["TXHOST_DATA_PATH"] = S(s, "TXHOST_DATA_PATH", "....txData"),
+        ["TXHOST_TXA_PORT"]  = S(s, "TXHOST_TXA_PORT",  "40121"),
+    };
 
     public override string? GetStopCommand(GameServer server) => "quit";
 
