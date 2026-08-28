@@ -22,7 +22,7 @@ public class SatisfactoryPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 4;
 
     public override string BuildStartArguments(GameServer s)
-        => $"-Port={s.ServerPort} -ServerQueryPort={s.QueryPort} -multihome=0.0.0.0";
+        => $"-log -unattended -Port={s.ServerPort} -ServerQueryPort={s.QueryPort} -ReliablePort={s.ServerPort + 1111} -multihome=0.0.0.0";
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
