@@ -17,7 +17,7 @@ public class CubicOdysseyPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
     {
-        var args = $"-MaxNumPlayers={s.MaxPlayers} -Port={s.ServerPort} -MaxPort={s.ServerPort + 5}";
+        var args = $"-log -MaxNumPlayers={s.MaxPlayers} -Port={s.ServerPort} -MaxPort={s.ServerPort + 5}";
         if (!string.IsNullOrEmpty(s.ServerPassword))
             args += $" -Password={s.ServerPassword}";
         return args;

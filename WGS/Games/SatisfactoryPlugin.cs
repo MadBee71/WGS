@@ -16,7 +16,7 @@ public class SatisfactoryPlugin : GamePluginBase, IWorkshopPlugin
     public Task OnModDownloadedAsync(string s, string w, ulong id, string n) => GroupBHelper.OnModDownloadedAsync(s, w, id, ModTargetDirectory);
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
-    public override string Executable      => @"Engine\Binaries\Win64\FactoryServer-Win64-Shipping.exe";
+    public override string Executable      => "FactoryServer.exe";
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 15777;
     public override int    DefaultMaxPlayers => 4;

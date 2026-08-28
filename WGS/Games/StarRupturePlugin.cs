@@ -15,7 +15,7 @@ public class StarRupturePlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 4;
 
     public override string BuildStartArguments(GameServer s)
-        => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers}";
+        => $"-log -Port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers}";
 
     public override Task PreStartAsync(GameServer server) => Task.CompletedTask;
 
