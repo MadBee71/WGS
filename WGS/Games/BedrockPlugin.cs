@@ -1,6 +1,6 @@
 using System.IO;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 using WGS.Models;
 
 namespace WGS.Games;
@@ -19,37 +19,47 @@ public class BedrockPlugin : GamePluginBase
 
     private static readonly HttpClient _http = new();
 
-    // Minecraft's download page lists the Windows Bedrock server URL directly in the HTML.
-    // The URL format is stable: https://minecraft.azureedge.net/bin-win/bedrock-server-X.Y.Z.W.zip
-    private const string DownloadPageUrl = "https://www.minecraft.net/en-us/download/server/bedrock";
-    private static readonly Regex _urlPattern = new(
-        @"https://minecraft\.azureedge\.net/bin-win/bedrock-server-([\d.]+)\.zip",
-        RegexOptions.Compiled);
+    // Community-maintained JSON index of all Bedrock server releases and their download URLs.
+    // Much more reliable than scraping Minecraft's own download page HTML.
+    private const string IndexUrl = "https://raw.githubusercontent.com/kittizz/bedrock-server-downloads/main/bedrock-server-downloads.json";
+
+    private static async Task<(string version, string url)?> GetLatestWindowsAsync()
+    {
+        try
+        {
+            var json = await _http.GetStringAsync(IndexUrl);
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("release", out var releases)) return null;
+
+            // Keys are version strings — last one in document order is the latest.
+            string? latestVersion = null;
+            string? latestUrl     = null;
+            foreach (var entry in releases.EnumerateObject())
+            {
+                if (entry.Value.TryGetProperty("windows", out var win) &&
+                    win.TryGetProperty("url", out var urlProp))
+                {
+                    latestVersion = entry.Name;
+                    latestUrl     = urlProp.GetString();
+                }
+            }
+            if (latestVersion == null || latestUrl == null) return null;
+            return (latestVersion, latestUrl);
+        }
+        catch { return null; }
+    }
 
     public override async Task<bool> TryCustomInstallAsync(GameServer server, Action<string> log)
     {
-        log("[Bedrock] Fetching Minecraft Bedrock server download page...");
-        string page;
-        try
+        log("[Bedrock] Fetching latest Bedrock server version...");
+        var latest = await GetLatestWindowsAsync();
+        if (latest == null)
         {
-            _http.DefaultRequestHeaders.UserAgent.ParseAdd("WGS-WindowsGameServer/1.0");
-            page = await _http.GetStringAsync(DownloadPageUrl);
-        }
-        catch (Exception ex)
-        {
-            log($"[Bedrock] Failed to reach Minecraft download page: {ex.Message}");
+            log("[Bedrock] Could not fetch the Bedrock server version list. Check your internet connection.");
             return false;
         }
 
-        var match = _urlPattern.Match(page);
-        if (!match.Success)
-        {
-            log("[Bedrock] Could not find the Bedrock server download URL on Minecraft's website. The page layout may have changed.");
-            return false;
-        }
-
-        var version = match.Groups[1].Value;
-        var url     = match.Value;
+        var (version, url) = latest.Value;
         log($"[Bedrock] Found Bedrock server {version}. Downloading...");
 
         var zipPath = Path.Combine(server.InstallPath, "bedrock-server.zip");
