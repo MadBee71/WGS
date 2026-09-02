@@ -38,6 +38,23 @@ public abstract class MinecraftPluginBase : GamePluginBase
         (line.TrimStart().StartsWith("...") && line.Contains("more")) ||
         line.Contains("at java.base/");
 
+    public override string GetExecutable(GameServer s)
+    {
+        var path = S(s, "javaPath", "");
+        return string.IsNullOrWhiteSpace(path) ? "java" : path;
+    }
+
+    /// <summary>Config field shown at the bottom of every Minecraft-family plugin's settings.</summary>
+    protected static ConfigField JavaPathField => new()
+    {
+        Key         = "javaPath",
+        Label       = "Java executable",
+        FieldType   = ConfigFieldType.Text,
+        DefaultValue = "",
+        Description  = "Full path to java.exe if you need a specific version " +
+                        "(e.g. C:\\Program Files\\Java\\jdk-21\\bin\\java.exe). Leave empty to use the system default.",
+    };
+
     public override Task PreStartAsync(GameServer s)
     {
         var propsPath = Path.Combine(s.InstallPath, "server.properties");

@@ -264,19 +264,23 @@ public class ServerManagerService
         var args = plugin.BuildStartArguments(server);
         if (!string.IsNullOrWhiteSpace(server.Gslt))       args += $" +sv_setsteamaccount {server.Gslt}";
         if (!string.IsNullOrWhiteSpace(server.CustomArgs)) args += $" {server.CustomArgs.Replace(Environment.NewLine, " ")}";
-        var exe  = Path.Combine(server.InstallPath, plugin.Executable);
+        var resolvedExe = plugin.GetExecutable(server);
+        var exe  = Path.Combine(server.InstallPath, resolvedExe);
 
         // If primary exe missing, try auto-detect from install folder
         if (!File.Exists(exe))
         {
-            var found = TryFindExecutable(server.InstallPath, plugin.Executable);
+            var found = TryFindExecutable(server.InstallPath, resolvedExe);
             if (found != null)
                 exe = found;
-            else if (!plugin.Executable.Contains(Path.DirectorySeparatorChar) && !Path.HasExtension(plugin.Executable))
+            else if (!resolvedExe.Contains(Path.DirectorySeparatorChar) && !Path.HasExtension(resolvedExe))
                 // Bare command name with no extension/path (e.g. "java" for the Minecraft family) —
                 // not something WGS installed itself, so don't look for it inside InstallPath at
                 // all; let Process.Start resolve it from the system PATH like any other command.
-                exe = plugin.Executable;
+                exe = resolvedExe;
+            else if (Path.IsPathRooted(resolvedExe) && File.Exists(resolvedExe))
+                // Absolute path (e.g. a custom Java executable the user configured) — use directly.
+                exe = resolvedExe;
             else
                 throw new FileNotFoundException("Server executable not found in: " + server.InstallPath);
         }

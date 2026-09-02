@@ -130,11 +130,11 @@ public static class MinecraftInstallHelper
     /// <summary>Runs `java -jar jarPath args` in workDir, streaming output through log. Used for
     /// Forge's installer and Spigot's BuildTools — both are real Java subprocesses, not just a
     /// file download.</summary>
-    public static async Task<bool> RunJavaAsync(string jarPath, string args, string workDir, Action<string> log, int timeoutMinutes = 10)
+    public static async Task<bool> RunJavaAsync(string jarPath, string args, string workDir, Action<string> log, int timeoutMinutes = 10, string javaExe = "java")
     {
         var psi = new ProcessStartInfo
         {
-            FileName = "java",
+            FileName = string.IsNullOrWhiteSpace(javaExe) ? "java" : javaExe,
             Arguments = $"-jar \"{jarPath}\" {args}",
             WorkingDirectory = workDir,
             UseShellExecute = false,

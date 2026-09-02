@@ -37,7 +37,8 @@ public class ForgePlugin : MinecraftPluginBase
         await MinecraftInstallHelper.DownloadFileAsync(url, installerPath, log);
 
         log("[Minecraft] Running Forge installer...");
-        var ok = await MinecraftInstallHelper.RunJavaAsync(installerPath, "--installServer", server.InstallPath, log, timeoutMinutes: 10);
+        var javaExe = S(server, "javaPath", "");
+        var ok = await MinecraftInstallHelper.RunJavaAsync(installerPath, "--installServer", server.InstallPath, log, timeoutMinutes: 10, javaExe: javaExe);
         if (!ok) { log("[Minecraft] Forge installer failed — check the output above for the actual error."); return false; }
 
         MinecraftInstallHelper.WriteEulaIfMissing(server.InstallPath);
@@ -78,6 +79,7 @@ public class ForgePlugin : MinecraftPluginBase
         ["difficulty"] = "normal",
         ["gamemode"]   = "survival",
         ["onlineMode"] = "true",
+        ["javaPath"]   = "",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -90,6 +92,7 @@ public class ForgePlugin : MinecraftPluginBase
             new() { Key = "difficulty", Label = "Difficulty", FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode",FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
+            JavaPathField,
         ]);
         return fields;
     }

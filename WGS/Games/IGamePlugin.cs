@@ -12,6 +12,9 @@ public interface IGamePlugin
     int SteamClientAppId { get; }  // AppID for steam_appid.txt (0 = same as SteamAppId)
     int GameStoreAppId { get; }    // Game's store AppID for Steam CDN images (may differ from server AppID)
     string Executable { get; }
+    /// <summary>The actual binary to launch for this server instance. Defaults to Executable;
+    /// override when the binary can differ per server (e.g. Minecraft's custom Java path).</summary>
+    string GetExecutable(GameServer server) => Executable;
     string? GetWorkingDirectory(GameServer server);
     int DefaultPort { get; }
     int DefaultQueryPort { get; }

@@ -60,6 +60,7 @@ public class MinecraftPlugin : MinecraftPluginBase
         ["difficulty"]  = "normal",
         ["gamemode"]    = "survival",
         ["onlineMode"]  = "true",
+        ["javaPath"]    = "",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -75,6 +76,7 @@ public class MinecraftPlugin : MinecraftPluginBase
             new() { Key = "difficulty", Label = "Difficulty",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",   FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode", FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
+            JavaPathField,
         ]);
         return fields;
     }

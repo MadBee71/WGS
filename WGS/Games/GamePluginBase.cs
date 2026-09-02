@@ -30,6 +30,8 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual int SteamClientAppId => 0;
     public virtual int GameStoreAppId   => 0; // override in each plugin with the game's store AppID
 
+    public virtual string GetExecutable(GameServer server) => Executable;
+
     // Override to force a specific working directory when the exe lives in a sub-folder
     // but the server expects to run from the install root (e.g. Project Zomboid jre64\bin\java.exe).
     public virtual string? GetWorkingDirectory(GameServer server) => null;

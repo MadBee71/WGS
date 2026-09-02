@@ -36,7 +36,8 @@ public class SpigotPlugin : MinecraftPluginBase
             : $"[Minecraft] Building Spigot {version} from source — this compiles locally and can take several minutes...");
 
         var args = string.IsNullOrWhiteSpace(version) ? "--output-dir ." : $"--rev {version} --output-dir .";
-        var ok = await MinecraftInstallHelper.RunJavaAsync(buildToolsPath, args, server.InstallPath, log, timeoutMinutes: 20);
+        var javaExe = S(server, "javaPath", "");
+        var ok = await MinecraftInstallHelper.RunJavaAsync(buildToolsPath, args, server.InstallPath, log, timeoutMinutes: 20, javaExe: javaExe);
         if (!ok) { log("[Minecraft] BuildTools failed — check the output above for the actual error."); return false; }
 
         var newest = MinecraftInstallHelper.FindNewestFile(server.InstallPath, "spigot-*.jar");
@@ -89,6 +90,7 @@ public class SpigotPlugin : MinecraftPluginBase
         ["difficulty"] = "normal",
         ["gamemode"]   = "survival",
         ["onlineMode"] = "true",
+        ["javaPath"]   = "",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -102,6 +104,7 @@ public class SpigotPlugin : MinecraftPluginBase
             new() { Key = "difficulty", Label = "Difficulty", FieldType = ConfigFieldType.Dropdown, DefaultValue = "normal", Options = ["peaceful","easy","normal","hard"] },
             new() { Key = "gamemode",   Label = "Game mode",  FieldType = ConfigFieldType.Dropdown, DefaultValue = "survival", Options = ["survival","creative","adventure","spectator"] },
             new() { Key = "onlineMode", Label = "Online mode",FieldType = ConfigFieldType.Toggle,   DefaultValue = "true" },
+            JavaPathField,
         ]);
         return fields;
     }
