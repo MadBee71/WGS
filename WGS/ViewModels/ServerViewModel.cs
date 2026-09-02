@@ -323,10 +323,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     // deliberately avoid using) — otherwise the generic placeholder.
     internal static readonly Dictionary<string, string> LocalGameImages = new()
     {
-        ["minecraft"]        = "minecraft_paper.png",   // GameId "minecraft" actually runs PaperMC
-        ["minecraft_spigot"] = "minecraft_spigot.png",
-        ["minecraft_forge"]  = "minecraft_forge.png",
-        ["minecraft_fabric"] = "minecraft_fabric.png",
+        ["minecraft"]          = "minecraft_paper.png",   // GameId "minecraft" actually runs PaperMC
+        ["minecraft_spigot"]   = "minecraft_spigot.png",
+        ["minecraft_forge"]    = "minecraft_forge.png",
+        ["minecraft_fabric"]   = "minecraft_fabric.png",
+        ["minecraft_bedrock"]  = "minecraft_bedrock.png",
     };
 
     private string CustomImagePath => Path.Combine(
