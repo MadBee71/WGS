@@ -1447,6 +1447,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             parsed = await Services.A2SQueryService.QueryPlayersAsync(
                 a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(Server));
         }
+        else if (Plugin is Games.MinecraftPluginBase && !RconConnected)
+        {
+            // RCON not connected — fall back to Minecraft SLP (Server List Ping).
+            // Works without any server.properties changes and covers externally-compiled
+            // servers where RCON may not be enabled.
+            var slp = await Services.MinecraftSLPService.QueryAsync("127.0.0.1", Server.ServerPort);
+            if (slp == null) return;
+            // SLP gives counts only, not names — build a synthetic list so the count lands.
+            parsed = Enumerable.Range(0, slp.Value.Online)
+                               .Select(_ => new Models.OnlinePlayer { Name = "?" })
+                               .ToList();
+        }
         else
         {
             var cmd = Plugin.GetPlayersCommand();

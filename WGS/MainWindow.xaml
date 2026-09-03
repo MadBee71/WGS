@@ -253,10 +253,12 @@
                                                            Margin="0,0,5,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Server.DisplayName}"
                                                            FontSize="13" FontWeight="SemiBold"
-                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="130"/>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Plugin.GameName}"
-                                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                             </StackPanel>
                                             <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="3"
                                                      Width="8" Height="8" VerticalAlignment="Center"
