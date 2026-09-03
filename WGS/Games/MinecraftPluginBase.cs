@@ -36,7 +36,20 @@ public abstract class MinecraftPluginBase : GamePluginBase
         line.Contains("AppenderLoggingException")                 ||  // wraps the kqueue/epoll noise
         line.Contains("An exception occurred processing Appender DebugFile") ||
         (line.TrimStart().StartsWith("...") && line.Contains("more")) ||
-        line.Contains("at java.base/");
+        line.Contains("at java.base/")                             ||
+        // Fabric/Forge mod-loader noise — mixin mismatches, datapack metadata warnings,
+        // and mod API quirks that don't indicate a real problem.
+        line.Contains("@Mixin target")                             ||
+        line.Contains("Error loading class: net/minecraft/class_") ||
+        line.Contains("Couldn't load mns pack metadata")          ||
+        line.Contains("VIBRATION_FREQUENCY_FOR_EVENT")            ||
+        line.Contains("Found loot table element validation problem") ||
+        line.Contains("Found data map file for non-existent data map type") ||
+        line.Contains("ClassNotFoundException: net/minecraft/class_") ||
+        line.Contains("neoforge:compostables")                    ||
+        (line.Contains("[WARN]") && line.Contains("KeyMappingCategory")) ||
+        line.Contains("this is a development environment")        ||
+        line.Contains("Could not load it; if this is a development environment");
 
     public override string GetExecutable(GameServer s)
     {
