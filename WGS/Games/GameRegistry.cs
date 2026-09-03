@@ -113,6 +113,7 @@ public static class GameRegistry
         Register(new EcoGlobalSurvivalPlugin());
         Register(new GroundBranchPlugin());
         Register(new NuclearOptionPlugin());
+        Register(new Schedule1Plugin());
         Register(new CraftopiaPlugin());
         Register(new NightingalePlugin());
         Register(new PrimalCarnageExtinctionPlugin());

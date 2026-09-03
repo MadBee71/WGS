@@ -72,6 +72,8 @@ public interface IGamePlugin
     Task<(string? Recommended, string? Latest)> GetAvailableBuildsAsync(GameServer server);
     string? GetStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
+    Task PostInstallAsync(GameServer server, Action<string> log);
+    Task PostUpdateAsync(GameServer server, Action<string> log);
 
     /// <summary>
     /// Returns an error message if the server's settings would prevent it from starting

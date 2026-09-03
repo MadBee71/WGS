@@ -96,6 +96,11 @@ public abstract class GamePluginBase : IGamePlugin
     public abstract List<ConfigField> GetConfigFields();
     public virtual string? GetStopCommand(GameServer server) => null;
     public virtual Task PreStartAsync(GameServer server) => Task.CompletedTask;
+
+    /// <summary>Called after a successful SteamCMD install or update. Override to apply post-install
+    /// steps such as overlaying a mod on top of the base game files.</summary>
+    public virtual Task PostInstallAsync(GameServer server, Action<string> log) => Task.CompletedTask;
+    public virtual Task PostUpdateAsync(GameServer server, Action<string> log) => Task.CompletedTask;
     public virtual string? ValidateBeforeStart(GameServer server) => null;
     public virtual Dictionary<string, string> GetProcessEnvironmentVariables(GameServer server) => [];
 
