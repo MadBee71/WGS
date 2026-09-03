@@ -149,7 +149,8 @@
                     </Border>
 
                     <!-- Server list -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
                             <Grid Margin="16,12,8,4">
                                 <Grid.ColumnDefinitions>
