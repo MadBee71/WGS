@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class GroundBranchPlugin : GamePluginBase
+public class GroundBranchPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "groundbranch";
     public override string GameName        => "GROUND BRANCH";
@@ -17,6 +17,9 @@ public class GroundBranchPlugin : GamePluginBase
 
     public override string BuildStartArguments(GameServer s)
         => $"-log -port={s.ServerPort} -queryport={s.QueryPort}";
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
 
     public override Dictionary<string, string> GetDefaultSettings() => new();
     public override List<ConfigField> GetConfigFields() => BaseFields();
