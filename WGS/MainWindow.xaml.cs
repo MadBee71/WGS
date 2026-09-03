@@ -46,7 +46,23 @@ public partial class MainWindow : Window
     private void MinimizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void MaximizeClick(object sender, RoutedEventArgs e)
-        => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        else
+        {
+            // WindowStyle=None bypasses Win32 workarea clamping — set MaxHeight/MaxWidth manually
+            // so the window never covers the taskbar.
+            var area = System.Windows.SystemParameters.WorkArea;
+            MaxWidth  = area.Width;
+            MaxHeight = area.Height;
+            Left      = area.Left;
+            Top       = area.Top;
+            WindowState = WindowState.Maximized;
+        }
+    }
 
     // Stops the click from bubbling up to TitleBar_MouseDown — DragMove() captures the mouse on
     // button-down and swallows the matching button-up, so UpdateBadge_Click below would otherwise

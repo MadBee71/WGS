@@ -7,8 +7,8 @@ namespace WGS.Games;
 /// </summary>
 public static class CfxEnhancedArtifactHelper
 {
-    private const string DownloadUrl = "https://downloads.cfx-services.net/prod/01a01f0e-7471-722b-a8ec-9a1827a4fdee/cfx-server_win_x64.zip";
-    private const string BuildLabel  = "129";
+    private const string DownloadUrl = "https://downloads.cfx-services.net/prod/01a05860-2cbf-73e1-96f0-cec4a003f38c/cfx-server_win_x64.zip";
+    private const string BuildLabel  = "139";
 
     public record ArtifactInfo(string Build, string DownloadUrl);
 
