@@ -112,6 +112,7 @@ public static class GameRegistry
         Register(new AbioticFactorPlugin());
         Register(new EcoGlobalSurvivalPlugin());
         Register(new GroundBranchPlugin());
+        Register(new NuclearOptionPlugin());
         Register(new CraftopiaPlugin());
         Register(new NightingalePlugin());
         Register(new PrimalCarnageExtinctionPlugin());
