@@ -218,6 +218,7 @@
                             <ListBox ItemsSource="{Binding SortedServers}"
                                      SelectedItem="{Binding SelectedServer}"
                                      Background="Transparent" BorderThickness="0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                      ItemContainerStyle="{StaticResource ServerListItem}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:ServerViewModel}">
@@ -294,6 +295,7 @@
                                 <ListBox ItemsSource="{Binding SortedRemoteServers}"
                                          SelectedItem="{Binding SelectedRemoteServer}"
                                          Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          ItemContainerStyle="{StaticResource ServerListItem}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
