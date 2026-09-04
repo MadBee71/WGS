@@ -3,11 +3,11 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+  ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Version](https://img.shields.io/badge/version-1.1.0-blue)
-  ![Games](https://img.shields.io/badge/supported_games-50+-orange)
+  ![Version](https://img.shields.io/badge/version-1.4.63-blue)
+  ![Games](https://img.shields.io/badge/supported_games-106+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 </div>
 
@@ -17,7 +17,7 @@
 
 | Feature | Description |
 |---|---|
-| 🎮 **50+ games** | Ready-made plugins for the most popular game servers |
+| 🎮 **106+ games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update with one click |
 | 🔄 **Auto Restart** | Automatic restart after crash with crash-loop detection |
 | 💾 **Automatic backups** | Scheduled backups with configurable retention |
@@ -74,7 +74,7 @@
 ## 🖥️ Requirements
 
 - **Windows 10 / Windows Server 2019** or newer
-- **.NET 8 Runtime** — [download here](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **.NET 10 Runtime** — [download here](https://dotnet.microsoft.com/download/dotnet/10.0)
 - **SteamCMD** — downloaded automatically on first install
 - Administrator rights for firewall rule management
 
@@ -97,7 +97,7 @@ cd WindowsGameServer/WGS
 dotnet publish -c Release -o publish
 ```
 
-> Requires [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+> Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 ---
 
@@ -212,5 +212,5 @@ MIT License — see the [LICENSE](LICENSE) file.
 ---
 
 <div align="center">
-  <sub>Built with .NET 8 · WPF · CommunityToolkit.Mvvm</sub>
+  <sub>Built with .NET 10 · WPF · CommunityToolkit.Mvvm</sub>
 </div>
