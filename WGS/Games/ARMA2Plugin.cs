@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ARMA2Plugin : GamePluginBase, IWorkshopPlugin
+public class ARMA2Plugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "arma2";
     public override string GameName        => "Arma 2: Operation Arrowhead";
@@ -22,6 +22,9 @@ public class ARMA2Plugin : GamePluginBase, IWorkshopPlugin
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupAHelper.OnModRemovedAsync(s, w, id);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _)      => GroupAHelper.BuildModArguments(ids);
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var cfg          = S(s, "configFile",  "server.cfg");

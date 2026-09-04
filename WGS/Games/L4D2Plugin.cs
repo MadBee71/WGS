@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class L4D2Plugin : GamePluginBase
+public class L4D2Plugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId           => "l4d2";
     public override string GameName         => "Left 4 Dead 2";
@@ -27,6 +27,9 @@ public class L4D2Plugin : GamePluginBase
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var cfg = Path.Combine(s.InstallPath, "left4dead2", "cfg", "server.cfg");

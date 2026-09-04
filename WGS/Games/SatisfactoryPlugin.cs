@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SatisfactoryPlugin : GamePluginBase, IWorkshopPlugin
+public class SatisfactoryPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "satisfactory";
     public override string GameName        => "Satisfactory";
@@ -21,6 +21,9 @@ public class SatisfactoryPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 15777;
     public override int    DefaultMaxPlayers => 4;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-log -unattended -Port={s.ServerPort} -ServerQueryPort={s.QueryPort} -ReliablePort={s.ServerPort + 1111} -multihome=0.0.0.0";
 

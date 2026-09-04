@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class OperationHarshDoorstopPlugin : GamePluginBase
+public class OperationHarshDoorstopPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "operationharshdoorstop";
     public override string GameName        => "Operation: Harsh Doorstop";
@@ -14,6 +14,9 @@ public class OperationHarshDoorstopPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27005;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-log -port={s.ServerPort} -name=\"{s.ServerName}\" MaxPlayers={s.MaxPlayers}";
 

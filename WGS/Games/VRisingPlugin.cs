@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class VRisingPlugin : GamePluginBase
+public class VRisingPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "vrising";
     public override string GameName        => "V Rising";
@@ -16,6 +16,9 @@ public class VRisingPlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 40;
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var saveName = S(s, "saveName", "world1");

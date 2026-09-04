@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SpaceEngineersPlugin : GamePluginBase, IWorkshopPlugin
+public class SpaceEngineersPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "spaceengineers";
     public override string GameName        => "Space Engineers";
@@ -21,6 +21,9 @@ public class SpaceEngineersPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 27016;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) => "-console";
 
     public override Dictionary<string, string> GetDefaultSettings() => new();

@@ -4,7 +4,7 @@ using WGS.Services;
 
 namespace WGS.Games;
 
-public class DayZPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
+public class DayZPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQueryPlugin
 {
     public override string GameId           => "dayz";
     public override string GameName         => "DayZ";
@@ -34,6 +34,9 @@ public class DayZPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
     public string BuildModArguments(IReadOnlyList<ulong> activeModIds, string serverInstallPath)
         => GroupAHelper.BuildModArguments(activeModIds);
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var cfg      = S(s, "configFile", "serverDZ.cfg");

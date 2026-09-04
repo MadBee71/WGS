@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class GarrysModPlugin : GamePluginBase, IWorkshopPlugin
+public class GarrysModPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "garrysmod";
     public override string GameName        => "Garry's Mod";
@@ -31,6 +31,9 @@ public class GarrysModPlugin : GamePluginBase, IWorkshopPlugin
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var gamemode = S(s, "gamemode", "sandbox");

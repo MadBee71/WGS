@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class NecessePlugin : GamePluginBase, IWorkshopPlugin
+public class NecessePlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "necesse";
     public override string GameName        => "Necesse";
@@ -22,6 +22,9 @@ public class NecessePlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 32;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var world = S(s, "worldName", "MyWorld");

@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class BarotraumaPlugin : GamePluginBase, IWorkshopPlugin
+public class BarotraumaPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "barotrauma";
     public override string GameName        => "Barotrauma";
@@ -23,6 +23,9 @@ public class BarotraumaPlugin : GamePluginBase, IWorkshopPlugin
 
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) => $"-port {s.ServerPort}";
 
     public override Dictionary<string, string> GetDefaultSettings() => new();

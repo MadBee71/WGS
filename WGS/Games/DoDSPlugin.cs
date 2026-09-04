@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class DoDSPlugin : GamePluginBase
+public class DoDSPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId           => "dods";
     public override string GameName         => "Day of Defeat: Source";
@@ -26,6 +26,9 @@ public class DoDSPlugin : GamePluginBase
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var cfg = Path.Combine(s.InstallPath, "dod", "cfg", "server.cfg");

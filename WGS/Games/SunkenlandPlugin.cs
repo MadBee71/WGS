@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SunkenlandPlugin : GamePluginBase, IWorkshopPlugin
+public class SunkenlandPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "sunkenland";
     public override string GameName        => "Sunkenland";
@@ -22,6 +22,9 @@ public class SunkenlandPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 8;
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics " +
            $"-port {s.ServerPort} -queryport {s.QueryPort} " +

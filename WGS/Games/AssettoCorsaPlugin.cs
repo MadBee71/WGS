@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class AssettoCorsaPlugin : GamePluginBase, IWorkshopPlugin
+public class AssettoCorsaPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId            => "assettocorsa";
     public override string GameName          => "Assetto Corsa";
@@ -26,6 +26,9 @@ public class AssettoCorsaPlugin : GamePluginBase, IWorkshopPlugin
     public override bool   RequiresSteamLogin => true;
     public override bool   HasRcon           => false;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) => string.Empty;
 
     public override async Task PreStartAsync(GameServer server)

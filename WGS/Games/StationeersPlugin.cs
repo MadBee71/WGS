@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class StationeersPlugin : GamePluginBase
+public class StationeersPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "stationeers";
     public override string GameName        => "Stationeers";
@@ -15,6 +15,9 @@ public class StationeersPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -port {s.ServerPort}";
 

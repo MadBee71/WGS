@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class LastOasisClassicPlugin : GamePluginBase
+public class LastOasisClassicPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "lastoasisclassic";
     public override string GameName        => "Last Oasis Classic";
@@ -15,6 +15,9 @@ public class LastOasisClassicPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 100;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-log -force_steamclient_link -messaging -NoLiveServer -EnableCheats -nouPnP " +
            $"-port={s.ServerPort} -slots={s.MaxPlayers} -QueryPort={s.QueryPort}";

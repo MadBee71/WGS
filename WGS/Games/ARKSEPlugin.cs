@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
+public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQueryPlugin
 {
     public override string GameId          => "arkse";
     public override string GameName        => "ARK: Survival Evolved";
@@ -30,6 +30,9 @@ public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
     public override string? GetUnbanCommand(string p)                        => ArkRcon.Unban(p);
     public override string? GetPlayersCommand()                              => ArkRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var map = S(s, "mapName", "TheIsland");

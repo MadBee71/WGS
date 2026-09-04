@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class LongvinterPlugin : GamePluginBase, IWorkshopPlugin
+public class LongvinterPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "longvinter";
     public override string GameName        => "Longvinter";
@@ -20,6 +20,9 @@ public class LongvinterPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 32;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"LongvinterServer -Port={s.ServerPort} -QueryPort={s.QueryPort} " +
            $"-MaxPlayers={s.MaxPlayers}";

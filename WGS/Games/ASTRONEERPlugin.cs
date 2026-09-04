@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ASTRONEERPlugin : GamePluginBase, IWorkshopPlugin
+public class ASTRONEERPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "astroneer";
     public override string GameName        => "ASTRONEER";
@@ -21,6 +21,9 @@ public class ASTRONEERPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 7777;
     public override int    DefaultMaxPlayers => 4;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-MultiplayerPort={s.ServerPort} -QueryPort={s.QueryPort} " +
            $"-ServerName=\"{s.ServerName}\" -ServerPassword=\"{s.ServerPassword}\"";

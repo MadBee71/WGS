@@ -5,7 +5,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class EnshroudedPlugin : GamePluginBase
+public class EnshroudedPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "enshrouded";
     public override string GameName        => "Enshrouded";
@@ -19,6 +19,9 @@ public class EnshroudedPlugin : GamePluginBase
     public override int    DefaultMaxPlayers => 16;
 
     // Enshrouded reads all config from enshrouded_server.json — no CLI arguments
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) => string.Empty;
 
     public override async Task PreStartAsync(GameServer server)

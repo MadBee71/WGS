@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
+public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "projectzomboid";
     public override string GameName        => "Project Zomboid";
@@ -25,6 +25,9 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 16262;
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon         => true;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
 
     public override string BuildStartArguments(GameServer s)
     {

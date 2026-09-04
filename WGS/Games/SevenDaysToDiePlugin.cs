@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SevenDaysToDiePlugin : GamePluginBase, IWorkshopPlugin
+public class SevenDaysToDiePlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId        => "7daystodie";
     public override string GameName      => "7 Days to Die";
@@ -25,6 +25,9 @@ public class SevenDaysToDiePlugin : GamePluginBase, IWorkshopPlugin
     public Task OnModRemovedAsync(string s, string w, ulong id, string n)    => GroupBHelper.OnModRemovedAsync(s, id, ModTargetDirectory);
     public string BuildModArguments(IReadOnlyList<ulong> ids, string _) => string.Empty;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics -dedicated -configfile=\"{s.InstallPath}\\serverconfig.xml\"";
 

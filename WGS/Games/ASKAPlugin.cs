@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ASKAPlugin : GamePluginBase, IWorkshopPlugin
+public class ASKAPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "aska";
     public override string GameName        => "ASKA";
@@ -22,6 +22,9 @@ public class ASKAPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 4;
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-batchmode -nographics " +
            $"-port {s.ServerPort} -queryport {s.QueryPort} " +

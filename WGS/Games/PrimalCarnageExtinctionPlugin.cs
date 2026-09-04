@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class PrimalCarnageExtinctionPlugin : GamePluginBase
+public class PrimalCarnageExtinctionPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "primalcarnageextinction";
     public override string GameName        => "Primal Carnage: Extinction";
@@ -15,6 +15,9 @@ public class PrimalCarnageExtinctionPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 25;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"FR-Valley?game=PrimalCarnageGame.PCFreeRoamGame?MaxPlayers={s.MaxPlayers}?ServerName=\"{s.ServerName}\"" +
            $"?AdminPassword=\"{s.RconPassword}\"?GamePassword=\"{s.ServerPassword}\"?bIsDedicated=true " +

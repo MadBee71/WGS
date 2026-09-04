@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class VeinPlugin : GamePluginBase, IWorkshopPlugin
+public class VeinPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "vein";
     public override string GameName        => "Vein";
@@ -21,6 +21,9 @@ public class VeinPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 16;
     public override bool   HasRcon         => true;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} -multihome={s.ServerIp} -log";
 

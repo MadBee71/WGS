@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class NightingalePlugin : GamePluginBase
+public class NightingalePlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "nightingale";
     public override string GameName        => "Nightingale";
@@ -15,6 +15,9 @@ public class NightingalePlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 6;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-log -port={s.ServerPort} -statusPort={s.QueryPort}";
 

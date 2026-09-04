@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class RustPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
+public class RustPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQueryPlugin
 {
     public override string GameId        => "rust";
     public override string GameName      => "Rust";
@@ -43,6 +43,9 @@ public class RustPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin
     public override string? GetUnbanCommand(string p)                        => RustRcon.Unban(p);
     public override string? GetPlayersCommand()                              => RustRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var seed      = S(s, "seed", "12345");

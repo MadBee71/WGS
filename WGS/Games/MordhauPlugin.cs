@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class MordhauPlugin : GamePluginBase, IWorkshopPlugin
+public class MordhauPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "mordhau";
     public override string GameName        => "MORDHAU";
@@ -30,6 +30,9 @@ public class MordhauPlugin : GamePluginBase, IWorkshopPlugin
     public override string? GetUnbanCommand(string p)                        => UnrealRcon.Unban(p);
     public override string? GetPlayersCommand()                              => UnrealRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) =>
         $"MORDHAU -Port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers} -log";
 

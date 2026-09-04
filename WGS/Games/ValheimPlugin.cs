@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
+public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId        => "valheim";
     public override string GameName      => "Valheim";
@@ -21,6 +21,9 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 2457;
     public override int    DefaultMaxPlayers => 10;
     protected override bool FilterUnityShaderNoise => true;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
 
     public override string? ValidateBeforeStart(GameServer server)
         => string.IsNullOrEmpty(server.ServerPassword) || server.ServerPassword.Length < 5

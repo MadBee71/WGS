@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SquadPlugin : GamePluginBase, IWorkshopPlugin
+public class SquadPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "squad";
     public override string GameName        => "Squad";
@@ -24,6 +24,9 @@ public class SquadPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 100;
     public override bool   HasRcon         => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s) =>
         $"+PORT {s.ServerPort} +QUERYPORT {s.QueryPort} +FIXEDMAXPLAYERS {s.MaxPlayers}";
 

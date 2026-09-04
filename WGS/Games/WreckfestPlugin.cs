@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class WreckfestPlugin : GamePluginBase, IWorkshopPlugin
+public class WreckfestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "wreckfest";
     public override string GameName        => "Wreckfest";
@@ -26,6 +26,9 @@ public class WreckfestPlugin : GamePluginBase, IWorkshopPlugin
     public override bool   RequiresSteamLogin  => true;
     public override bool   UseNativeConsole    => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-s server_config=server_config.cfg -server_set server_name={s.ServerName} max_players={s.MaxPlayers} game_port={s.ServerPort} query_port={s.QueryPort}";
 

@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SoulmaskPlugin : GamePluginBase
+public class SoulmaskPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "soulmask";
     public override string GameName        => "Soulmask";
@@ -15,6 +15,9 @@ public class SoulmaskPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 20;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var map       = S(s, "map",       "Level01_Main");

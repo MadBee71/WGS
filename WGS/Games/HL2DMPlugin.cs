@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class HL2DMPlugin : GamePluginBase
+public class HL2DMPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId           => "hl2dm";
     public override string GameName         => "Half-Life 2: Deathmatch";
@@ -26,6 +26,9 @@ public class HL2DMPlugin : GamePluginBase
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var cfg = Path.Combine(s.InstallPath, "hl2mp", "cfg", "server.cfg");

@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class EchoesOfElysiumPlugin : GamePluginBase
+public class EchoesOfElysiumPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "echoesofelysium";
     public override string GameName        => "Echoes of Elysium";
@@ -15,6 +15,9 @@ public class EchoesOfElysiumPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27017;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var configPath = Path.Combine(s.InstallPath, "config.json");

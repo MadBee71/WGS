@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SCUMPlugin : GamePluginBase, IWorkshopPlugin
+public class SCUMPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "scum";
     public override string GameName        => "SCUM";
@@ -23,6 +23,9 @@ public class SCUMPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 10002;
     public override int    DefaultMaxPlayers => 32;
     public override bool   HasRcon         => true;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-port={s.ServerPort} -QueryPort={s.QueryPort} -MaxPlayers={s.MaxPlayers} -log";
 

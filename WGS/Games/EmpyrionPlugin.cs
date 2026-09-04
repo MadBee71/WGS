@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class EmpyrionPlugin : GamePluginBase, IWorkshopPlugin
+public class EmpyrionPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId           => "empyrion";
     public override string GameName         => "Empyrion - Galactic Survival";
@@ -21,6 +21,9 @@ public class EmpyrionPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultQueryPort => 30001;
     public override int    DefaultMaxPlayers => 8;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var saveName = S(s, "saveName", "MyGame");

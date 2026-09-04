@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class UnturnedPlugin : GamePluginBase, IWorkshopPlugin
+public class UnturnedPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "unturned";
     public override string GameName        => "Unturned";
@@ -24,6 +24,9 @@ public class UnturnedPlugin : GamePluginBase, IWorkshopPlugin
 
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var identity = S(s, "identity", "MyServer");

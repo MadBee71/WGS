@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class HumanitZPlugin : GamePluginBase
+public class HumanitZPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "humanitz";
     public override string GameName        => "HumanitZ";
@@ -14,6 +14,9 @@ public class HumanitZPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} -log";
 

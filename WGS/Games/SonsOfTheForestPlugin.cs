@@ -5,7 +5,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin
+public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId        => "sonsoftheforest";
     public override string GameName      => "Sons of the Forest";
@@ -26,6 +26,9 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin
     public override bool   HasRcon       => true;
     protected override bool FilterUnityShaderNoise => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => string.Empty; // config via dedicatedserver.cfg
 

@@ -4,7 +4,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class TheFrontPlugin : GamePluginBase
+public class TheFrontPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "thefront";
     public override string GameName        => "The Front";
@@ -16,6 +16,9 @@ public class TheFrontPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27048;
     public override int    DefaultMaxPlayers => 100;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var configServerName = new Random().Next(100000000, 999999999).ToString();

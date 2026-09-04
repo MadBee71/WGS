@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class TheIslePlugin : GamePluginBase, IWorkshopPlugin
+public class TheIslePlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "theisle";
     public override string GameName        => "The Isle";
@@ -21,6 +21,9 @@ public class TheIslePlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultPort      => 7777;
     public override int    DefaultQueryPort => 27020;
     public override int    DefaultMaxPlayers => 75;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var map = S(s, "map", "Isle_V3");

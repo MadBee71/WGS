@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class SmallandPlugin : GamePluginBase
+public class SmallandPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "smalland";
     public override string GameName        => "Smalland: Survive the Wilds";
@@ -20,6 +20,9 @@ public class SmallandPlugin : GamePluginBase
     private const string EosDedicatedClientId     = "xyza78918KT08TkA6emolUay8yhvAAy2";
     private const string EosDedicatedClientSecret = "aN2GtVw7aHb6hx66HwohNM+qktFaO3vtrLSbGdTzZWk";
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string? GetWorkingDirectory(GameServer s) => s.InstallPath;
 
     public override string BuildStartArguments(GameServer s)

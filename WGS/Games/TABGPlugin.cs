@@ -3,7 +3,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class TABGPlugin : GamePluginBase
+public class TABGPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "tabg";
     public override string GameName        => "Totally Accurate Battlegrounds";
@@ -15,6 +15,9 @@ public class TABGPlugin : GamePluginBase
     public override int    DefaultQueryPort => 7777;
     public override int    DefaultMaxPlayers => 16;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var configPath = Path.Combine(s.InstallPath, "game_settings.txt");

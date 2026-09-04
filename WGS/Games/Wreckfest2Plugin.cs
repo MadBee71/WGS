@@ -6,7 +6,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class Wreckfest2Plugin : GamePluginBase
+public class Wreckfest2Plugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId        => "wreckfest2";
     public override string GameName      => "Wreckfest 2";
@@ -32,6 +32,9 @@ public class Wreckfest2Plugin : GamePluginBase
     private static string GameNativeSavePath(GameServer s)
         => Path.Combine(s.InstallPath.TrimEnd('\\', '/'), "save");
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"--server --save-dir={SavePath(s)}";
 

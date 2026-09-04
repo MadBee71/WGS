@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ARMA3Plugin : GamePluginBase, IWorkshopPlugin
+public class ARMA3Plugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "arma3";
     public override string GameName        => "Arma 3";
@@ -23,6 +23,9 @@ public class ARMA3Plugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultMaxPlayers => 64;
     public override bool   RequiresSteamLogin => true;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var cfg     = S(s, "configFile",  "server.cfg");

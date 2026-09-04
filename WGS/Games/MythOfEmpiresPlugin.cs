@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class MythOfEmpiresPlugin : GamePluginBase
+public class MythOfEmpiresPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "mythofempires";
     public override string GameName        => "Myth of Empires";
@@ -14,6 +14,9 @@ public class MythOfEmpiresPlugin : GamePluginBase
     public override int    DefaultQueryPort => 7779;
     public override int    DefaultMaxPlayers => 100;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => "-game -server -DataLocalFile -NotCheckServerSteamAuth -log -LOCALLOGTIMES -PrivateServer -disable_qim -UseACE " +
            $"-MultiHome={s.ServerIp} -SessionName=\"{s.ServerName}\" -MaxPlayers={s.MaxPlayers} -Port={s.ServerPort} -ShutDownServicePort={s.QueryPort}";

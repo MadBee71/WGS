@@ -4,7 +4,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class MotorTownBTWPlugin : GamePluginBase
+public class MotorTownBTWPlugin : GamePluginBase, IA2SQueryPlugin
 {
     public override string GameId          => "motortownbtw";
     public override string GameName        => "Motor Town: Behind The Wheel";
@@ -17,6 +17,9 @@ public class MotorTownBTWPlugin : GamePluginBase
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultMaxPlayers => 200;
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override Task PreStartAsync(GameServer s)
     {
         var configPath = Path.Combine(s.InstallPath, "DedicatedServerConfig.json");

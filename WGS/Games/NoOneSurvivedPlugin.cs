@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class NoOneSurvivedPlugin : GamePluginBase, IWorkshopPlugin
+public class NoOneSurvivedPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 {
     public override string GameId          => "noonessurvived";
     public override string GameName        => "No One Survived";
@@ -20,6 +20,9 @@ public class NoOneSurvivedPlugin : GamePluginBase, IWorkshopPlugin
     public override int    DefaultPort     => 7777;
     public override int    DefaultQueryPort => 28015;
     public override int    DefaultMaxPlayers => 50;
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => $"-Port={s.ServerPort} -QueryPort={s.QueryPort} " +
            $"-MaxPlayers={s.MaxPlayers} -ServerName=\"{s.ServerName}\"";

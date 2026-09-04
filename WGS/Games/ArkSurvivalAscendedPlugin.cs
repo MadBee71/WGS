@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ArkSurvivalAscendedPlugin : GamePluginBase, IWipePlugin
+public class ArkSurvivalAscendedPlugin : GamePluginBase, IWipePlugin, IA2SQueryPlugin
 {
     public override string GameId          => "arksurvivalascended";
     public override string GameName        => "ARK: Survival Ascended";
@@ -26,6 +26,9 @@ public class ArkSurvivalAscendedPlugin : GamePluginBase, IWipePlugin
 
     public IEnumerable<string> GetFullWipePaths(GameServer server) => GetMapWipePaths(server);
 
+
+    public string A2SHost => "127.0.0.1";
+    public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
     {
         var map = S(s, "mapName", "TheIsland_WP");
