@@ -3,11 +3,11 @@
   <h1>Windows Game Server</h1>
   <p><strong>Single-window management panel for Windows game servers</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-1.4.44-blue)
+  ![Version](https://img.shields.io/badge/version-1.4.63-blue)
   ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Games](https://img.shields.io/badge/supported_games-101+-orange)
+  ![Games](https://img.shields.io/badge/supported_games-106+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
   <a href="https://wgsserver.com"><img src="assets/www.png" width="120"/></a>
@@ -62,7 +62,7 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 ### Server management
 | Feature | Description |
 |---|---|
-| 🎮 **101+ supported games** | Ready-made plugins for the most popular game servers |
+| 🎮 **106+ supported games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update servers with one click — SteamCMD downloaded automatically |
 | 🔄 **Auto restart** | Automatic restart after crash, with configurable delay and crash loop detection |
 | 🔁 **Auto-update** | Periodic SteamCMD updates on a configurable interval while the server runs |
@@ -127,7 +127,7 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 
 ## 🎮 Supported Games
 
-101+ games supported out of the box — including Valheim, Rust, CS2, ARK, DayZ, Palworld, Minecraft, and many more.
+106+ games supported out of the box — including Valheim, Rust, CS2, ARK, DayZ, Palworld, Minecraft, and many more.
 
 👉 **[Full game list with search →](https://wgsserver.com/docs/games.html)**
 
