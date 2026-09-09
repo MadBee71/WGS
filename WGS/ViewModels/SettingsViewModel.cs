@@ -34,6 +34,18 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _botAllowedUsers = string.Empty;
     [ObservableProperty] private bool   _botStatusEnabled;
     [ObservableProperty] private string _botStatusChannelId = string.Empty;
+
+    // Status board styling
+    [ObservableProperty] private string _statusTitle           = "Server Status";
+    [ObservableProperty] private string _statusColor           = "#1F6FEB";
+    [ObservableProperty] private string _statusFooterText      = "Windows Game Server · updates every minute";
+    [ObservableProperty] private string _statusThumbnailUrl    = string.Empty;
+    [ObservableProperty] private string _statusImageUrl        = string.Empty;
+    [ObservableProperty] private string _statusOnlineText      = "🟢 Online";
+    [ObservableProperty] private string _statusOfflineText     = "⚫ Offline";
+    [ObservableProperty] private string _statusJoinButtonLabel = string.Empty;
+    [ObservableProperty] private string _statusJoinButtonUrl   = string.Empty;
+
     [ObservableProperty] private string _botStatus       = string.Empty;
     [ObservableProperty] private string _newBotAdminId   = string.Empty;
     [ObservableProperty] private string? _selectedBotAdmin;
@@ -166,6 +178,15 @@ public partial class SettingsViewModel : BaseViewModel
         BotAllowedUsers    = s.BotAllowedUsers ?? string.Empty;
         BotStatusEnabled   = s.BotStatusEnabled;
         BotStatusChannelId = s.BotStatusChannelId ?? string.Empty;
+        StatusTitle           = string.IsNullOrEmpty(s.StatusTitle) ? "Server Status" : s.StatusTitle;
+        StatusColor           = string.IsNullOrEmpty(s.StatusColor) ? "#1F6FEB" : s.StatusColor;
+        StatusFooterText      = s.StatusFooterText ?? "Windows Game Server · updates every minute";
+        StatusThumbnailUrl    = s.StatusThumbnailUrl ?? string.Empty;
+        StatusImageUrl        = s.StatusImageUrl ?? string.Empty;
+        StatusOnlineText      = string.IsNullOrEmpty(s.StatusOnlineText) ? "🟢 Online" : s.StatusOnlineText;
+        StatusOfflineText     = string.IsNullOrEmpty(s.StatusOfflineText) ? "⚫ Offline" : s.StatusOfflineText;
+        StatusJoinButtonLabel = s.StatusJoinButtonLabel ?? string.Empty;
+        StatusJoinButtonUrl   = s.StatusJoinButtonUrl ?? string.Empty;
         BotAdminList.Clear();
         foreach (var id in (s.BotAllowedUsers ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             BotAdminList.Add(id);
@@ -224,6 +245,15 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotAllowedUsers   = string.Join(",", BotAdminList);
         s.BotStatusEnabled   = BotStatusEnabled;
         s.BotStatusChannelId = BotStatusChannelId;
+        s.StatusTitle           = string.IsNullOrWhiteSpace(StatusTitle) ? "Server Status" : StatusTitle;
+        s.StatusColor           = string.IsNullOrWhiteSpace(StatusColor) ? "#1F6FEB" : StatusColor;
+        s.StatusFooterText      = StatusFooterText;
+        s.StatusThumbnailUrl    = StatusThumbnailUrl;
+        s.StatusImageUrl        = StatusImageUrl;
+        s.StatusOnlineText      = string.IsNullOrWhiteSpace(StatusOnlineText) ? "🟢 Online" : StatusOnlineText;
+        s.StatusOfflineText     = string.IsNullOrWhiteSpace(StatusOfflineText) ? "⚫ Offline" : StatusOfflineText;
+        s.StatusJoinButtonLabel = StatusJoinButtonLabel;
+        s.StatusJoinButtonUrl   = StatusJoinButtonUrl;
         s.EmailEnabled      = EmailEnabled;
         s.SmtpHost          = SmtpHost;
         s.SmtpPort          = SmtpPort;

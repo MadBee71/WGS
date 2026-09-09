@@ -318,6 +318,89 @@
                                  Text="{Binding BotStatusChannelId, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
+                    <StackPanel Margin="0,8,0,0" Visibility="{Binding BotStatusEnabled, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Style the status board" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,10"
+                                   Text="Customize the look of the live status board — leave anything blank to keep the default look."/>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Color (hex)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusColor, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Footer text" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,8"
+                                 Text="{Binding StatusFooterText, UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Header logo URL (small, next to title)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusThumbnailUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Banner image URL (large, at the bottom)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusImageUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Online status text" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusOnlineText, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Offline status text" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusOfflineText, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Join button label (blank = no button)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Tag="e.g. Join our Discord"
+                                         Text="{Binding StatusJoinButtonLabel, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Join button URL" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Style="{StaticResource DarkTextBox}"
+                                         Text="{Binding StatusJoinButtonUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Status: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
                         <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,6,0">

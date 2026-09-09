@@ -30,6 +30,20 @@ public class NotificationSettings
     /// <summary>Channel for the live status message. Falls back to BotChannelId when empty.</summary>
     public string BotStatusChannelId  { get; set; } = string.Empty;
 
+    // Status board styling (applies to the live status embed built above)
+    public string StatusTitle           { get; set; } = "Server Status";
+    public string StatusColor           { get; set; } = "#1F6FEB";
+    public string StatusFooterText      { get; set; } = "Windows Game Server · updates every minute";
+    /// <summary>Small logo shown next to the title (Discord embed "thumbnail").</summary>
+    public string StatusThumbnailUrl    { get; set; } = string.Empty;
+    /// <summary>Large banner image shown at the bottom of the embed (Discord embed "image").</summary>
+    public string StatusImageUrl        { get; set; } = string.Empty;
+    public string StatusOnlineText      { get; set; } = "🟢 Online";
+    public string StatusOfflineText     { get; set; } = "⚫ Offline";
+    /// <summary>Optional link button on the status board, e.g. "Join our Discord" → invite URL.</summary>
+    public string StatusJoinButtonLabel { get; set; } = string.Empty;
+    public string StatusJoinButtonUrl   { get; set; } = string.Empty;
+
     // Email (SMTP)
     public bool   EmailEnabled    { get; set; }
     public string SmtpHost        { get; set; } = string.Empty;
@@ -58,6 +72,15 @@ file record NotificationSettingsData(
     string BotAllowedUsers           = "",
     bool   BotStatusEnabled          = false,
     string BotStatusChannelId        = "",
+    string StatusTitle               = "Server Status",
+    string StatusColor               = "#1F6FEB",
+    string StatusFooterText          = "Windows Game Server · updates every minute",
+    string StatusThumbnailUrl        = "",
+    string StatusImageUrl            = "",
+    string StatusOnlineText          = "🟢 Online",
+    string StatusOfflineText         = "⚫ Offline",
+    string StatusJoinButtonLabel     = "",
+    string StatusJoinButtonUrl       = "",
     bool   EmailEnabled              = false,
     string SmtpHost                  = "",
     int    SmtpPort                  = 587,
@@ -113,6 +136,15 @@ public class NotificationService
             _settings.BotAllowedUsers,
             _settings.BotStatusEnabled,
             _settings.BotStatusChannelId,
+            _settings.StatusTitle,
+            _settings.StatusColor,
+            _settings.StatusFooterText,
+            _settings.StatusThumbnailUrl,
+            _settings.StatusImageUrl,
+            _settings.StatusOnlineText,
+            _settings.StatusOfflineText,
+            _settings.StatusJoinButtonLabel,
+            _settings.StatusJoinButtonUrl,
             _settings.EmailEnabled,
             _settings.SmtpHost,
             _settings.SmtpPort,
@@ -158,6 +190,15 @@ public class NotificationService
                     BotAllowedUsers = data.BotAllowedUsers,
                     BotStatusEnabled   = data.BotStatusEnabled,
                     BotStatusChannelId = data.BotStatusChannelId,
+                    StatusTitle           = string.IsNullOrEmpty(data.StatusTitle) ? "Server Status" : data.StatusTitle,
+                    StatusColor           = string.IsNullOrEmpty(data.StatusColor) ? "#1F6FEB" : data.StatusColor,
+                    StatusFooterText      = data.StatusFooterText ?? "Windows Game Server · updates every minute",
+                    StatusThumbnailUrl    = data.StatusThumbnailUrl ?? string.Empty,
+                    StatusImageUrl        = data.StatusImageUrl ?? string.Empty,
+                    StatusOnlineText      = string.IsNullOrEmpty(data.StatusOnlineText) ? "🟢 Online" : data.StatusOnlineText,
+                    StatusOfflineText     = string.IsNullOrEmpty(data.StatusOfflineText) ? "⚫ Offline" : data.StatusOfflineText,
+                    StatusJoinButtonLabel = data.StatusJoinButtonLabel ?? string.Empty,
+                    StatusJoinButtonUrl   = data.StatusJoinButtonUrl ?? string.Empty,
                     EmailEnabled    = data.EmailEnabled,
                     SmtpHost        = data.SmtpHost,
                     SmtpPort        = data.SmtpPort,

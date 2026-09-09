@@ -43,6 +43,17 @@ public class DiscordBotService : IDisposable
     /// <summary>Channel for the live status message. Falls back to ChannelId when empty.</summary>
     public string  StatusChannelId  { get; set; } = string.Empty;
 
+    // ── Status board styling ────────────────────────────────────────────────
+    public string  StatusTitle           { get; set; } = "Server Status";
+    public string  StatusColor           { get; set; } = "#1F6FEB";
+    public string  StatusFooterText      { get; set; } = "Windows Game Server · updates every minute";
+    public string  StatusThumbnailUrl    { get; set; } = string.Empty;
+    public string  StatusImageUrl        { get; set; } = string.Empty;
+    public string  StatusOnlineText      { get; set; } = "🟢 Online";
+    public string  StatusOfflineText     { get; set; } = "⚫ Offline";
+    public string  StatusJoinButtonLabel { get; set; } = string.Empty;
+    public string  StatusJoinButtonUrl   { get; set; } = string.Empty;
+
     // ── State ─────────────────────────────────────────────────────────────────
     private readonly HttpClient     _http   = new();
     private CancellationTokenSource _cts    = new();
@@ -153,6 +164,16 @@ public class DiscordBotService : IDisposable
         StatusEnabled    = settings.BotStatusEnabled;
         StatusChannelId  = string.IsNullOrWhiteSpace(settings.BotStatusChannelId) ? ChannelId : settings.BotStatusChannelId;
 
+        StatusTitle           = string.IsNullOrWhiteSpace(settings.StatusTitle) ? "Server Status" : settings.StatusTitle;
+        StatusColor           = string.IsNullOrWhiteSpace(settings.StatusColor) ? "#1F6FEB" : settings.StatusColor;
+        StatusFooterText      = settings.StatusFooterText ?? string.Empty;
+        StatusThumbnailUrl    = settings.StatusThumbnailUrl ?? string.Empty;
+        StatusImageUrl        = settings.StatusImageUrl ?? string.Empty;
+        StatusOnlineText      = string.IsNullOrWhiteSpace(settings.StatusOnlineText) ? "🟢 Online" : settings.StatusOnlineText;
+        StatusOfflineText     = string.IsNullOrWhiteSpace(settings.StatusOfflineText) ? "⚫ Offline" : settings.StatusOfflineText;
+        StatusJoinButtonLabel = settings.StatusJoinButtonLabel ?? string.Empty;
+        StatusJoinButtonUrl   = settings.StatusJoinButtonUrl ?? string.Empty;
+
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bot", BotToken);
 
@@ -216,7 +237,7 @@ public class DiscordBotService : IDisposable
             .ToDictionary(g => g.Key, g => g.ToList());
 
         return PostOrEditBoardAsync(groups, _statusMessageIds, _statusMessageIdsFile,
-            BuildStatusEmbed, BuildWakeButtonRows, "status", key => key, ct);
+            BuildStatusEmbed, BuildStatusComponentRows, "status", key => key, ct);
     }
 
     /// <summary>
@@ -332,47 +353,80 @@ public class DiscordBotService : IDisposable
         StatusChanged?.Invoke($"⚠ Discord {kind} board {action} failed for {key}: {(int)resp.StatusCode} {resp.StatusCode} — {reason}");
     }
 
-    private static object BuildStatusEmbed(List<Models.GameServer> servers)
+    /// <summary>
+    /// Builds the status embed using the configurable style settings (Settings → Discord Remote
+    /// Control Bot → Style the status board), falling back to the original hard-coded look for any
+    /// field left blank — so existing users who never touch the new fields see zero visual change.
+    /// </summary>
+    private object BuildStatusEmbed(List<Models.GameServer> servers)
     {
+        var onlineText  = string.IsNullOrWhiteSpace(StatusOnlineText)  ? "🟢 Online"  : StatusOnlineText;
+        var offlineText = string.IsNullOrWhiteSpace(StatusOfflineText) ? "⚫ Offline" : StatusOfflineText;
+
         var fields = servers.Select(s =>
         {
             var online = s.Status == ServerStatus.Running;
             var ip     = string.IsNullOrEmpty(s.ServerIp) || s.ServerIp == "0.0.0.0" ? "127.0.0.1" : s.ServerIp;
             var plugin = GameRegistry.All.FirstOrDefault(p => p.GameId == s.GameId);
             var port   = (plugin?.UseGamePortForConnect == true || s.QueryPort == 0) ? s.ServerPort : s.QueryPort;
-            var line1  = online ? $"🟢 Online — {s.CurrentPlayers}/{s.MaxPlayers} players" : "⚫ Offline";
+            var line1  = online ? $"{onlineText} — {s.CurrentPlayers}/{s.MaxPlayers} players" : offlineText;
             var value  = $"{line1}\nConnect: `{ip}:{port}`";
             return new { name = s.DisplayName, value, inline = true };
         }).ToArray();
 
-        return new
+        var embed = new Dictionary<string, object?>
         {
-            title       = "Server Status",
-            color       = 0x1F6FEB,
-            fields,
-            footer      = new { text = "Windows Game Server · updates every minute" },
-            timestamp   = DateTime.UtcNow.ToString("o"),
+            ["title"]     = string.IsNullOrWhiteSpace(StatusTitle) ? "Server Status" : StatusTitle,
+            ["color"]     = ParseEmbedColor(StatusColor),
+            ["fields"]    = fields,
+            ["footer"]    = new { text = string.IsNullOrWhiteSpace(StatusFooterText) ? "Windows Game Server · updates every minute" : StatusFooterText },
+            ["timestamp"] = DateTime.UtcNow.ToString("o"),
         };
+        if (IsValidHttpUrl(StatusThumbnailUrl)) embed["thumbnail"] = new { url = StatusThumbnailUrl };
+        if (IsValidHttpUrl(StatusImageUrl))     embed["image"]     = new { url = StatusImageUrl };
+        return embed;
     }
 
-    /// <summary>One "Wake" button per offline, wake-on-demand-enabled server, grouped into rows of 5 (Discord's max per row).</summary>
-    private static object[] BuildWakeButtonRows(List<Models.GameServer> servers)
+    /// <summary>Parses a "#RRGGBB" hex color into Discord's decimal embed color, falling back to the original blue on anything unparseable.</summary>
+    private static int ParseEmbedColor(string hex)
+    {
+        try { return Convert.ToInt32(hex.TrimStart('#'), 16); }
+        catch { return 0x1F6FEB; }
+    }
+
+    private static bool IsValidHttpUrl(string? url) =>
+        !string.IsNullOrWhiteSpace(url) &&
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    /// <summary>One "Wake" button per offline, wake-on-demand-enabled server, grouped into rows of 5 (Discord's max per row),
+    /// plus one optional link button (e.g. "Join our Discord") appended to whichever row still has room.</summary>
+    private object[] BuildStatusComponentRows(List<Models.GameServer> servers)
     {
         var wakeable = servers.Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand).ToList();
-        if (wakeable.Count == 0) return [];
 
         var buttons = wakeable.Select(s =>
         {
             var label = "Wake " + s.DisplayName;
             if (label.Length > 80) label = label[..80];
-            return new { type = 2, style = 1, label, custom_id = WakeButtonPrefix + s.Id }; // type 2 = Button, style 1 = Primary
+            return (object)new { type = 2, style = 1, label, custom_id = WakeButtonPrefix + s.Id }; // type 2 = Button, style 1 = Primary
         }).ToList();
 
-        var rows = new List<object>();
+        var rows = new List<List<object>>();
         for (int i = 0; i < buttons.Count && rows.Count < 5; i += 5)
-            rows.Add(new { type = 1, components = buttons.Skip(i).Take(5).ToArray() }); // 1 = Action Row
+            rows.Add(buttons.Skip(i).Take(5).ToList());
 
-        return rows.ToArray();
+        if (!string.IsNullOrWhiteSpace(StatusJoinButtonLabel) && IsValidHttpUrl(StatusJoinButtonUrl))
+        {
+            var label = StatusJoinButtonLabel.Length > 80 ? StatusJoinButtonLabel[..80] : StatusJoinButtonLabel;
+            var joinButton = (object)new { type = 2, style = 5, label, url = StatusJoinButtonUrl }; // style 5 = Link (no custom_id, opens the URL)
+
+            var lastRow = rows.LastOrDefault();
+            if (lastRow != null && lastRow.Count < 5) lastRow.Add(joinButton);
+            else if (rows.Count < 5) rows.Add([joinButton]);
+        }
+
+        return rows.Select(r => (object)new { type = 1, components = r.ToArray() }).ToArray(); // 1 = Action Row
     }
 
     /// <summary>
