@@ -83,6 +83,7 @@ public static class GameRegistry
         Register(new MinecraftPlugin());
         Register(new BedrockPlugin());
         Register(new ForgePlugin());
+        Register(new NeoForgePlugin());
         Register(new SpigotPlugin());
         Register(new FabricPlugin());
         Register(new TerrariaPlugin());
@@ -124,6 +125,43 @@ public static class GameRegistry
         Register(new RiskOfRain2Plugin());
         Register(new SmallandPlugin());
         Register(new SvenCoopPlugin());
+        // Community-requested additions (batch 2 — pterodactyl/AMP parity)
+        Register(new CSSPlugin());
+        Register(new L4DPlugin());
+        Register(new FactorioPlugin());
+        Register(new BannerlordPlugin());
+        Register(new OpenTTDPlugin());
+        Register(new OpenRCT2Plugin());
+        Register(new MindustryPlugin());
+        Register(new AvorionPlugin());
+        Register(new ColonySurvivalPlugin());
+        Register(new HurtworldPlugin());
+        Register(new TowerUnitePlugin());
+        Register(new RisingStorm2VietnamPlugin());
+        Register(new OpenMPPlugin());
+        Register(new LuantiPlugin());
+        Register(new MTASAPlugin());
+        Register(new VintageStoryPlugin());
+        Register(new TModLoaderPlugin());
+        Register(new OpenRAPlugin());
+        Register(new BlackwakePlugin());
+        Register(new Automobilista2Plugin());
+        Register(new FarmingSimulator25Plugin());
+        Register(new SoldatPlugin());
+        Register(new TeeworldsPlugin());
+        Register(new XonoticPlugin());
+        Register(new ZombiePanicSourcePlugin());
+        Register(new UrbanTerrorPlugin());
+        Register(new TrackmaniaPlugin());
+        Register(new OnsetPlugin());
+        Register(new AlienSwarmReactiveDropPlugin());
+        Register(new UT2004Plugin());
+        Register(new CryoFallPlugin());
+        Register(new VelorenPlugin());
+        Register(new SapiensPlugin());
+        Register(new SpaceStation14Plugin());
+        Register(new PathOfTitansPlugin());
+        Register(new Titanfall2NorthstarPlugin());
     }
 
     public static void Register(IGamePlugin plugin) => _plugins[plugin.GameId] = plugin;

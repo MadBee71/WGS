@@ -1,0 +1,24 @@
+<Window x:Class="WGS.Views.NewGamesNoticeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="" Width="480" Height="300"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Border Background="#1c2128" CornerRadius="10" BorderBrush="#30363d" BorderThickness="1">
+        <StackPanel Margin="28,24">
+            <TextBlock Text="🆕 143 games supported" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,16">
+                Not every game on this list has been field-tested by real users yet — they're built from verified documentation and sources, but that's not a substitute for someone actually running one.
+            </TextBlock>
+            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#c9d1d9" Margin="0,0,0,16">
+                If one of them doesn't install or start correctly, please report it on Discord so it can be fixed quickly.
+            </TextBlock>
+            <CheckBox x:Name="DontShowAgainCheck" Content="Don't show this again" Foreground="#8b949e" FontSize="12" Margin="0,0,0,16"/>
+            <Button Content="Got it" HorizontalAlignment="Right" Width="100" Height="34"
+                    Background="#238636" Foreground="White" BorderThickness="0"
+                    Cursor="Hand" Click="GotItClick"/>
+        </StackPanel>
+    </Border>
+</Window>

@@ -95,6 +95,41 @@ public static class MinecraftInstallHelper
         catch { return null; }
     }
 
+    /// <summary>NeoForge is a fork of Forge and uses the identical installer mechanism —
+    /// same --installServer flow, same win_args.txt/unix_args.txt output. Version list comes
+    /// from NeoForge's own Maven metadata API — the newest build for a Minecraft version is
+    /// picked by parsing the numeric build number rather than trusting the API's array order,
+    /// which isn't a documented guarantee.</summary>
+    public static async Task<string?> GetNeoForgeInstallerUrlAsync(string mcVersion)
+    {
+        try
+        {
+            var json = await _http.GetStringAsync("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge");
+            using var doc = JsonDocument.Parse(json);
+            var versions = doc.RootElement.GetProperty("versions");
+
+            // Minecraft "1.21.4" -> NeoForge versions are numbered "21.4.x" (drop the leading "1.").
+            var parts = mcVersion.Split('.');
+            if (parts.Length < 3) return null; // e.g. "1.21" alone is too ambiguous to match safely
+            var prefix = $"{parts[1]}.{parts[2]}.";
+
+            string? match = null;
+            var highestBuild = -1;
+            foreach (var v in versions.EnumerateArray())
+            {
+                var s = v.GetString();
+                if (s == null || !s.StartsWith(prefix)) continue;
+                var buildStr = s[prefix.Length..].Split('-')[0]; // strip "-beta" etc.
+                if (!int.TryParse(buildStr, out var build)) continue;
+                if (build > highestBuild) { highestBuild = build; match = s; }
+            }
+            if (match == null) return null;
+
+            return $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{match}/neoforge-{match}-installer.jar";
+        }
+        catch { return null; }
+    }
+
     /// <summary>Fabric exposes a ready-to-run server jar directly via its meta API — no
     /// installer subprocess needed, unlike Forge.</summary>
     public static async Task<string?> GetFabricServerJarUrlAsync(string mcVersion)

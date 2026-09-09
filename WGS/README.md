@@ -6,8 +6,8 @@
   ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Version](https://img.shields.io/badge/version-1.4.63-blue)
-  ![Games](https://img.shields.io/badge/supported_games-106+-orange)
+  ![Version](https://img.shields.io/badge/version-1.5.0-blue)
+  ![Games](https://img.shields.io/badge/supported_games-143+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 </div>
 
@@ -17,7 +17,7 @@
 
 | Feature | Description |
 |---|---|
-| 🎮 **106+ games** | Ready-made plugins for the most popular game servers |
+| 🎮 **143+ games** | Ready-made plugins for the most popular game servers |
 | ⬇️ **SteamCMD integration** | Install and update with one click |
 | 🔄 **Auto Restart** | Automatic restart after crash with crash-loop detection |
 | 💾 **Automatic backups** | Scheduled backups with configurable retention |

@@ -35,6 +35,7 @@ public class ConfigService
     public bool   EnableUPnP             { get; set; } = false;
     public string SortMode               { get; set; } = "name-asc";
     public bool   HasSeenOnboarding      { get; set; } = false;
+    public bool   HasSeenNewGamesNotice  { get; set; } = false;
     public bool   OptimizeRamBeforeStart { get; set; } = false;
     public bool   HealthCheckEnabled     { get; set; } = true;
     public int    HealthCheckFailThreshold { get; set; } = 3;   // consecutive failures before action
@@ -74,6 +75,7 @@ public class ConfigService
         bool   CrashPredictionHighCpuOnly = false,
         double CrashPredictionHighCpuPercent = 98.0,
         bool   HasSeenOnboarding = false,
+        bool   HasSeenNewGamesNotice = false,
         bool   OptimizeRamBeforeStart = false,
         bool   HealthCheckEnabled = true,
         int    HealthCheckFailThreshold = 3,
@@ -107,6 +109,7 @@ public class ConfigService
             CrashPredictionHighCpuOnly = d.CrashPredictionHighCpuOnly;
             CrashPredictionHighCpuPercent = d.CrashPredictionHighCpuPercent > 0 ? d.CrashPredictionHighCpuPercent : 98.0;
             HasSeenOnboarding = d.HasSeenOnboarding;
+            HasSeenNewGamesNotice = d.HasSeenNewGamesNotice;
             OptimizeRamBeforeStart   = d.OptimizeRamBeforeStart;
             HealthCheckEnabled       = d.HealthCheckEnabled;
             HealthCheckFailThreshold = d.HealthCheckFailThreshold > 0 ? d.HealthCheckFailThreshold : 3;
@@ -124,7 +127,7 @@ public class ConfigService
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
             EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent,
             CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent, HasSeenOnboarding,
-            OptimizeRamBeforeStart, HealthCheckEnabled, HealthCheckFailThreshold, HealthCheckAction);
+            HasSeenNewGamesNotice, OptimizeRamBeforeStart, HealthCheckEnabled, HealthCheckFailThreshold, HealthCheckAction);
         WriteAtomic(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 

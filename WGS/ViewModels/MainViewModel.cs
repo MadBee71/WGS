@@ -724,6 +724,17 @@ public partial class MainViewModel : BaseViewModel
         NewServerGame    = AvailableGames.FirstOrDefault();
         // ports are set by OnNewServerGameChanged above
         ShowAddDialog    = true;
+
+        if (!_config.HasSeenNewGamesNotice)
+        {
+            var dlg = new Views.NewGamesNoticeDialog { Owner = System.Windows.Application.Current.MainWindow };
+            dlg.ShowDialog();
+            if (dlg.DontShowAgain)
+            {
+                _config.HasSeenNewGamesNotice = true;
+                _config.Save();
+            }
+        }
     }
 
     partial void OnSelectedServerChanged(ServerViewModel? value)
