@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -30,6 +31,8 @@ public class WebApiService : IDisposable
     public Func<IEnumerable<GameServer>>?                   GetServers    { get; set; }
     public Func<string, Task>?                              StartServer   { get; set; }
     public Func<string, Task>?                              StopServer    { get; set; }
+    /// <summary>Force-kills the process (distinct from a graceful Stop) — IServerBackend.KillAsync.</summary>
+    public Func<string, Task>?                              KillServer    { get; set; }
     public Func<string, Task>?                              RestartServer { get; set; }
     public Func<string, Task>?                              UpdateServer  { get; set; }
     public Func<string, Task>?                              BackupServer  { get; set; }
@@ -55,6 +58,107 @@ public class WebApiService : IDisposable
     public Func<string, Task<string?>>? RunScheduledTask { get; set; }
     /// <summary>Returns all log lines for a server (for download).</summary>
     public Func<string, IEnumerable<string>>? GetFullLog { get; set; }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Remote-backend surface — delegates backing the routes RemoteServerBackend
+    // (Services/RemoteServerBackend.cs) calls to implement IServerBackend over HTTP.
+    // Wired externally, same as everything above. Not yet wired by MainViewModel —
+    // that's a later integration step; these routes 404-safe (Invoke?.()) until then.
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ── Config file editor ───────────────────────────────────────────────────
+    public Func<string, Task<List<ConfigFileEntry>>>?              GetConfigFiles       { get; set; }
+    /// <summary>(serverId, filePath) — filePath is ConfigFileEntry.Path.</summary>
+    public Func<string, string, Task<string>>?                     ReadConfigFile       { get; set; }
+    /// <summary>(serverId, filePath, content). Returns error message or null on success.</summary>
+    public Func<string, string, string, Task<string?>>?            SaveConfigFile       { get; set; }
+    /// <summary>(serverId, filePath) — snapshots for that config file.</summary>
+    public Func<string, string, Task<List<ConfigSnapshot>>>?       GetConfigSnapshots   { get; set; }
+    /// <summary>(serverId, snapshotFilePath = ConfigSnapshot.FilePath). Returns error or null.</summary>
+    public Func<string, string, Task<string?>>?                    RestoreConfigSnapshot { get; set; }
+
+    // ── Config presets ───────────────────────────────────────────────────────
+    /// <summary>(serverId, configFile relative path, key/value pairs). Returns backup path, or null on failure.</summary>
+    public Func<string, string, Dictionary<string, string>, Task<string?>>? ApplyPreset { get; set; }
+
+    // ── Mod frameworks (Oxide/Paper/Spigot/Purpur/Fabric/Forge/Vanilla) ─────────
+    /// <summary>(serverId, framework). Blocks until install finishes. Returns error or null.</summary>
+    public Func<string, string, Task<string?>>?                    InstallModFramework  { get; set; }
+
+    // ── SourceMod plugin manager ─────────────────────────────────────────────
+    public Func<string, Task<(List<SourceModPlugin> active, List<SourceModPlugin> disabled)>>? GetSourceModPlugins { get; set; }
+    public Func<string, string, bool, Task>?                       SetSourceModPluginEnabled { get; set; }
+
+    // ── Steam Workshop ───────────────────────────────────────────────────────
+    public Func<string, Task<List<WorkshopMod>>>?                  GetWorkshopMods      { get; set; }
+    public Func<string, string, Task<List<WorkshopItem>>>?         SearchWorkshop       { get; set; }
+    /// <summary>Blocks until install finishes. Returns error or null.</summary>
+    public Func<string, ulong, Task<string?>>?                     InstallWorkshopItem  { get; set; }
+    public Func<string, ulong, Task<string?>>?                     UninstallWorkshopItem { get; set; }
+    public Func<string, ulong, bool, Task<string?>>?                SetWorkshopModEnabled { get; set; }
+    public Func<string, Task<List<WorkshopMod>>>?                  CheckOutdatedMods    { get; set; }
+    /// <summary>modIds == null → update all mods for the server. Blocks until done.</summary>
+    public Func<string, List<ulong>?, Task<string?>>?              UpdateWorkshopMods   { get; set; }
+
+    // ── Cleanup ──────────────────────────────────────────────────────────────
+    public Func<string, Task<List<string>>>?                       CleanupJunkFiles     { get; set; }
+
+    // ── Templates — global, keyed by ServerTemplate.Id (see TemplateService: templates
+    // are NOT per-server, they're per-GameId; SaveAsTemplate only reads the source server
+    // to seed the new template's fields) ────────────────────────────────────────
+    /// <summary>(serverId, name, category, tags) — creates a new template from that server's current settings.</summary>
+    public Func<string, string, string, string, List<string>, Task>? SaveAsTemplate     { get; set; }
+    /// <summary>(serverId, templateId) — applies an existing template's settings onto that server. Returns error or null.</summary>
+    public Func<string, string, Task<string?>>?                    ApplyTemplate        { get; set; }
+    /// <summary>(templateId) — returns the cloned template, or null if templateId was not found.</summary>
+    public Func<string, Task<ServerTemplate?>>?                    CloneTemplate        { get; set; }
+    /// <summary>(templateId). Returns error or null.</summary>
+    public Func<string, Task<string?>>?                            DeleteTemplate       { get; set; }
+
+    // ── Scheduled tasks (list + run-now already existed above) ──────────────────
+    public Func<ScheduledTask, Task>?                               AddScheduledTask     { get; set; }
+    /// <summary>(taskId). Returns error or null.</summary>
+    public Func<string, Task<string?>>?                             RemoveScheduledTask  { get; set; }
+
+    // ── Quick commands / log-watch rules (persisted on the GameServer model — the
+    // backend owner is the sole writer of servers.json for these) ────────────────
+    public Func<string, QuickCommand, Task>?                        AddQuickCommand      { get; set; }
+    public Func<string, QuickCommand, Task>?                        RemoveQuickCommand   { get; set; }
+    public Func<string, Models.LogWatchRule, Task>?                 AddLogWatchRule      { get; set; }
+    public Func<string, Models.LogWatchRule, Task>?                 RemoveLogWatchRule   { get; set; }
+
+    // ── Backups — detailed create/delete/cleanup. GetBackups (list), RestoreBackup, and
+    // the "backup" action route already existed above; these three fill the rest of
+    // IServerBackend's backup surface (CreateBackupAsync needs the full created entry,
+    // DeleteBackupAsync/CleanupBackupsAsync had no route at all). ────────────────────
+    public record BackupDetail(string FilePath, string FileName, string ServerName,
+        DateTime CreatedAt, long SizeBytes, bool IsIncremental, string BaseFilePath);
+    public Func<string, Task<BackupDetail?>>?                       CreateBackupDetailed { get; set; }
+    /// <summary>(serverId, fileName). Returns error or null.</summary>
+    public Func<string, string, Task<string?>>?                     DeleteBackup         { get; set; }
+    public Func<string, Task<List<BackupDetail>>>?                  CleanupBackups       { get; set; }
+
+    // ── FiveM/RedM build-channel choice (remote install pause) ─────────────────────
+    // In-memory placeholder store only — nothing pauses InstallAsync yet (that wiring is
+    // a later integration step). This gives RemoteServerBackend's three interface methods
+    // real routes to call against so the plumbing exists end-to-end and compiles now.
+    public class PendingBuildChannelChoice
+    {
+        public string Recommended { get; set; } = "";
+        public string Latest      { get; set; } = "";
+        public TaskCompletionSource<bool> Resolution { get; } = new();
+    }
+    private readonly ConcurrentDictionary<string, PendingBuildChannelChoice> _pendingBuildChoices = new();
+
+    /// <summary>For a future install flow to call when it needs a build-channel decision from
+    /// a remote client: registers the pending choice and returns once SubmitBuildChannelChoice
+    /// is called for this server. Not called from anywhere yet — InstallAsync doesn't pause.</summary>
+    public Task<bool> RegisterPendingBuildChannelChoice(string serverId, string recommended, string latest)
+    {
+        var entry = new PendingBuildChannelChoice { Recommended = recommended, Latest = latest };
+        _pendingBuildChoices[serverId] = entry;
+        return entry.Resolution.Task;
+    }
 
     /// <summary>True when listener bound to all interfaces (reachable from network); false = localhost only.</summary>
     public bool BoundToAllInterfaces { get; private set; }
@@ -438,6 +542,484 @@ public class WebApiService : IDisposable
                 return;
             }
 
+            // ═══════════════════════════════════════════════════════════════════
+            // Remote-backend routes — the HTTP surface RemoteServerBackend calls to
+            // implement IServerBackend (Services/IServerBackend.cs). Additive only;
+            // must all resolve (return) before the generic action dispatcher below,
+            // since several of these paths would otherwise match its pattern.
+            // ═══════════════════════════════════════════════════════════════════
+            var np = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            bool IsServerSub(string seg) => np.Length >= 4 && np[0] == "api" && np[1] == "servers" && np[3] == seg;
+            bool IsServerSub2(string seg, string seg2) => np.Length >= 5 && IsServerSub(seg) && np[4] == seg2;
+
+            // ── Config files ─────────────────────────────────────────────────────
+
+            // GET /api/servers/{id}/config-files
+            if (req.HttpMethod == "GET" && np.Length == 4 && IsServerSub("config-files"))
+            {
+                var files = GetConfigFiles != null ? await GetConfigFiles(np[2]) : [];
+                await SendJson(resp, files.Select(f => new { f.Name, f.Path }));
+                return;
+            }
+
+            // GET /api/servers/{id}/config-files/content?path=...
+            if (req.HttpMethod == "GET" && IsServerSub2("config-files", "content"))
+            {
+                var content = ReadConfigFile != null ? await ReadConfigFile(np[2], req.QueryString["path"] ?? "") : "";
+                await SendJson(resp, new { content });
+                return;
+            }
+
+            // POST /api/servers/{id}/config-files/save  body: { path, content }
+            if (req.HttpMethod == "POST" && IsServerSub2("config-files", "save"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var filePath  = doc.RootElement.TryGetProperty("path", out var pv) ? pv.GetString() ?? "" : "";
+                var content   = doc.RootElement.TryGetProperty("content", out var cv) ? cv.GetString() ?? "" : "";
+                var err = SaveConfigFile != null ? await SaveConfigFile(serverId, filePath, content) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "save_config_file", $"server={serverId} file={filePath}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // GET /api/servers/{id}/config-files/snapshots?path=...
+            if (req.HttpMethod == "GET" && IsServerSub2("config-files", "snapshots"))
+            {
+                var snaps = GetConfigSnapshots != null ? await GetConfigSnapshots(np[2], req.QueryString["path"] ?? "") : [];
+                await SendJson(resp, snaps.Select(s => new { s.FilePath, savedAt = s.SavedAt.ToString("yyyy-MM-dd HH:mm:ss") }));
+                return;
+            }
+
+            // POST /api/servers/{id}/config-files/restore-snapshot  body: { snapshotPath }
+            if (req.HttpMethod == "POST" && IsServerSub2("config-files", "restore-snapshot"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var snapPath  = doc.RootElement.TryGetProperty("snapshotPath", out var sv) ? sv.GetString() ?? "" : "";
+                var err = RestoreConfigSnapshot != null ? await RestoreConfigSnapshot(serverId, snapPath) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "restore_config_snapshot", $"server={serverId} snapshot={snapPath}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Config presets ───────────────────────────────────────────────────
+
+            // POST /api/servers/{id}/presets/apply  body: { configFile, name, values: {K:V} }
+            if (req.HttpMethod == "POST" && IsServerSub2("presets", "apply"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var configFile = doc.RootElement.TryGetProperty("configFile", out var cf) ? cf.GetString() ?? "" : "";
+                var name        = doc.RootElement.TryGetProperty("name", out var nv) ? nv.GetString() ?? "" : "";
+                var values = doc.RootElement.TryGetProperty("values", out var vv) && vv.ValueKind == JsonValueKind.Object
+                    ? vv.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? "")
+                    : new Dictionary<string, string>();
+                var backupPath = ApplyPreset != null ? await ApplyPreset(serverId, configFile, values) : null;
+                Users?.WriteAudit(authedUser?.Username ?? "api", "apply_preset", $"server={serverId} preset={name}");
+                await SendJson(resp, new { ok = backupPath != null, backupPath });
+                return;
+            }
+
+            // ── Mod frameworks ───────────────────────────────────────────────────
+            var modFrameworks = new[] { "oxide", "paper", "spigot", "purpur", "fabric", "forge", "vanilla" };
+
+            // POST /api/servers/{id}/mods/{framework}/install
+            if (req.HttpMethod == "POST" && np.Length == 6
+                && np[0] == "api" && np[1] == "servers" && np[3] == "mods" && np[5] == "install")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId  = np[2];
+                var framework = np[4];
+                if (Array.IndexOf(modFrameworks, framework) < 0)
+                {
+                    resp.StatusCode = 400;
+                    await SendJson(resp, new { error = "Unknown mod framework" });
+                    return;
+                }
+                var err = InstallModFramework != null ? await InstallModFramework(serverId, framework) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "install_mod_framework", $"server={serverId} framework={framework}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── SourceMod plugins ────────────────────────────────────────────────
+
+            // GET /api/servers/{id}/sourcemod/plugins
+            if (req.HttpMethod == "GET" && IsServerSub2("sourcemod", "plugins"))
+            {
+                var (active, disabled) = GetSourceModPlugins != null
+                    ? await GetSourceModPlugins(np[2])
+                    : (new List<SourceModPlugin>(), new List<SourceModPlugin>());
+                await SendJson(resp, new {
+                    active   = active.Select(p => new { p.FileName, p.Name, p.IsDisabled }),
+                    disabled = disabled.Select(p => new { p.FileName, p.Name, p.IsDisabled }),
+                });
+                return;
+            }
+
+            // POST /api/servers/{id}/sourcemod/toggle  body: { fileName, enabled }
+            if (req.HttpMethod == "POST" && IsServerSub2("sourcemod", "toggle"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var fileName  = doc.RootElement.TryGetProperty("fileName", out var fv) ? fv.GetString() ?? "" : "";
+                var enabled   = doc.RootElement.TryGetProperty("enabled", out var ev) && ev.GetBoolean();
+                if (SetSourceModPluginEnabled != null) await SetSourceModPluginEnabled(serverId, fileName, enabled);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "sourcemod_toggle", $"server={serverId} file={fileName} enabled={enabled}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Steam Workshop ───────────────────────────────────────────────────
+
+            // GET /api/servers/{id}/workshop/mods
+            if (req.HttpMethod == "GET" && IsServerSub2("workshop", "mods"))
+            {
+                var mods = GetWorkshopMods != null ? await GetWorkshopMods(np[2]) : [];
+                await SendJson(resp, mods.Select(m => new { m.ServerId, m.ModId, m.ModName, m.IsEnabled, m.LastUpdated }));
+                return;
+            }
+
+            // GET /api/servers/{id}/workshop/search?q=...
+            if (req.HttpMethod == "GET" && IsServerSub2("workshop", "search"))
+            {
+                var items = SearchWorkshop != null ? await SearchWorkshop(np[2], req.QueryString["q"] ?? "") : [];
+                await SendJson(resp, items.Select(i => new { i.PublishedFileId, i.Title, i.Description, i.PreviewUrl, i.IsInstalled, i.InstallPath }));
+                return;
+            }
+
+            // POST /api/servers/{id}/workshop/install  body: { itemId }
+            if (req.HttpMethod == "POST" && IsServerSub2("workshop", "install"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var itemId = doc.RootElement.TryGetProperty("itemId", out var iv) ? iv.GetUInt64() : 0UL;
+                var err = InstallWorkshopItem != null ? await InstallWorkshopItem(serverId, itemId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "workshop_install", $"server={serverId} item={itemId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/workshop/uninstall  body: { modId }
+            if (req.HttpMethod == "POST" && IsServerSub2("workshop", "uninstall"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var modId = doc.RootElement.TryGetProperty("modId", out var mv) ? mv.GetUInt64() : 0UL;
+                var err = UninstallWorkshopItem != null ? await UninstallWorkshopItem(serverId, modId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "workshop_uninstall", $"server={serverId} item={modId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/workshop/toggle  body: { modId, enabled }
+            if (req.HttpMethod == "POST" && IsServerSub2("workshop", "toggle"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var modId   = doc.RootElement.TryGetProperty("modId", out var mv) ? mv.GetUInt64() : 0UL;
+                var enabled = doc.RootElement.TryGetProperty("enabled", out var ev) && ev.GetBoolean();
+                var err = SetWorkshopModEnabled != null ? await SetWorkshopModEnabled(serverId, modId, enabled) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "workshop_toggle", $"server={serverId} item={modId} enabled={enabled}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // GET /api/servers/{id}/workshop/outdated
+            if (req.HttpMethod == "GET" && IsServerSub2("workshop", "outdated"))
+            {
+                var mods = CheckOutdatedMods != null ? await CheckOutdatedMods(np[2]) : [];
+                await SendJson(resp, mods.Select(m => new { m.ServerId, m.ModId, m.ModName, m.IsEnabled, m.LastUpdated }));
+                return;
+            }
+
+            // POST /api/servers/{id}/workshop/update  body: { modIds: [..] } (omitted/empty = update all)
+            if (req.HttpMethod == "POST" && IsServerSub2("workshop", "update"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                List<ulong>? modIds = doc.RootElement.TryGetProperty("modIds", out var mi) && mi.ValueKind == JsonValueKind.Array
+                    ? mi.EnumerateArray().Select(e => e.GetUInt64()).ToList()
+                    : null;
+                var err = UpdateWorkshopMods != null ? await UpdateWorkshopMods(serverId, modIds) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "workshop_update", $"server={serverId} count={(modIds?.Count.ToString() ?? "all")}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Cleanup ───────────────────────────────────────────────────────────
+
+            // POST /api/servers/{id}/cleanup-junk
+            if (req.HttpMethod == "POST" && np.Length == 4 && IsServerSub("cleanup-junk"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                var removed = CleanupJunkFiles != null ? await CleanupJunkFiles(serverId) : [];
+                Users?.WriteAudit(authedUser?.Username ?? "api", "cleanup_junk", $"server={serverId} removed={removed.Count}");
+                await SendJson(resp, new { ok = true, removed });
+                return;
+            }
+
+            // ── Templates (global, per-GameId — not per-server; see TemplateService) ────
+
+            // POST /api/servers/{id}/templates/save  body: { name, description, category, tags: [..] }
+            if (req.HttpMethod == "POST" && IsServerSub2("templates", "save"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var name        = doc.RootElement.TryGetProperty("name", out var nv) ? nv.GetString() ?? "" : "";
+                var description = doc.RootElement.TryGetProperty("description", out var dv) ? dv.GetString() ?? "" : "";
+                var category    = doc.RootElement.TryGetProperty("category", out var cv) ? cv.GetString() ?? "" : "";
+                var tags = doc.RootElement.TryGetProperty("tags", out var tv) && tv.ValueKind == JsonValueKind.Array
+                    ? tv.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
+                    : new List<string>();
+                if (SaveAsTemplate != null) await SaveAsTemplate(serverId, name, description, category, tags);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "save_template", $"server={serverId} name={name}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/templates/apply  body: { templateId }
+            if (req.HttpMethod == "POST" && IsServerSub2("templates", "apply"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var templateId = doc.RootElement.TryGetProperty("templateId", out var tv) ? tv.GetString() ?? "" : "";
+                var err = ApplyTemplate != null ? await ApplyTemplate(serverId, templateId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "apply_template", $"server={serverId} template={templateId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/templates/{id}/clone
+            if (req.HttpMethod == "POST" && np.Length == 4 && np[0] == "api" && np[1] == "templates" && np[3] == "clone")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var templateId = np[2];
+                var clone = CloneTemplate != null ? await CloneTemplate(templateId) : null;
+                if (clone == null) { resp.StatusCode = 404; await SendJson(resp, new { error = "Template not found" }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "clone_template", $"template={templateId}");
+                await SendJson(resp, clone);
+                return;
+            }
+
+            // POST /api/templates/{id}/delete
+            if (req.HttpMethod == "POST" && np.Length == 4 && np[0] == "api" && np[1] == "templates" && np[3] == "delete")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var templateId = np[2];
+                var err = DeleteTemplate != null ? await DeleteTemplate(templateId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "delete_template", $"template={templateId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Scheduled tasks — add/remove (list + run-now already existed above) ─────
+
+            // POST /api/scheduled-tasks  body: ScheduledTask JSON
+            if (req.HttpMethod == "POST" && path == "/api/scheduled-tasks")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                using var taskDoc = await ParseBodyAsync(req);
+                var task = JsonSerializer.Deserialize<ScheduledTask>(taskDoc.RootElement.GetRawText());
+                if (task == null) { resp.StatusCode = 400; await SendJson(resp, new { error = "Invalid task" }); return; }
+                if (AddScheduledTask != null) await AddScheduledTask(task);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "add_scheduled_task", $"server={task.ServerId} action={task.Action}");
+                await SendJson(resp, new { ok = true, id = task.Id });
+                return;
+            }
+
+            // POST /api/scheduled-tasks/{id}/delete
+            if (req.HttpMethod == "POST" && np.Length == 4
+                && np[0] == "api" && np[1] == "scheduled-tasks" && np[3] == "delete")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var taskId = np[2];
+                var err = RemoveScheduledTask != null ? await RemoveScheduledTask(taskId) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "remove_scheduled_task", $"id={taskId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Quick commands (persisted on GameServer) ─────────────────────────
+
+            // POST /api/servers/{id}/quick-commands  body: { label, command }
+            if (req.HttpMethod == "POST" && np.Length == 4 && IsServerSub("quick-commands"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var qc = JsonSerializer.Deserialize<QuickCommand>(doc.RootElement.GetRawText()) ?? new QuickCommand();
+                if (AddQuickCommand != null) await AddQuickCommand(serverId, qc);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "add_quick_command", $"server={serverId} label={qc.Label}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/quick-commands/remove  body: { label, command }
+            if (req.HttpMethod == "POST" && IsServerSub2("quick-commands", "remove"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var qc = JsonSerializer.Deserialize<QuickCommand>(doc.RootElement.GetRawText()) ?? new QuickCommand();
+                if (RemoveQuickCommand != null) await RemoveQuickCommand(serverId, qc);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "remove_quick_command", $"server={serverId} label={qc.Label}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Log-watch rules (persisted on GameServer) ────────────────────────
+
+            // POST /api/servers/{id}/log-watch-rules  body: LogWatchRule JSON
+            if (req.HttpMethod == "POST" && np.Length == 4 && IsServerSub("log-watch-rules"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var rule = JsonSerializer.Deserialize<Models.LogWatchRule>(doc.RootElement.GetRawText()) ?? new Models.LogWatchRule();
+                if (AddLogWatchRule != null) await AddLogWatchRule(serverId, rule);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "add_log_watch_rule", $"server={serverId} keyword={rule.Keyword}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/log-watch-rules/remove  body: LogWatchRule JSON
+            if (req.HttpMethod == "POST" && IsServerSub2("log-watch-rules", "remove"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var rule = JsonSerializer.Deserialize<Models.LogWatchRule>(doc.RootElement.GetRawText()) ?? new Models.LogWatchRule();
+                if (RemoveLogWatchRule != null) await RemoveLogWatchRule(serverId, rule);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "remove_log_watch_rule", $"server={serverId} keyword={rule.Keyword}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Lifecycle: kill (Start/Stop/Restart/Update/Backup/Cmd already existed as the
+            // generic action dispatcher below; Kill is a distinct force-kill IServerBackend needs
+            // that was never one of that dispatcher's cases) ────────────────────────────
+            // POST /api/servers/{id}/kill
+            if (req.HttpMethod == "POST" && np.Length == 4 && IsServerSub("kill"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                await (KillServer?.Invoke(serverId) ?? Task.CompletedTask);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "kill", $"server={serverId}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Online players ───────────────────────────────────────────────────
+
+            // GET /api/servers/{id}/players
+            if (req.HttpMethod == "GET" && np.Length == 4 && IsServerSub("players"))
+            {
+                var players = GetOnlinePlayers?.Invoke(np[2]) ?? [];
+                await SendJson(resp, players.Select(p => new { p.Name, p.SteamId, p.Ping, p.ConnectedSeconds, p.ConnectedText }));
+                return;
+            }
+
+            // ── FiveM/RedM build-channel choice (remote install pause placeholder) ──────
+
+            // GET /api/servers/{id}/install/build-channel
+            if (req.HttpMethod == "GET" && IsServerSub2("install", "build-channel"))
+            {
+                if (_pendingBuildChoices.TryGetValue(np[2], out var pending))
+                    await SendJson(resp, new { pending = true, recommended = pending.Recommended, latest = pending.Latest });
+                else
+                    await SendJson(resp, new { pending = false, recommended = (string?)null, latest = (string?)null });
+                return;
+            }
+
+            // POST /api/servers/{id}/install/build-channel  body: { useLatest }
+            if (req.HttpMethod == "POST" && IsServerSub2("install", "build-channel"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var useLatest = doc.RootElement.TryGetProperty("useLatest", out var ul) && ul.GetBoolean();
+                if (!_pendingBuildChoices.TryRemove(serverId, out var pending))
+                {
+                    resp.StatusCode = 404;
+                    await SendJson(resp, new { error = "No pending build-channel choice for this server" });
+                    return;
+                }
+                pending.Resolution.TrySetResult(useLatest);
+                Users?.WriteAudit(authedUser?.Username ?? "api", "submit_build_channel_choice", $"server={serverId} useLatest={useLatest}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Backups — detailed create/delete/cleanup ─────────────────────────
+
+            // POST /api/servers/{id}/backups/create
+            if (req.HttpMethod == "POST" && IsServerSub2("backups", "create"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                var entry = CreateBackupDetailed != null ? await CreateBackupDetailed(serverId) : null;
+                if (entry == null) { resp.StatusCode = 400; await SendJson(resp, new { error = "Backup failed" }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "backup", $"server={serverId}");
+                await SendJson(resp, new {
+                    entry.FilePath, entry.FileName, entry.ServerName,
+                    createdAt = entry.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    entry.SizeBytes, entry.IsIncremental, entry.BaseFilePath,
+                });
+                return;
+            }
+
+            // POST /api/servers/{id}/backups/delete  body: { fileName }
+            if (req.HttpMethod == "POST" && IsServerSub2("backups", "delete"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                using var doc = await ParseBodyAsync(req);
+                var fileName  = doc.RootElement.TryGetProperty("fileName", out var fv) ? fv.GetString() ?? "" : "";
+                var err = DeleteBackup != null ? await DeleteBackup(serverId, fileName) : "Not available";
+                if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
+                Users?.WriteAudit(authedUser?.Username ?? "api", "delete_backup", $"server={serverId} file={fileName}");
+                await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // POST /api/servers/{id}/backups/cleanup
+            if (req.HttpMethod == "POST" && IsServerSub2("backups", "cleanup"))
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                var serverId = np[2];
+                var deleted = CleanupBackups != null ? await CleanupBackups(serverId) : [];
+                Users?.WriteAudit(authedUser?.Username ?? "api", "cleanup_backups", $"server={serverId} count={deleted.Count}");
+                await SendJson(resp, deleted.Select(d => new {
+                    d.FilePath, d.FileName, d.ServerName,
+                    createdAt = d.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    d.SizeBytes, d.IsIncremental, d.BaseFilePath,
+                }));
+                return;
+            }
+
             // POST /api/servers/{id}/{action}
             var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (req.HttpMethod == "POST" && parts.Length >= 3 && parts[0] == "api" && parts[1] == "servers")
@@ -506,6 +1088,15 @@ public class WebApiService : IDisposable
         resp.ContentLength64 = bytes.Length;
         await resp.OutputStream.WriteAsync(bytes);
         resp.Close();
+    }
+
+    /// <summary>Reads and parses a request body as JSON (empty body → "{}"), same pattern used
+    /// inline throughout HandleRequest — factored out for the newer, body-heavier routes.</summary>
+    private static async Task<JsonDocument> ParseBodyAsync(HttpListenerRequest req)
+    {
+        using var reader = new System.IO.StreamReader(req.InputStream);
+        var body = await reader.ReadToEndAsync();
+        return JsonDocument.Parse(body.Length > 0 ? body : "{}");
     }
 
     private static byte[]? _logoBytes;

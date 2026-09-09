@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>WGS.ServiceHost</RootNamespace>
+    <AssemblyName>WGS.ServiceHost</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reuses the same Services/Models/Games code as the WPF app (WGS.csproj) —
+         no duplication. This project never references any System.Windows.* type. -->
+    <ProjectReference Include="..\WGS\WGS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UseWindowsService() below detects whether the process was actually started by the
+         Service Control Manager; run directly from a console it just behaves like a normal
+         console app, so this doesn't change anything about running it interactively for testing. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.9" />
+  </ItemGroup>
+</Project>

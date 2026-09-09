@@ -54,6 +54,22 @@ public class StringToVisibilityConverter : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
 }
 
+public class BoolToStarConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c) => v is true ? "★" : "☆";
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
+/// <summary>Visible only for plugin Description strings flagged with the "⚠" caveat-prefix
+/// convention (e.g. FS25's licence requirement, Trackmania's Nadeo account) — not every game's
+/// Description, which is normally just a plain one-line tagline.</summary>
+public class GameCaveatToVisibilityConverter : IValueConverter
+{
+    public object Convert(object v, Type t, object p, CultureInfo c)
+        => v is string s && s.StartsWith('⚠') ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 public class StringToColorBrushConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)

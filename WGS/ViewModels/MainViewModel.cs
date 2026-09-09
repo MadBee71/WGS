@@ -10,6 +10,7 @@ namespace WGS.ViewModels;
 
 public partial class MainViewModel : BaseViewModel
 {
+    private readonly IServerBackend            _backend;
     private readonly ConfigService             _config;
     private readonly ServerManagerService      _manager;
     private readonly SteamCmdService           _steamCmd;
@@ -156,7 +157,7 @@ public partial class MainViewModel : BaseViewModel
     public int RunningCount  => Servers.Count(s => s.Server.Status == ServerStatus.Running);
     public int StoppedCount  => Servers.Count(s => s.Server.Status == ServerStatus.Stopped);
 
-    public MainViewModel(ConfigService config, ServerManagerService manager, SteamCmdService steamCmd,
+    public MainViewModel(IServerBackend backend, ConfigService config, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         TrayService tray, SettingsViewModel settings, SystemMetricsService metrics,
         ModManagerService mods, SourceModService sourceMod, DiscordBotService bot,
@@ -172,6 +173,7 @@ public partial class MainViewModel : BaseViewModel
         _groupBans = groupBans;
         _hygiene   = hygiene;
         _presets   = presets;
+        _backend         = backend;
         _config          = config;
         _sortMode        = config.SortMode; // restore last-used sort order without triggering a save
         _manager         = manager;
@@ -710,7 +712,7 @@ public partial class MainViewModel : BaseViewModel
 
     private ServerViewModel MakeVm(GameServer srv)
     {
-        var vm = new ServerViewModel(srv, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
+        var vm = new ServerViewModel(srv, _backend, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
                _sourceMod, _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler,
                _network, _groupBans, _hygiene, _presets);
         vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));

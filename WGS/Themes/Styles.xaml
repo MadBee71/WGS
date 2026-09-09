@@ -9,6 +9,8 @@
     <conv:NullToVisibilityConverter        x:Key="NullToVis"/>
     <conv:NullToInverseVisibilityConverter x:Key="NullToInvVis"/>
     <conv:StringToVisibilityConverter      x:Key="StringToVis"/>
+    <conv:GameCaveatToVisibilityConverter  x:Key="GameCaveatToVis"/>
+    <conv:BoolToStarConverter              x:Key="BoolToStar"/>
     <conv:StringToColorBrushConverter      x:Key="StrToColor"/>
     <conv:ZeroToVisibilityConverter        x:Key="ZeroToVis"/>
     <conv:ZeroToInverseVisibilityConverter x:Key="ZeroToInvVis"/>

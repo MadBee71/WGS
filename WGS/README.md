@@ -6,7 +6,7 @@
   ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
   ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
   ![License](https://img.shields.io/badge/license-MIT-green)
-  ![Version](https://img.shields.io/badge/version-1.5.1-blue)
+  ![Version](https://img.shields.io/badge/version-1.5.2-blue)
   ![Games](https://img.shields.io/badge/supported_games-143+-orange)
   ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 </div>

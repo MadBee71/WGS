@@ -88,8 +88,15 @@ public static class A2SQueryService
 
             pos += 8; // skip score (int32) + duration (float)
 
-            if (!string.IsNullOrWhiteSpace(name))
-                players.Add(new OnlinePlayer { Name = name });
+            // Valheim's dedicated server always sends an empty name in this response (confirmed:
+            // github.com/Yepoleb/python-a2s/issues/28) — the entry itself is still real, just
+            // nameless. Dropping blank-named entries silently returned an empty list for every
+            // Valheim server regardless of how many players were actually connected, which fed
+            // straight into WakeOnDemandService's idle-shutdown check (GameServer.CurrentPlayers)
+            // and shut down populated servers as if they were empty (reported by SkOODaT, Discord,
+            // 9.9.2026). Keep every entry the protocol reports — the count is what matters for
+            // idle-shutdown; a placeholder name just keeps the Players tab from showing a blank row.
+            players.Add(new OnlinePlayer { Name = string.IsNullOrWhiteSpace(name) ? "?" : name });
         }
 
         return players;

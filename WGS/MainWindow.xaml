@@ -407,6 +407,14 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
 
+                        <!-- Shows the selected game's own notes/caveats (e.g. licence requirements,
+                             manual-install-only games) BEFORE the server is created, not just buried
+                             in the detail view afterward — a user picking a game with a caveat like
+                             "requires a separate licence" needs to see that up front. -->
+                        <TextBlock Text="{Binding DataContext.NewServerGame.Description, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Visibility="{Binding DataContext.NewServerGame.Description, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource GameCaveatToVis}}"
+                                   FontSize="11" Foreground="#D29922" TextWrapping="Wrap" Margin="0,-8,0,16"/>
+
                         <TextBlock Text="{Binding DataContext.Loc.DialogName, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding DataContext.NewServerName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"

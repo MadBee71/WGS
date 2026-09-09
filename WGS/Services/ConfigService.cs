@@ -11,6 +11,63 @@ public class ConfigService
         Path.GetDirectoryName(Environment.ProcessPath ?? AppContext.BaseDirectory)
         ?? AppContext.BaseDirectory;
 
+    /// <summary>WGS's data folder always lives next to its own exe — one rule, no per-user
+    /// %AppData% and no separate %ProgramData% case for the service host. This works
+    /// identically whether the exe is run interactively or as a background Windows Service
+    /// (a service can read/write next to its own executable regardless of which account runs
+    /// it), and it's what makes moving/backing up a whole WGS install a matter of copying one
+    /// folder. Property kept named AppDataPath for now — many existing call sites read it —
+    /// but it no longer means "the AppData folder."</summary>
+    static readonly string DataDir = Path.Combine(ExeDir, "WGS_Data");
+
+    /// <summary>Set to the old %AppData%\WGS path only when a migration actually ran this
+    /// startup — App.xaml.cs uses this to decide whether to ask the user, once, whether to
+    /// delete the now-unused old copy or keep it. Null on every other run (already migrated,
+    /// or a fresh install with nothing to migrate).</summary>
+    public string? MigratedFromPath { get; private set; }
+
+    /// <summary>
+    /// One-time migration for installs that predate this change: if the old per-user
+    /// %AppData%\WGS folder has data and the new next-to-exe folder doesn't exist yet, copy it
+    /// over so nothing "disappears" on first launch of the updated version. Copies rather than
+    /// moves — the old folder is left alone here regardless (harmless leftover); whether to
+    /// delete it is the WGS end user's call, asked once via a dialog when MigratedFromPath is set.
+    ///
+    /// Copies into a staging folder first and only renames it to the real DataDir on full
+    /// success. This matters because Directory.Exists(DataDir) is the ONLY signal used to decide
+    /// "already migrated" — if the copy loop threw partway with files landing directly in DataDir
+    /// (locked file, permission denied, disk full, a long path), that partial folder would exist
+    /// on every future launch too, permanently skipping migration with the rest of the old data
+    /// never copied and no dialog ever shown (caught in code review, 9.9.2026).
+    /// </summary>
+    private void MigrateFromAppDataIfNeeded()
+    {
+        if (Directory.Exists(DataDir)) return; // already migrated (or a fresh install)
+        var oldPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WGS");
+        if (!Directory.Exists(oldPath)) return; // fresh install, nothing to migrate
+
+        var stagingDir = DataDir + ".migrating";
+        try
+        {
+            if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, recursive: true);
+            foreach (var file in Directory.EnumerateFiles(oldPath, "*", SearchOption.AllDirectories))
+            {
+                var rel  = Path.GetRelativePath(oldPath, file);
+                var dest = Path.Combine(stagingDir, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                File.Copy(file, dest, overwrite: true);
+            }
+            Directory.Move(stagingDir, DataDir); // atomic rename on the same volume
+            MigratedFromPath = oldPath;
+        }
+        catch
+        {
+            // Best-effort — clean up the incomplete staging copy so DataDir stays absent and the
+            // next launch retries from scratch instead of silently running on partial data.
+            try { if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, recursive: true); } catch { }
+        }
+    }
+
     public string AppDataPath { get; }
     public string ServersFile { get; }
     public string SettingsFile { get; }
@@ -41,12 +98,25 @@ public class ConfigService
     public int    HealthCheckFailThreshold { get; set; } = 3;   // consecutive failures before action
     public HealthCheckAction HealthCheckAction { get; set; } = HealthCheckAction.Notify;
 
+    /// <summary>When true, ServerViewModel/MainViewModel talk to a background WGS.ServiceHost
+    /// over HTTP (RemoteServerBackend) instead of managing servers in-process (LocalServerBackend)
+    /// — "service mode", the client half of issue #13 (run regardless of logged-in user). Requires
+    /// an app restart to take effect (IServerBackend is a DI singleton chosen at startup).</summary>
+    public bool   ServiceModeEnabled { get; set; } = false;
+    /// <summary>Base URL of the WGS.ServiceHost this client talks to in service mode. Defaults to
+    /// localhost — the common case where the service and this client run on the same machine.</summary>
+    public string ServiceModeUrl   { get; set; } = "http://localhost:8766";
+    /// <summary>Auth token for the WGS.ServiceHost's WebApiService — must match the token that
+    /// service was started with.</summary>
+    public string ServiceModeToken { get; set; } = string.Empty;
+
     /// <summary>True when the Web API must be started — either by user choice or slave mode.</summary>
     public bool WebApiRequired => WebApiEnabled || SlaveMode;
 
     public ConfigService()
     {
-        AppDataPath        = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WGS");
+        MigrateFromAppDataIfNeeded();
+        AppDataPath        = DataDir;
         ServersFile        = Path.Combine(AppDataPath, "servers.json");
         SettingsFile       = Path.Combine(AppDataPath, "settings.json");
         DefaultInstallRoot = Path.Combine(ExeDir, "servers");
@@ -79,7 +149,10 @@ public class ConfigService
         bool   OptimizeRamBeforeStart = false,
         bool   HealthCheckEnabled = true,
         int    HealthCheckFailThreshold = 3,
-        HealthCheckAction HealthCheckAction = HealthCheckAction.Notify);
+        HealthCheckAction HealthCheckAction = HealthCheckAction.Notify,
+        bool   ServiceModeEnabled = false,
+        string ServiceModeUrl = "http://localhost:8766",
+        string ServiceModeToken = "");
 
     private void LoadSettings()
     {
@@ -114,6 +187,9 @@ public class ConfigService
             HealthCheckEnabled       = d.HealthCheckEnabled;
             HealthCheckFailThreshold = d.HealthCheckFailThreshold > 0 ? d.HealthCheckFailThreshold : 3;
             HealthCheckAction        = d.HealthCheckAction;
+            ServiceModeEnabled = d.ServiceModeEnabled;
+            ServiceModeUrl     = string.IsNullOrEmpty(d.ServiceModeUrl) ? "http://localhost:8766" : d.ServiceModeUrl;
+            ServiceModeToken   = d.ServiceModeToken;
         }
         catch { }
     }
@@ -127,7 +203,8 @@ public class ConfigService
             WebApiEnabled, WebApiPort, WebApiToken, SlaveMode, SlaveName, CrashPredictionDiscord,
             EnableUPnP, SortMode, CrashPredictionLowMemOnly, CrashPredictionLowMemPercent,
             CrashPredictionHighCpuOnly, CrashPredictionHighCpuPercent, HasSeenOnboarding,
-            HasSeenNewGamesNotice, OptimizeRamBeforeStart, HealthCheckEnabled, HealthCheckFailThreshold, HealthCheckAction);
+            HasSeenNewGamesNotice, OptimizeRamBeforeStart, HealthCheckEnabled, HealthCheckFailThreshold, HealthCheckAction,
+            ServiceModeEnabled, ServiceModeUrl, ServiceModeToken);
         WriteAtomic(SettingsFile, JsonConvert.SerializeObject(d, Formatting.Indented));
     }
 
@@ -151,6 +228,15 @@ public class ConfigService
 
     public void SaveServers(IEnumerable<GameServer> servers)
         => WriteAtomic(ServersFile, JsonConvert.SerializeObject(servers, Formatting.Indented));
+
+    /// <summary>Deletes the old %AppData%\WGS folder after a successful migration, if the user
+    /// chose to via the one-time migration dialog. No-op if there was nothing to migrate.</summary>
+    public void DeleteMigratedAppDataFolder()
+    {
+        if (MigratedFromPath == null) return;
+        try { Directory.Delete(MigratedFromPath, recursive: true); } catch { }
+        MigratedFromPath = null;
+    }
 
     // Write to a temp file on the same volume then atomically replace — a BSOD mid-write
     // leaves the old file intact instead of producing an empty or corrupt file.

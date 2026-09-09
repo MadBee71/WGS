@@ -683,6 +683,55 @@
                 </StackPanel>
             </Border>
 
+            <!-- 9b. Service mode — talk to a background WGS.ServiceHost instead of this exe
+                 managing servers itself (issue #13: keep servers running/controllable without
+                 being logged into Windows). Experimental — requires WGS.ServiceHost to be
+                 installed and running separately; this is just the client-side switch. -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Service mode (experimental)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                        Instead of this window managing game servers itself, talk to a WGS.ServiceHost
+                        running in the background — servers keep running even if you log out of Windows.
+                        WGS.ServiceHost must already be installed and running; this only points this
+                        window at it. Requires a restart of WGS to take effect.
+                    </TextBlock>
+
+                    <CheckBox IsChecked="{Binding ServiceModeEnabled}" Style="{StaticResource DarkCheckBox}"
+                              Content="Use service mode" Margin="0,0,0,12"/>
+
+                    <Grid Margin="0,0,0,12"
+                          Visibility="{Binding ServiceModeEnabled, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Service URL" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding ServiceModeUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Access token" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" FontFamily="Consolas"
+                                     Text="{Binding ServiceModeToken, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Background="#2D1F0A" CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                            BorderBrush="#F0A500" BorderThickness="1"
+                            Visibility="{Binding ServiceModeRestartRequired, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="⚠ Restart WGS for this change to take effect." FontSize="12"
+                                   Foreground="#F0A500" TextWrapping="Wrap"/>
+                    </Border>
+
+                    <Button Content="Save &amp; Apply" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding SaveSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+
             <!-- 10. Remote Machines — Master Setup -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>

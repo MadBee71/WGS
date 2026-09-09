@@ -13,6 +13,12 @@ namespace WGS.ViewModels;
 
 public partial class ServerViewModel : BaseViewModel, IDisposable
 {
+    // Lifecycle/console/backups route through this — LocalServerBackend (in-process, today's
+    // behavior) or, in service mode, RemoteServerBackend (HTTP to the background service). See
+    // Services/IServerBackend.cs. Everything not yet covered by that interface (mods, workshop,
+    // templates, config editor, scheduled tasks, sourcemod) still calls its service directly
+    // below, unaffected in all-in-one mode but not yet available when running in service mode.
+    private readonly IServerBackend _backend;
     private readonly ServerManagerService  _manager;
     private readonly SteamCmdService       _steamCmd;
     private readonly BackupService         _backup;
@@ -220,21 +226,22 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _sourceModStatusText = string.Empty;
 
     [RelayCommand]
-    private void RefreshSourceMod()
+    private async Task RefreshSourceMod()
     {
-        SourceModActive   = _sourceMod.GetActivePlugins(Server.InstallPath);
-        SourceModDisabled = _sourceMod.GetDisabledPlugins(Server.InstallPath);
+        var (active, disabled) = await _backend.GetSourceModPluginsAsync(Server);
+        SourceModActive   = active;
+        SourceModDisabled = disabled;
         SourceModStatusText = $"{SourceModActive.Count} active · {SourceModDisabled.Count} disabled";
     }
 
     [RelayCommand]
-    private void DisableSourceModPlugin(SourceModPlugin? plugin)
+    private async Task DisableSourceModPlugin(SourceModPlugin? plugin)
     {
         if (plugin == null) return;
         try
         {
-            _sourceMod.DisablePlugin(Server.InstallPath, plugin.FileName);
-            RefreshSourceMod();
+            await _backend.SetSourceModPluginEnabledAsync(Server, plugin.FileName, enabled: false);
+            await RefreshSourceMod();
         }
         catch (Exception ex)
         {
@@ -243,13 +250,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void EnableSourceModPlugin(SourceModPlugin? plugin)
+    private async Task EnableSourceModPlugin(SourceModPlugin? plugin)
     {
         if (plugin == null) return;
         try
         {
-            _sourceMod.EnablePlugin(Server.InstallPath, plugin.FileName);
-            RefreshSourceMod();
+            await _backend.SetSourceModPluginEnabledAsync(Server, plugin.FileName, enabled: true);
+            await RefreshSourceMod();
         }
         catch (Exception ex)
         {
@@ -431,7 +438,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
     }
 
-    public ServerViewModel(GameServer server, ServerManagerService manager, SteamCmdService steamCmd,
+    public ServerViewModel(GameServer server, IServerBackend backend, ServerManagerService manager, SteamCmdService steamCmd,
         BackupService backup, NotificationService notifications, PerformanceMonitorService perfMonitor,
         ConfigService config, ModManagerService mods,
         SourceModService sourceMod,
@@ -443,6 +450,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
+        _backend       = backend;
         _manager       = manager;
         _steamCmd      = steamCmd;
         _backup        = backup;
@@ -528,34 +536,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [RelayCommand]
     private async Task StartAsync()
     {
+        // Mirrors the condition LocalServerBackend.StartAsync uses to decide whether it runs an
+        // update before actually starting — IsInstalling drives the Install/Update button's
+        // enabled state and progress overlay (ServerDetailView.xaml), so it needs to be set here
+        // too, not just inside InstallAsync(), otherwise a Start that triggers an auto-update
+        // leaves the button clickable and a second concurrent SteamCMD run becomes possible.
+        var willAutoUpdate = (Server.UpdateOnStart || Server.AutoUpdate) && Plugin?.SteamAppId > 0;
+        if (willAutoUpdate) IsInstalling = true;
         try
         {
-            if ((Server.UpdateOnStart || Server.AutoUpdate) && Plugin?.SteamAppId > 0)
-                await InstallAsync();
-
-            if (Server.BackupOnStart)
-            {
-                try
-                {
-                    AppendLog("[WGS] Creating backup before start...", ConsoleMessageType.System);
-                    await _backup.CreateBackupAsync(Server);
-                    AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
-                    RefreshBackups();
-                }
-                catch (Exception ex) { AppendLog($"[WGS] Backup before start failed: {ex.Message}", ConsoleMessageType.Warning); }
-            }
-
-            // Inject active Workshop mod IDs so plugins can build correct launch args
-            if (Plugin is Games.IWorkshopPlugin && HasWorkshop)
-            {
-                var ids = _workshopDb.GetModsForServer(Server.Id)
-                    .Where(m => m.IsEnabled)
-                    .Select(m => $"@{m.ModId}")
-                    .ToList();
-                Server.GameSpecificSettings["__wgsWorkshopMods"] = string.Join(";", ids);
-            }
-
-            await _manager.StartAsync(Server);
+            await _backend.StartAsync(Server, new Progress<string>(msg => AppendLog(msg, ConsoleMessageType.System)));
+            RefreshBackups();
             // StartPerfMonitoring() and StartUpdateTimer() are called from OnStatusChanged(Running)
         }
         catch (FileNotFoundException ex)
@@ -571,6 +562,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             AppendLog("[ERR] Unexpected error: " + ex.Message, ConsoleMessageType.Error);
         }
+        finally
+        {
+            if (willAutoUpdate) IsInstalling = false;
+        }
     }
 
     [RelayCommand]
@@ -579,20 +574,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         try
         {
             StopUpdateTimer();
-            await _manager.StopAsync(Server);
+            await _backend.StopAsync(Server, new Progress<string>(msg => AppendLog(msg, ConsoleMessageType.System)));
+            RefreshBackups();
             // StopPerfMonitoring() called from OnStatusChanged(Stopped)
-
-            if (Server.BackupOnShutdown)
-            {
-                try
-                {
-                    AppendLog("[WGS] Creating backup after shutdown...", ConsoleMessageType.System);
-                    await _backup.CreateBackupAsync(Server);
-                    AppendLog("[WGS] Backup created.", ConsoleMessageType.System);
-                    RefreshBackups();
-                }
-                catch (Exception ex) { AppendLog($"[WGS] Backup after shutdown failed: {ex.Message}", ConsoleMessageType.Warning); }
-            }
         }
         catch (Exception ex) { AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error); }
     }
@@ -606,7 +590,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (confirm != WpfMsgBoxResult.Yes) return;
         try
         {
-            await _manager.KillAsync(Server);
+            await _backend.KillAsync(Server);
             AppendLog("[WGS] Process killed.", ConsoleMessageType.System);
             StopPerfMonitoring();
         }
@@ -631,205 +615,40 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task InstallAsync()
     {
         if (Plugin == null) return;
-
-        // Updating server files while the game process still has them open can corrupt both the
-        // update itself and the pre-update backup taken below — stop the server first (for every
-        // install/update path: SteamCMD, manual-download, and custom-installer games alike) and
-        // bring it back up afterward, rather than let a user corrupt their own server by clicking
-        // Install/Update while it's live.
-        var wasRunning = IsRunning;
-        if (wasRunning)
-        {
-            AppendLog("[WGS] Server is running — stopping before update...", ConsoleMessageType.System);
-            await _manager.StopAsync(Server);
-            RefreshStatus();
-        }
-
+        IsInstalling = true;
         try
         {
-            if (Plugin.SteamAppId <= 0)
+            // Backend handles the full flow (stop-if-running/SteamCMD-or-manual-download/plugin
+            // PostInstall-PostUpdate/restart-if-was-running) — see LocalServerBackend.InstallAsync.
+            // The log callback also re-raises RefreshStatus() on every line, since Server.Status
+            // is mutated deep inside that call (same GameServer instance, no INPC on the model
+            // itself) and the status badge needs to track it live, not just once at the end.
+            await _backend.InstallAsync(Server, new Progress<string>(msg =>
             {
-                await InstallFromManualDownloadAsync();
-                return;
-            }
-
-            await InstallViaSteamCmdAsync();
-        }
-        finally
-        {
-            if (wasRunning)
-            {
-                AppendLog("[WGS] Update finished — restarting server...", ConsoleMessageType.System);
-                try { await _manager.StartAsync(Server); }
-                catch (Exception ex) { AppendLog($"[ERR] Failed to restart server after update: {ex.Message}", ConsoleMessageType.Error); }
+                AppendLog(msg, ConsoleMessageType.System);
                 RefreshStatus();
-            }
-        }
-    }
-
-    private async Task InstallViaSteamCmdAsync()
-    {
-        if (Plugin == null) return;
-        string? login = null, password = null;
-        if (Plugin.RequiresSteamLogin)
-        {
-            if (string.IsNullOrWhiteSpace(_config.SteamLogin) || string.IsNullOrWhiteSpace(_config.SteamPassword))
-            {
-                AppendLog("[WGS] ⚠ This game requires Steam login. Enter Steam username and password in the Settings page.", ConsoleMessageType.Warning);
-                return;
-            }
-            login    = _config.SteamLogin;
-            password = _config.SteamPassword;
-        }
-
-        IsInstalling      = true;
-        Server.Status     = ServerStatus.Installing;
-        RefreshStatus();
-        AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
-
-        // Auto-backup before update (only when there is something to back up)
-        if (Server.BackupEnabled && Server.Status != ServerStatus.NotInstalled)
-        {
-            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); RefreshBackups(); }
-            catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
-        }
-
-        try
-        {
-            var branch = Server.GameSpecificSettings.TryGetValue("steamBranch", out var b) && !string.IsNullOrWhiteSpace(b) ? b : Plugin.SteamBranch;
-            await _steamCmd.InstallOrUpdateAsync(Server.Id, Plugin.SteamAppId, Server.InstallPath, login, password, branch);
-            var isUpdate = Server.Status != ServerStatus.NotInstalled;
-            if (isUpdate)
-                await Plugin.PostUpdateAsync(Server, msg => AppendLog(msg, ConsoleMessageType.System));
-            else
-                await Plugin.PostInstallAsync(Server, msg => AppendLog(msg, ConsoleMessageType.System));
-            Server.Status = ServerStatus.Stopped;
+            }));
             OnPropertyChanged(nameof(InstalledVersionText));
-            AppendLog("[WGS] " + Loc.InstallDone, ConsoleMessageType.System);
-            await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
         }
         catch (FileNotFoundException ex)
         {
             AppendLog("[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.", ConsoleMessageType.Error);
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
-            Server.Status = ServerStatus.Error;
         }
         catch (InvalidOperationException ex)
         {
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
-            Server.Status = ServerStatus.Error;
         }
         catch (Exception ex)
         {
             AppendLog("[ERR] Unexpected error: " + ex.Message, ConsoleMessageType.Error);
-            Server.Status = ServerStatus.Error;
         }
-        finally { IsInstalling = false; RefreshStatus(); }
-    }
-
-    private static readonly HttpClient _manualDownloadHttp = new();
-
-    /// <summary>For SteamAppId == 0 games — download a direct zip build (FiveM/RedM's FXServer)
-    /// instead of going through SteamCMD, or fall back to a manual-install message if the plugin
-    /// doesn't know how to fetch one itself.</summary>
-    private async Task InstallFromManualDownloadAsync()
-    {
-        if (Plugin == null) return;
-
-        IsInstalling  = true;
-        Server.Status = ServerStatus.Installing;
-        RefreshStatus();
-        try
+        finally
         {
-            Directory.CreateDirectory(Server.InstallPath);
-
-            if (Plugin.HasHeavyInstall && _manager.RunningCount > 0)
-                AppendLog("[WGS] ⚠ Warning: other servers are running. This install compiles code locally and may cause lag — consider stopping them first.", ConsoleMessageType.Warning);
-
-            var handled = await Plugin.TryCustomInstallAsync(Server, msg => AppendLog(msg, ConsoleMessageType.System));
-            if (handled)
-            {
-                Server.Status = ServerStatus.Stopped;
-                WpfApplication.Current?.Dispatcher?.BeginInvoke(() => Log.Clear());
-                AppendLog($"[WGS] ✅ {Loc.InstallDone}", ConsoleMessageType.System);
-                await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", Plugin.GameName, "#3FB950");
-                return;
-            }
+            IsInstalling = false;
+            RefreshStatus();
+            RefreshBackups();
         }
-        catch (Exception ex)
-        {
-            AppendLog("[ERR] Install failed: " + ex.Message, ConsoleMessageType.Error);
-            Server.Status = ServerStatus.Error;
-            return;
-        }
-        finally { IsInstalling = false; RefreshStatus(); }
-
-        if (Plugin.SupportsVersionCheck)
-        {
-            var (recommended, latest) = await Plugin.GetAvailableBuildsAsync(Server);
-            var dlg = new Views.BuildChannelDialog(Plugin.GameName, recommended, latest, () => Plugin.GetAvailableBuildsAsync(Server))
-            { Owner = System.Windows.Application.Current?.MainWindow };
-            dlg.ShowDialog();
-            if (dlg.Result == Views.BuildChannelResult.Cancel)
-            {
-                Server.Status = ServerStatus.Stopped;
-                RefreshStatus();
-                return;
-            }
-            Server.GameSpecificSettings["buildChannel"] = dlg.Result == Views.BuildChannelResult.Latest ? "latest" : "recommended";
-        }
-
-        var info = await Plugin.GetManualDownloadInfoAsync(Server);
-        if (info == null)
-        {
-            AppendLog($"[WGS] ⚠ {Plugin.GameName} isn't distributed via Steam — install it manually, then point this server's Install Path at it. " +
-                      $"{Plugin.Description}", ConsoleMessageType.Warning);
-            return;
-        }
-        var (build, url) = info.Value;
-
-        IsInstalling  = true;
-        Server.Status = ServerStatus.Installing;
-        RefreshStatus();
-        AppendLog($"[WGS] {Loc.InstallingText} {Plugin.GameName}...", ConsoleMessageType.System);
-
-        if (Server.BackupEnabled && Server.Status != ServerStatus.NotInstalled)
-        {
-            try { await _backup.CreateBackupAsync(Server); AppendLog("[Backup] Auto-backup created before update.", ConsoleMessageType.System); RefreshBackups(); }
-            catch (Exception ex) { AppendLog($"[Backup] Pre-update backup failed: {ex.Message}", ConsoleMessageType.Warning); }
-        }
-
-        try
-        {
-            Directory.CreateDirectory(Server.InstallPath);
-            var zipPath = Path.Combine(Server.InstallPath, "_wgs_download.zip");
-
-            AppendLog($"[WGS] Downloading {url}...", ConsoleMessageType.System);
-            var bytes = await _manualDownloadHttp.GetByteArrayAsync(url);
-            await File.WriteAllBytesAsync(zipPath, bytes);
-
-            AppendLog("[WGS] Extracting...", ConsoleMessageType.System);
-            // Extract relative to the Executable's own subfolder (e.g. RedM's "server\FXServer.exe")
-            // so plugins that nest the binary in a subfolder don't end up with it one level too deep.
-            var execDir   = Path.GetDirectoryName(Plugin.Executable);
-            var targetDir = string.IsNullOrEmpty(execDir) ? Server.InstallPath : Path.Combine(Server.InstallPath, execDir);
-            Directory.CreateDirectory(targetDir);
-            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
-            File.Delete(zipPath);
-
-            Server.GameSpecificSettings["installedBuild"] = build;
-            OnPropertyChanged(nameof(InstalledVersionText));
-            UpdateCheckResult = string.Empty;
-            Server.Status = ServerStatus.Stopped;
-            AppendLog($"[WGS] {Loc.InstallDone} (build {build})", ConsoleMessageType.System);
-            await _notifications.NotifyAsync($"✅ {Server.DisplayName} {Loc.InstallDone}", $"{Plugin.GameName} — build {build}", "#3FB950");
-        }
-        catch (Exception ex)
-        {
-            AppendLog("[ERR] Download/extract failed: " + ex.Message, ConsoleMessageType.Error);
-            Server.Status = ServerStatus.Error;
-        }
-        finally { IsInstalling = false; RefreshStatus(); }
     }
 
     [RelayCommand]
@@ -877,7 +696,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         else
         {
-            _manager.SendCommand(Server.Id, cmd);
+            await _backend.SendConsoleCommandAsync(Server.Id, cmd);
         }
     }
 
@@ -903,22 +722,22 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public ObservableCollection<QuickCommand> QuickCommands { get; } = [];
 
     [RelayCommand]
-    private void AddQuickCommand()
+    private async Task AddQuickCommand()
     {
         if (string.IsNullOrWhiteSpace(NewQuickCommandLabel) || string.IsNullOrWhiteSpace(NewQuickCommandCommand)) return;
         var qc = new QuickCommand { Label = NewQuickCommandLabel, Command = NewQuickCommandCommand };
         QuickCommands.Add(qc);
-        Server.QuickCommands.Add(qc);
+        await _backend.AddQuickCommandAsync(Server, qc);
         NewQuickCommandLabel   = string.Empty;
         NewQuickCommandCommand = string.Empty;
     }
 
     [RelayCommand]
-    private void RemoveQuickCommand(QuickCommand? qc)
+    private async Task RemoveQuickCommand(QuickCommand? qc)
     {
         if (qc == null) return;
         QuickCommands.Remove(qc);
-        Server.QuickCommands.Remove(qc);
+        await _backend.RemoveQuickCommandAsync(Server, qc);
     }
 
     partial void OnConsoleFilterChanged(string value) => OnPropertyChanged(nameof(FilteredLog));
@@ -934,7 +753,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public ObservableCollection<Models.LogWatchRule> LogWatchRules { get; } = [];
 
     [RelayCommand]
-    private void AddLogWatchRule()
+    private async Task AddLogWatchRule()
     {
         if (string.IsNullOrWhiteSpace(NewWatchKeyword)) return;
         var rule = new Models.LogWatchRule
@@ -946,18 +765,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             Enabled     = true
         };
         LogWatchRules.Add(rule);
-        Server.LogWatchRules.Add(rule);
+        await _backend.AddLogWatchRuleAsync(Server, rule);
         NewWatchKeyword  = string.Empty;
         NewWatchRcon     = string.Empty;
         NewWatchCooldown = 5;
     }
 
     [RelayCommand]
-    private void RemoveLogWatchRule(Models.LogWatchRule? rule)
+    private async Task RemoveLogWatchRule(Models.LogWatchRule? rule)
     {
         if (rule == null) return;
         LogWatchRules.Remove(rule);
-        Server.LogWatchRules.Remove(rule);
+        await _backend.RemoveLogWatchRuleAsync(Server, rule);
     }
 
     // ── RCON ─────────────────────────────────────────────────────────────────
@@ -1032,7 +851,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         try
         {
             AppendLog("[Backup] " + Loc.BackupCreating, ConsoleMessageType.System);
-            var entry = await _backup.CreateBackupAsync(Server);
+            var entry = await _backend.CreateBackupAsync(Server);
             AppendLog($"[Backup] {Loc.BackupDone}: {entry.SizeText}", ConsoleMessageType.System);
             await _notifications.NotifyAsync($"💾 {Server.DisplayName} {Loc.BackupDone}", entry.SizeText, "#D29922");
             RefreshBackups();
@@ -1080,15 +899,25 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             return;
         }
         AppendLog($"[Restore] {Loc.RestoreStarting} {entry.CreatedAt:dd.MM.yyyy HH:mm}...", ConsoleMessageType.System);
-        await _backup.RestoreBackupAsync(Server, entry.FilePath);
+        // IServerBackend's backup methods take a bare filename (resolved server-side within the
+        // server's own backup folder) rather than a full path — see LocalServerBackend.ResolveBackupPath.
+        await _backend.RestoreBackupAsync(Server, Path.GetFileName(entry.FilePath));
         AppendLog("[Restore] " + Loc.RestoreDone, ConsoleMessageType.System);
     }
 
     [RelayCommand]
-    private void DeleteBackup(BackupEntry? entry)
+    private async Task DeleteBackup(BackupEntry? entry)
     {
         if (entry == null) return;
-        _backup.DeleteBackup(entry.FilePath);
+        await _backend.DeleteBackupAsync(Server, Path.GetFileName(entry.FilePath));
+        RefreshBackups();
+    }
+
+    [RelayCommand]
+    private void ToggleFavoriteBackup(BackupEntry? entry)
+    {
+        if (entry == null) return;
+        _backup.SetFavorite(entry.FilePath, !entry.IsFavorite);
         RefreshBackups();
     }
 
@@ -1136,7 +965,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void ApplyPreset()
+    private async Task ApplyPreset()
     {
         if (SelectedPreset == null) return;
 
@@ -1150,7 +979,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         if (result != WpfMsgBoxResult.Yes) return;
 
-        var backup = _presets.ApplyPreset(Server, SelectedPreset);
+        var backup = await _backend.ApplyPresetAsync(Server, SelectedPreset);
         if (backup == null)
         {
             AppendLog($"[WGS] ⚠ Config file not found: {SelectedPreset.ConfigFile}", ConsoleMessageType.Warning);
@@ -1221,18 +1050,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     // ── Mod manager ──────────────────────────────────────────────────────────
 
-    [RelayCommand]
-    private async Task InstallOxideAsync()
+    private async Task InstallModFrameworkAsync(string framework, string successMessage)
     {
-        if (Plugin == null || !Plugin.SupportsOxide) return;
         ModBusy = true;
         try
         {
             var progress = new Progress<(int pct, string msg)>(x =>
                 WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-
-            await _mods.InstallOxideAsync(Plugin, Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Oxide installed successfully.", ConsoleMessageType.System);
+            await _backend.InstallModFrameworkAsync(Server, framework, progress);
+            AppendLog($"[Mods] ✅ {successMessage}", ConsoleMessageType.System);
         }
         catch (Exception ex)
         {
@@ -1240,123 +1066,36 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
         }
         finally { ModBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task InstallOxideAsync()
+    {
+        if (Plugin == null || !Plugin.SupportsOxide) return;
+        await InstallModFrameworkAsync("oxide", "Oxide installed successfully.");
     }
 
     [RelayCommand]
     private async Task InstallPaperAsync()
     {
         if (Plugin?.MinecraftFlavor != "paper") return;
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-
-            await _mods.InstallPaperAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Paper installed successfully.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
+        await InstallModFrameworkAsync("paper", "Paper installed successfully.");
     }
 
     [RelayCommand]
-    private async Task InstallSpigotAsync()
-    {
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-            await _mods.InstallSpigotAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Spigot compiled and installed.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
-    }
+    private async Task InstallSpigotAsync() => await InstallModFrameworkAsync("spigot", "Spigot compiled and installed.");
 
     [RelayCommand]
-    private async Task InstallPurpurAsync()
-    {
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-            await _mods.InstallPurpurAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Purpur installed successfully.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
-    }
+    private async Task InstallPurpurAsync() => await InstallModFrameworkAsync("purpur", "Purpur installed successfully.");
 
     [RelayCommand]
-    private async Task InstallFabricAsync()
-    {
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-            await _mods.InstallFabricAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Fabric installed successfully.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
-    }
+    private async Task InstallFabricAsync() => await InstallModFrameworkAsync("fabric", "Fabric installed successfully.");
 
     [RelayCommand]
-    private async Task InstallForgeAsync()
-    {
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-            await _mods.InstallForgeAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Forge installed successfully.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
-    }
+    private async Task InstallForgeAsync() => await InstallModFrameworkAsync("forge", "Forge installed successfully.");
 
     [RelayCommand]
-    private async Task InstallVanillaAsync()
-    {
-        ModBusy = true;
-        try
-        {
-            var progress = new Progress<(int pct, string msg)>(x =>
-                WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"[{x.pct}%] {x.msg}"));
-            await _mods.InstallVanillaAsync(Server.InstallPath, progress);
-            AppendLog("[Mods] ✅ Vanilla server installed successfully.", ConsoleMessageType.System);
-        }
-        catch (Exception ex)
-        {
-            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
-            WpfApplication.Current?.Dispatcher?.Invoke(() => ModStatusText = $"❌ {ex.Message}");
-        }
-        finally { ModBusy = false; }
-    }
+    private async Task InstallVanillaAsync() => await InstallModFrameworkAsync("vanilla", "Vanilla server installed successfully.");
 
     [RelayCommand]
     private void OpenPluginFolder()
@@ -1368,35 +1107,34 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     // ── Config editor ───────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void LoadConfigFiles()
+    private async Task LoadConfigFiles()
     {
-        ConfigFiles = _configEditor.FindConfigs(Server, Plugin);
+        ConfigFiles = await _backend.GetConfigFilesAsync(Server);
         if (ConfigFiles.Count > 0) SelectedConfigFile = ConfigFiles[0];
     }
 
     [RelayCommand]
-    private void SaveConfigFile()
+    private async Task SaveConfigFile()
     {
         if (SelectedConfigFile == null) return;
-        SelectedConfigFile.Content = ConfigContent;
         try
         {
-            _configEditor.Save(Server.Id, SelectedConfigFile);
+            await _backend.SaveConfigFileAsync(Server, SelectedConfigFile.Name, ConfigContent);
             AppendLog("[Config] File saved.", ConsoleMessageType.System);
-            RefreshConfigHistory();
+            await RefreshConfigHistory();
         }
         catch (Exception ex) { AppendLog($"[Config] Save failed: {ex.Message}", ConsoleMessageType.Error); }
     }
 
     [ObservableProperty] private List<Services.ConfigSnapshot> _configHistory = [];
 
-    private void RefreshConfigHistory()
+    private async Task RefreshConfigHistory()
     {
-        ConfigHistory = SelectedConfigFile == null ? [] : _configEditor.GetHistory(Server.Id, SelectedConfigFile.Path);
+        ConfigHistory = SelectedConfigFile == null ? [] : await _backend.GetConfigSnapshotsAsync(Server, SelectedConfigFile.Name);
     }
 
     [RelayCommand]
-    private void RestoreConfigSnapshot(Services.ConfigSnapshot? snap)
+    private async Task RestoreConfigSnapshot(Services.ConfigSnapshot? snap)
     {
         if (snap == null || SelectedConfigFile == null) return;
         var result = WpfMsgBox.Show(
@@ -1405,14 +1143,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             "Restore config version", WpfMsgBoxButton.YesNo, WpfMsgBoxImage.Warning);
         if (result != WpfMsgBoxResult.Yes) return;
 
-        var content = _configEditor.ReadSnapshot(snap.FilePath);
-        SelectedConfigFile.Content = content;
-        ConfigContent = content;
         try
         {
-            _configEditor.Save(Server.Id, SelectedConfigFile);
+            await _backend.RestoreConfigSnapshotAsync(Server, snap);
+            ConfigContent = await _backend.ReadConfigFileAsync(Server, SelectedConfigFile.Name);
+            SelectedConfigFile.Content = ConfigContent;
             AppendLog($"[Config] Restored version from {snap.SavedAt:dd.MM.yyyy HH:mm:ss}.", ConsoleMessageType.System);
-            RefreshConfigHistory();
+            await RefreshConfigHistory();
         }
         catch (Exception ex) { AppendLog($"[Config] Restore failed: {ex.Message}", ConsoleMessageType.Error); }
     }
@@ -1420,9 +1157,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     partial void OnSelectedConfigFileChanged(Services.ConfigFileEntry? value)
     {
         if (value == null) return;
-        _configEditor.LoadContent(value);
-        ConfigContent = value.Content;
-        RefreshConfigHistory();
+        _ = LoadSelectedConfigContentAsync(value);
+    }
+
+    private async Task LoadSelectedConfigContentAsync(Services.ConfigFileEntry entry)
+    {
+        try
+        {
+            ConfigContent = await _backend.ReadConfigFileAsync(Server, entry.Name);
+            entry.Content = ConfigContent;
+            await RefreshConfigHistory();
+        }
+        catch (Exception ex) { AppendLog($"[Config] Failed to load {entry.Name}: {ex.Message}", ConsoleMessageType.Error); }
     }
 
     // ── Players ──────────────────────────────────────────────────────────────
@@ -1473,12 +1219,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
         if (Plugin is Games.IRestPlayersPlugin restPlugin)
         {
-            parsed = await restPlugin.GetPlayersAsync(Server);
+            // Routed through the backend (covers REST/A2S/Minecraft-SLP — see
+            // LocalServerBackend.GetOnlinePlayersAsync); GameRegistry.Get returns the same
+            // shared plugin instance either way, so LastRestApiError is still readable here.
+            parsed = await _backend.GetOnlinePlayersAsync(Server);
             if (restPlugin.LastRestApiError != null)
                 AppendLog($"[REST API] {restPlugin.LastRestApiError}", ConsoleMessageType.Warning);
         }
         else if (RconConnected && _rcon != null && Plugin.GetPlayersCommand() != null)
         {
+            // RCON is a direct client→game-server socket — stays client-side regardless of
+            // "all-in-one" vs. service mode, per IServerBackend's scope (see its doc comment).
             // Prefer RCON when connected — gives UIDs and real names even for games that
             // also support A2S (e.g. Arma Reforger). A2S is the fallback below.
             var cmd = Plugin.GetPlayersCommand()!;
@@ -1491,22 +1242,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (string.IsNullOrWhiteSpace(response)) return;
             parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
         }
-        else if (Plugin is Games.IA2SQueryPlugin a2sPlugin)
+        else if (Plugin is Games.IA2SQueryPlugin or Games.MinecraftPluginBase)
         {
-            parsed = await Services.A2SQueryService.QueryPlayersAsync(
-                a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(Server));
-        }
-        else if (Plugin is Games.MinecraftPluginBase && !RconConnected)
-        {
-            // RCON not connected — fall back to Minecraft SLP (Server List Ping).
-            // Works without any server.properties changes and covers externally-compiled
-            // servers where RCON may not be enabled.
-            var slp = await Services.MinecraftSLPService.QueryAsync("127.0.0.1", Server.ServerPort);
-            if (slp == null) return;
-            // SLP gives counts only, not names — build a synthetic list so the count lands.
-            parsed = Enumerable.Range(0, slp.Value.Online)
-                               .Select(_ => new Models.OnlinePlayer { Name = "?" })
-                               .ToList();
+            // A2S query, or Minecraft SLP fallback when RCON isn't connected — both handled
+            // by the backend. (When Minecraft RCON IS connected, that's covered by the RCON
+            // branch above via GetPlayersCommand(), so this branch is the A2S/no-RCON case.)
+            parsed = await _backend.GetOnlinePlayersAsync(Server);
         }
         else
         {
@@ -1641,8 +1382,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task RefreshWorkshopAsync()
     {
         if (Plugin == null || !HasWorkshop) return;
+        // WorkshopItems (on-disk scan) isn't part of IServerBackend's scope yet — stays a direct
+        // call, matching this pass's documented boundary. WorkshopDbMods (DB-tracked) is covered.
         WorkshopItems  = await _workshop.GetInstalledItemsAsync(Server, Plugin);
-        WorkshopDbMods = _workshopDb.GetModsForServer(Server.Id);
+        WorkshopDbMods = await _backend.GetWorkshopModsAsync(Server);
     }
 
     [RelayCommand]
@@ -1652,7 +1395,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WorkshopBusy = true;
         try
         {
-            WorkshopSearchResults = await _workshop.SearchWorkshopAsync(Plugin, WorkshopSearchQuery);
+            WorkshopSearchResults = await _backend.SearchWorkshopAsync(Server, WorkshopSearchQuery);
         }
         catch (Exception ex) { AppendLog($"[Workshop] Search failed: {ex.Message}", ConsoleMessageType.Error); }
         finally { WorkshopBusy = false; }
@@ -1682,7 +1425,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             var progress = new Progress<(int pct, string msg)>(x =>
                 WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
-            await _workshop.InstallItemAsync(Server, Plugin, id, progress);
+            await _backend.InstallWorkshopItemAsync(Server, id, progress);
             AppendLog($"[Workshop] ✅ Item {id} installed.", ConsoleMessageType.System);
             await RefreshWorkshopAsync();
         }
@@ -1697,7 +1440,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WorkshopBusy = true;
         try
         {
-            await _workshop.UninstallItemAsync(Server, Plugin, mod.ModId);
+            await _backend.UninstallWorkshopItemAsync(Server, mod);
             AppendLog($"[Workshop] Removed {mod.ModName}.", ConsoleMessageType.System);
             await RefreshWorkshopAsync();
         }
@@ -1706,13 +1449,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void ToggleModEnabled(WorkshopMod? mod)
+    private async Task ToggleModEnabled(WorkshopMod? mod)
     {
         if (mod == null) return;
         // WorkshopMod doesn't implement INPC so the CheckBox two-way binding
         // doesn't update mod.IsEnabled before this fires — toggle it manually.
         mod.IsEnabled = !mod.IsEnabled;
-        _workshopDb.SetEnabled(Server.Id, mod.ModId, mod.IsEnabled);
+        await _backend.SetWorkshopModEnabledAsync(Server, mod, mod.IsEnabled);
     }
 
     [RelayCommand]
@@ -1724,7 +1467,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             var progress = new Progress<(int pct, string msg)>(x =>
                 WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
-            await _workshop.UpdateAllModsAsync(Server, Plugin, progress);
+            await _backend.UpdateModsAsync(Server, onlyThese: null, progress);
             AppendLog("[Workshop] ✅ All mods updated.", ConsoleMessageType.System);
             await RefreshWorkshopAsync();
         }
@@ -1739,7 +1482,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         WorkshopBusy = true;
         try
         {
-            OutdatedMods = await _workshop.CheckForOutdatedModsAsync(Server);
+            OutdatedMods = await _backend.CheckOutdatedModsAsync(Server);
             if (OutdatedMods.Count == 0)
                 AppendLog("[Workshop] All mods are up to date.", ConsoleMessageType.System);
             else
@@ -1757,11 +1500,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         try
         {
             var toUpdate = OutdatedMods.ToList();
+            var progress = new Progress<(int pct, string msg)>(x =>
+                WpfApplication.Current?.Dispatcher?.Invoke(() => AppendLog($"[Workshop] [{x.pct}%] {x.msg}", ConsoleMessageType.System)));
             for (int i = 0; i < toUpdate.Count; i++)
             {
                 var mod = toUpdate[i];
                 AppendLog($"[Workshop] Updating {mod.ModName} ({i + 1}/{toUpdate.Count})...", ConsoleMessageType.System);
-                await _workshop.InstallItemAsync(Server, Plugin, mod.ModId);
+                await _backend.InstallWorkshopItemAsync(Server, mod.ModId, progress);
             }
             AppendLog($"[Workshop] ✅ {toUpdate.Count} mod(s) updated.", ConsoleMessageType.System);
             OutdatedMods = [];
@@ -1970,7 +1715,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             finally { _rconLock.Release(); }
         }
         else
-            _manager.SendCommand(Server.Id, cmd);
+            await _backend.SendConsoleCommandAsync(Server.Id, cmd);
     }
 
     // ── Templates ─────────────────────────────────────────────────────────────
@@ -1981,13 +1726,13 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _templateDescription = string.Empty;
 
     [RelayCommand]
-    private void SaveAsTemplate()
+    private async Task SaveAsTemplate()
     {
         if (string.IsNullOrWhiteSpace(TemplateName)) return;
         var tags = TemplateTagsInput
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
-        _templates.SaveFromServer(Server, TemplateName, TemplateDescription, TemplateCategory, tags);
+        await _backend.SaveAsTemplateAsync(Server, TemplateName, TemplateDescription, TemplateCategory, tags);
         var saved = TemplateName;
         TemplateName        = string.Empty;
         TemplateCategory    = string.Empty;
@@ -1998,27 +1743,27 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void ApplyTemplate(Models.ServerTemplate? template)
+    private async Task ApplyTemplate(Models.ServerTemplate? template)
     {
         if (template == null) return;
-        _templates.ApplyToServer(template, Server);
+        await _backend.ApplyTemplateAsync(Server, template);
         AppendLog($"[Template] Applied \"{template.Name}\".", ConsoleMessageType.System);
     }
 
     [RelayCommand]
-    private void CloneTemplate(Models.ServerTemplate? template)
+    private async Task CloneTemplate(Models.ServerTemplate? template)
     {
         if (template == null) return;
-        var clone = _templates.Clone(template.Id);
+        var clone = await _backend.CloneTemplateAsync(template);
         RefreshTemplates();
         AppendLog($"[Template] Cloned as \"{clone.Name}\".", ConsoleMessageType.System);
     }
 
     [RelayCommand]
-    private void DeleteTemplate(Models.ServerTemplate? template)
+    private async Task DeleteTemplate(Models.ServerTemplate? template)
     {
         if (template == null) return;
-        _templates.Delete(template.Id);
+        await _backend.DeleteTemplateAsync(template);
         RefreshTemplates();
     }
 
@@ -2106,25 +1851,25 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     // ── Scheduled tasks ──────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void RefreshScheduledTasks()
-        => ScheduledTasks = _scheduler.Tasks.Where(t => t.ServerId == Server.Id).ToList();
+    private async Task RefreshScheduledTasks()
+        => ScheduledTasks = await _backend.GetScheduledTasksAsync(Server.Id);
 
     [RelayCommand]
-    private void AddScheduledTask(Services.ScheduledTask? task)
+    private async Task AddScheduledTask(Services.ScheduledTask? task)
     {
         if (task == null) return;
         task.ServerId   = Server.Id;
         task.ServerName = Server.DisplayName;
-        _scheduler.AddTask(task);
-        RefreshScheduledTasks();
+        await _backend.AddScheduledTaskAsync(task);
+        await RefreshScheduledTasks();
     }
 
     [RelayCommand]
-    private void RemoveScheduledTask(Services.ScheduledTask? task)
+    private async Task RemoveScheduledTask(Services.ScheduledTask? task)
     {
         if (task == null) return;
-        _scheduler.RemoveTask(task.Id);
-        RefreshScheduledTasks();
+        await _backend.RemoveScheduledTaskAsync(task);
+        await RefreshScheduledTasks();
     }
 
     // ── Performance monitoring ───────────────────────────────────────────────

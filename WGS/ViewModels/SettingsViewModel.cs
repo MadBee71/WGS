@@ -62,6 +62,15 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private bool   _slaveMode;
     [ObservableProperty] private string _slaveName = "This Machine";
 
+    // ── Service mode (issue #13 — talk to a background WGS.ServiceHost instead of managing
+    // servers in-process) ───────────────────────────────────────────────────────────────────
+    [ObservableProperty] private bool   _serviceModeEnabled;
+    [ObservableProperty] private string _serviceModeUrl   = "http://localhost:8766";
+    [ObservableProperty] private string _serviceModeToken = string.Empty;
+    /// <summary>Set right after Save when the toggle actually changed — the UI shows a
+    /// "restart WGS to apply" notice, since IServerBackend is chosen once at DI startup.</summary>
+    [ObservableProperty] private bool   _serviceModeRestartRequired;
+
     public string SlaveConnectionUrl => BuildSlaveUrl();
 
     // ── Crash Prediction ──────────────────────────────────────────────────────
@@ -180,6 +189,9 @@ public partial class SettingsViewModel : BaseViewModel
         WebApiStatus             = BuildWebApiStatus();
         SlaveMode                = _config.SlaveMode;
         SlaveName                = _config.SlaveName;
+        ServiceModeEnabled       = _config.ServiceModeEnabled;
+        ServiceModeUrl           = _config.ServiceModeUrl;
+        ServiceModeToken         = _config.ServiceModeToken;
         CrashPredictionDiscord   = _config.CrashPredictionDiscord;
         CrashPredictionLowMemOnly = _config.CrashPredictionLowMemOnly;
         CrashPredictionLowMemPercent = _config.CrashPredictionLowMemPercent;
@@ -232,6 +244,12 @@ public partial class SettingsViewModel : BaseViewModel
         WebApiToken                    = _config.WebApiToken; // reflect generated token back to UI
         _config.SlaveMode              = SlaveMode;
         _config.SlaveName              = SlaveName;
+        ServiceModeRestartRequired     = _config.ServiceModeEnabled != ServiceModeEnabled
+                                       || _config.ServiceModeUrl != ServiceModeUrl
+                                       || _config.ServiceModeToken != ServiceModeToken;
+        _config.ServiceModeEnabled     = ServiceModeEnabled;
+        _config.ServiceModeUrl         = string.IsNullOrWhiteSpace(ServiceModeUrl) ? "http://localhost:8766" : ServiceModeUrl;
+        _config.ServiceModeToken       = ServiceModeToken;
         _config.CrashPredictionDiscord = CrashPredictionDiscord;
         _config.CrashPredictionLowMemOnly = CrashPredictionLowMemOnly;
         _config.CrashPredictionLowMemPercent = CrashPredictionLowMemPercent > 0 ? CrashPredictionLowMemPercent : 5.0;

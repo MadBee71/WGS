@@ -115,6 +115,21 @@ public partial class App : System.Windows.Application
         var config = Services.GetRequiredService<ConfigService>();
         LocalizationService.Instance.Load(config);
 
+        // One-time prompt after WGS's data folder was auto-migrated from %AppData% to next to
+        // the exe — the old copy is harmless but the user, not WGS, should decide whether to
+        // keep it around as a backup or clean it up.
+        if (config.MigratedFromPath != null)
+        {
+            var result = System.Windows.MessageBox.Show(
+                $"WGS's data (servers, settings, backups list) has moved to a folder next to the exe.\n\n" +
+                $"The old copy at:\n{config.MigratedFromPath}\n\nis no longer used. Delete it now, or keep it as a backup?",
+                "WGS data folder moved",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
+            if (result == System.Windows.MessageBoxResult.Yes)
+                config.DeleteMigratedAppDataFolder();
+        }
+
         // Start Web API if configured (includes slave mode via WebApiRequired)
         var webApi = Services.GetRequiredService<WebApiService>();
         webApi.DashboardEnabled = config.WebApiEnabled;
@@ -178,6 +193,31 @@ public partial class App : System.Windows.Application
     private static void ConfigureServices(IServiceCollection s)
     {
         s.AddSingleton<ConfigService>();
+        // Local ("all-in-one") vs. Remote ("service mode" — talks to a background
+        // WGS.ServiceHost over HTTP) is chosen once at startup from Settings. Everything else in
+        // the DI graph depends on IServerBackend, not the concrete type, so nothing else needs to
+        // change based on this — see SettingsView's "Service mode" toggle (requires app restart).
+        s.AddSingleton<IServerBackend>(sp =>
+        {
+            var config = sp.GetRequiredService<ConfigService>();
+            if (config.ServiceModeEnabled && !string.IsNullOrWhiteSpace(config.ServiceModeUrl))
+                return new RemoteServerBackend(config.ServiceModeUrl, config.ServiceModeToken);
+            return new LocalServerBackend(
+                sp.GetRequiredService<ServerManagerService>(),
+                sp.GetRequiredService<SteamCmdService>(),
+                sp.GetRequiredService<BackupService>(),
+                sp.GetRequiredService<NotificationService>(),
+                sp.GetRequiredService<ConfigService>(),
+                sp.GetRequiredService<ModManagerService>(),
+                sp.GetRequiredService<SourceModService>(),
+                sp.GetRequiredService<ConfigEditorService>(),
+                sp.GetRequiredService<SteamWorkshopService>(),
+                sp.GetRequiredService<WorkshopDbService>(),
+                sp.GetRequiredService<TemplateService>(),
+                sp.GetRequiredService<ScheduledTaskService>(),
+                sp.GetRequiredService<ServerHygieneService>(),
+                sp.GetRequiredService<ConfigPresetService>());
+        });
         s.AddSingleton<SteamCmdService>();
         s.AddSingleton<ServerManagerService>();
         s.AddSingleton<BackupService>();

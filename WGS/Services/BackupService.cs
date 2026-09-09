@@ -14,6 +14,10 @@ public class BackupEntry
     public bool IsIncremental   { get; set; }
     /// <summary>Full path of the backup this one's diff is relative to. Empty for full backups.</summary>
     public string BaseFilePath  { get; set; } = string.Empty;
+    /// <summary>Favorited backups are exempt from automatic retention/age cleanup — the user has
+    /// to delete them explicitly. Community-requested (SkOODaT, Discord): "pin" a backup before a
+    /// major update so it never gets swept away by retention limits.</summary>
+    public bool IsFavorite      { get; set; }
     public string SizeText => SizeBytes > 1_000_000
         ? $"{SizeBytes / 1_000_000.0:F1} MB"
         : $"{SizeBytes / 1_000.0:F0} KB";
@@ -48,18 +52,14 @@ public class BackupService
         Directory.CreateDirectory(outDir);
         var zipPath = Path.Combine(outDir, $"{safeName}_{timestamp}.zip");
 
-        // Snapshot current file state for every save directory
-        var saveDirs = GetSaveDirectories(server);
-        var current  = new Dictionary<string, FileState>();
-        foreach (var dir in saveDirs)
+        // Snapshot current file state for every resolved backup entry (directories, single
+        // files, and wildcard patterns are all supported — see ResolveBackupFiles).
+        var current = new Dictionary<string, FileState>();
+        foreach (var file in ResolveBackupFiles(server))
         {
-            if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-            {
-                var rel = Path.GetRelativePath(server.InstallPath, file);
-                var fi  = new FileInfo(file);
-                current[rel] = new FileState(rel, fi.Length, fi.LastWriteTimeUtc.Ticks);
-            }
+            var rel = Path.GetRelativePath(server.InstallPath, file);
+            var fi  = new FileInfo(file);
+            current[rel] = new FileState(rel, fi.Length, fi.LastWriteTimeUtc.Ticks);
         }
 
         // Decide full vs incremental
@@ -155,6 +155,9 @@ public class BackupService
             candidates.AddRange(backups.Where(b => b.CreatedAt < cutoff && !candidates.Contains(b)));
         }
 
+        // Favorited backups are never auto-cleaned, regardless of retention/age settings.
+        candidates.RemoveAll(b => b.IsFavorite);
+
         if (candidates.Count == 0) return candidates;
 
         // Protect any backup that a kept (non-candidate) backup depends on, walking its chain.
@@ -246,6 +249,7 @@ public class BackupService
                     SizeBytes     = i.Length,
                     IsIncremental = sidecar?.IsIncremental ?? false,
                     BaseFilePath  = sidecar?.BaseFileName ?? "",
+                    IsFavorite    = File.Exists(FavoritePath(f)),
                 };
             })
             .OrderByDescending(b => b.CreatedAt)
@@ -256,9 +260,20 @@ public class BackupService
     {
         if (File.Exists(path)) File.Delete(path);
         try { File.Delete(SidecarPath(path)); } catch { }
+        try { File.Delete(FavoritePath(path)); } catch { }
     }
 
-    private static string SidecarPath(string zipPath) => zipPath + ".meta.json";
+    /// <summary>Marks (or unmarks) a backup as a favorite — favorited backups are excluded from
+    /// GetBackupsToDelete regardless of retention/age settings, but can still be deleted manually.</summary>
+    public void SetFavorite(string zipPath, bool favorite)
+    {
+        var path = FavoritePath(zipPath);
+        if (favorite) File.WriteAllText(path, "");
+        else try { File.Delete(path); } catch { }
+    }
+
+    private static string SidecarPath(string zipPath)  => zipPath + ".meta.json";
+    private static string FavoritePath(string zipPath) => zipPath + ".favorite";
 
     private static void SaveSidecar(string zipPath, BackupSidecar sidecar)
     {
@@ -272,6 +287,42 @@ public class BackupService
         if (!File.Exists(path)) return null;
         try { return JsonConvert.DeserializeObject<BackupSidecar>(File.ReadAllText(path)); }
         catch { return null; }
+    }
+
+    /// <summary>
+    /// Resolves each raw entry from GetSaveDirectories into actual files to back up. An entry
+    /// can be:
+    ///   - a directory (existing behavior — backed up recursively, every file under it)
+    ///   - a single file (e.g. a root-level config file that isn't inside its own directory)
+    ///   - a wildcard pattern (e.g. "*.cfg", "configs\*.json") — matched non-recursively against
+    ///     files directly in the pattern's parent folder
+    /// Entries that don't exist on disk are silently skipped, same as directories always were.
+    /// Community-requested (Shmightworks, Discord): lets a custom BackupSavePath pinpoint just
+    /// the files that matter instead of always requiring a whole directory.
+    /// </summary>
+    private static IEnumerable<string> ResolveBackupFiles(GameServer server)
+    {
+        foreach (var spec in GetSaveDirectories(server))
+        {
+            if (spec.IndexOfAny(['*', '?']) >= 0)
+            {
+                var dir     = Path.GetDirectoryName(spec);
+                var pattern = Path.GetFileName(spec);
+                if (string.IsNullOrEmpty(dir) || string.IsNullOrEmpty(pattern) || !Directory.Exists(dir)) continue;
+                foreach (var file in Directory.EnumerateFiles(dir, pattern, SearchOption.TopDirectoryOnly))
+                    yield return file;
+            }
+            else if (File.Exists(spec))
+            {
+                yield return spec;
+            }
+            else if (Directory.Exists(spec))
+            {
+                foreach (var file in Directory.EnumerateFiles(spec, "*", SearchOption.AllDirectories))
+                    yield return file;
+            }
+            // else: doesn't exist on disk — skipped, same as a missing directory always was
+        }
     }
 
     private static string[] GetSaveDirectories(GameServer server)
