@@ -222,6 +222,9 @@
                                               Style="{StaticResource GhostToggleButton}"
                                               Content="⬇ Auto scroll" ToolTip="Scroll to latest output automatically"
                                               Margin="8,0,0,0" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
+                                <Button Content="📋 Copy" Style="{StaticResource GhostButton}"
+                                        Margin="8,0,0,0" Command="{Binding CopyConsoleCommand}"
+                                        ToolTip="Copy the visible console output to the clipboard"/>
                                 <Button Content="{Binding Loc.ConsoleClear}" Style="{StaticResource GhostButton}"
                                         Margin="8,0,0,0" Command="{Binding ClearConsoleCommand}"/>
                             </StackPanel>
@@ -584,6 +587,26 @@
                                 <CheckBox IsChecked="{Binding Server.BackupOnShutdown}" Style="{StaticResource DarkCheckBox}"
                                           Content="Backup after each shutdown" Margin="0,0,0,8"
                                           ToolTip="Creates a backup right after the server stops, once everything has been saved to disk — captures whatever changed during that session."/>
+
+                                <!-- Save command before stop (RCON-only games) -->
+                                <StackPanel Visibility="{Binding HasRcon, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                    <TextBlock Text="RCON save command before stop (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="90"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
+                                                 Text="{Binding Server.SaveCommandBeforeStop, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="RCON command sent before the server stops, e.g. 'save' or 'server.save'. Leave empty to disable."/>
+                                        <TextBox Grid.Column="2" Style="{StaticResource DarkTextBox}"
+                                                 Text="{Binding Server.SaveCommandDelaySeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Seconds to wait after sending the save command before stopping"/>
+                                    </Grid>
+                                    <TextBlock Text="Sent on every stop/restart (manual, scheduled, or wake-on-demand idle shutdown) before the server actually stops. Right field = delay in seconds."
+                                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
 
                                 <!-- Backup Save Path -->
                                 <TextBlock Text="Backup paths (relative to install, semicolon-separated)" Style="{StaticResource FieldLabel}"/>

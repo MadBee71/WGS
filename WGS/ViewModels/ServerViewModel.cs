@@ -632,12 +632,44 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         if (Plugin == null) return;
 
-        if (Plugin.SteamAppId <= 0)
+        // Updating server files while the game process still has them open can corrupt both the
+        // update itself and the pre-update backup taken below — stop the server first (for every
+        // install/update path: SteamCMD, manual-download, and custom-installer games alike) and
+        // bring it back up afterward, rather than let a user corrupt their own server by clicking
+        // Install/Update while it's live.
+        var wasRunning = IsRunning;
+        if (wasRunning)
         {
-            await InstallFromManualDownloadAsync();
-            return;
+            AppendLog("[WGS] Server is running — stopping before update...", ConsoleMessageType.System);
+            await _manager.StopAsync(Server);
+            RefreshStatus();
         }
 
+        try
+        {
+            if (Plugin.SteamAppId <= 0)
+            {
+                await InstallFromManualDownloadAsync();
+                return;
+            }
+
+            await InstallViaSteamCmdAsync();
+        }
+        finally
+        {
+            if (wasRunning)
+            {
+                AppendLog("[WGS] Update finished — restarting server...", ConsoleMessageType.System);
+                try { await _manager.StartAsync(Server); }
+                catch (Exception ex) { AppendLog($"[ERR] Failed to restart server after update: {ex.Message}", ConsoleMessageType.Error); }
+                RefreshStatus();
+            }
+        }
+    }
+
+    private async Task InstallViaSteamCmdAsync()
+    {
+        if (Plugin == null) return;
         string? login = null, password = null;
         if (Plugin.RequiresSteamLogin)
         {
@@ -851,6 +883,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     [RelayCommand]
     private void ClearConsole() => Log.Clear();
+
+    // The console renders each line as a TextBlock (needed for per-message-type colour
+    // coding), and plain TextBlocks don't support text selection in WPF — copying the visible
+    // (filtered) log to the clipboard is the simplest way to let someone grab an error to report
+    // without having to touch the rendering.
+    [RelayCommand]
+    private void CopyConsole()
+    {
+        var text = string.Join(Environment.NewLine, FilteredLog.Select(m => $"{m.FormattedTime}  {m.Text}"));
+        try { System.Windows.Clipboard.SetText(text); }
+        catch { /* clipboard can be locked by another app — nothing useful to surface here */ }
+    }
 
     // ── Quick commands ───────────────────────────────────────────────────────
 

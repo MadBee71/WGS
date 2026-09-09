@@ -32,17 +32,17 @@
                     <CheckBox IsChecked="{Binding StartWithWindows}" Style="{StaticResource DarkCheckBox}"
                               Content="Start WGS automatically with Windows" Margin="0,14,0,0"/>
                     <TextBlock Text="Adds WGS to Windows startup (current user only, no UAC prompt)."
-                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                     <CheckBox IsChecked="{Binding OptimizeRamBeforeStart}" Style="{StaticResource DarkCheckBox}"
                               Content="Optimize system RAM before starting a server" Margin="0,14,0,0"/>
                     <TextBlock Text="Flushes unused memory from background processes before each server launch to free up physical RAM. May cause a brief pause."
-                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
                     <!-- Health Check -->
                     <CheckBox IsChecked="{Binding HealthCheckEnabled}" Style="{StaticResource DarkCheckBox}"
                               Content="Enable server freeze detection (Health Check)" Margin="0,14,0,0"/>
                     <TextBlock Text="Checks every 60 seconds whether a running server actually responds to queries. If it stops responding, the action below is triggered."
-                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,12"/>
+                               FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,12"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -74,7 +74,7 @@
                 <StackPanel>
                     <TextBlock Text="Steam Login" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,16"
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,16"
                                Text="Required for games that don't support anonymous download (e.g. Wreckfest 2, Conan Exiles)"/>
                     <TextBlock Text="Steam username" Style="{StaticResource FieldLabel}"/>
                     <TextBox Style="{StaticResource DarkTextBox}" Margin="0,0,0,12"
@@ -84,7 +84,7 @@
                                  Background="#161B22" Foreground="#E6EDF3"
                                  BorderBrush="#30363D" BorderThickness="1" Padding="10,8"
                                  PasswordChanged="SteamPassBox_PasswordChanged"/>
-                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"
                                Text="Password is encrypted with Windows DPAPI and stored securely. Use a dedicated Steam account for servers."/>
                     <Button Content="Save" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
                             Margin="0,12,0,0" Command="{Binding SaveSettingsCommand}"/>

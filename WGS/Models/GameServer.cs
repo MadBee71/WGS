@@ -30,6 +30,11 @@ public class GameServer
     public bool UpdateOnStart          { get; set; } = false;
     public bool BackupOnStart          { get; set; } = false;
     public bool BackupOnShutdown       { get; set; } = false;
+    /// <summary>RCON command sent (e.g. "save", "server.save") before the server is stopped, for
+    /// games where WGS's own stop sequence doesn't already trigger a save. Empty disables this.</summary>
+    public string SaveCommandBeforeStop     { get; set; } = string.Empty;
+    /// <summary>How long to wait after sending SaveCommandBeforeStop before actually stopping the process.</summary>
+    public int    SaveCommandDelaySeconds   { get; set; } = 5;
     public bool   DiscordAlertsEnabled    { get; set; } = true;
     /// <summary>Server-specific Discord webhook URL. Falls back to global setting when empty.</summary>
     public string DiscordWebhookUrl       { get; set; } = string.Empty;

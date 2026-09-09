@@ -546,6 +546,15 @@ public class ServerManagerService
         SetStatus(server, ServerStatus.Stopping);
 
         var plugin = GameRegistry.Get(server.GameId);
+
+        // Optional per-server "save before stop" RCON command — runs before the plugin's own
+        // stop command/process kill, for games where stopping doesn't already trigger a save.
+        if (plugin?.HasRcon == true && !string.IsNullOrWhiteSpace(server.SaveCommandBeforeStop)
+            && inst.Process?.HasExited == false)
+        {
+            await TrySendSaveCommandAsync(server, plugin);
+        }
+
         var stopCmd = plugin?.GetStopCommand(server);
 
         // Native-console games don't redirect stdin — StandardInput is null and must not be written to
@@ -567,6 +576,34 @@ public class ServerManagerService
 
         server.RunningPid = 0;
         SetStatus(server, ServerStatus.Stopped);
+    }
+
+    private static async Task TrySendSaveCommandAsync(GameServer server, IGamePlugin plugin)
+    {
+        var protocol = plugin.EngineFamily switch
+        {
+            "fivem"    => RconProtocol.LegacyUdp,
+            "battleye" => RconProtocol.BattlEyeUdp,
+            _          => RconProtocol.SourceTcp,
+        };
+        var ip = string.IsNullOrEmpty(server.ServerIp) || server.ServerIp == "0.0.0.0" ? "127.0.0.1" : server.ServerIp;
+        var port = plugin.EngineFamily switch
+        {
+            "fivem"    => server.ServerPort,
+            "battleye" => server.RconPort > 0 ? server.RconPort : 19999,
+            _          => server.RconPort > 0 ? server.RconPort : server.ServerPort + 10,
+        };
+
+        using var rcon = new RconService(protocol);
+        try
+        {
+            var ok = await rcon.ConnectAsync(ip, port, server.RconPassword);
+            if (!ok) return; // server may not have RCON enabled/reachable — not fatal, just skip the save
+            await rcon.SendCommandAsync(server.SaveCommandBeforeStop);
+            if (server.SaveCommandDelaySeconds > 0)
+                await Task.Delay(server.SaveCommandDelaySeconds * 1000);
+        }
+        catch { /* best-effort — a failed save command shouldn't block stopping the server */ }
     }
 
     /// <summary>
