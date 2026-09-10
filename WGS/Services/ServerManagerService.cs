@@ -282,7 +282,10 @@ public class ServerManagerService
                 // Absolute path (e.g. a custom Java executable the user configured) — use directly.
                 exe = resolvedExe;
             else
-                throw new FileNotFoundException("Server executable not found in: " + server.InstallPath);
+                throw new FileNotFoundException(
+                    $"Server executable not found: could not resolve \"{resolvedExe}\" in {server.InstallPath} " +
+                    "or as an absolute path. If this is a Java-based server, check the plugin's \"Java executable\" " +
+                    "setting — leave it empty to use the system default instead of a specific path.");
         }
 
         // Wrap .bat/.cmd files with cmd.exe so stdout/stderr can be captured

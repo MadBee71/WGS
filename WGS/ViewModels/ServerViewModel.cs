@@ -551,7 +551,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            AppendLog("[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.", ConsoleMessageType.Error);
+            AppendLog(ExecutableNotFoundHint(), ConsoleMessageType.Error);
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
         }
         catch (InvalidOperationException ex)
@@ -567,6 +567,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (willAutoUpdate) IsInstalling = false;
         }
     }
+
+    /// <summary>
+    /// The generic "reinstall the game" remediation is actively misleading for Java-based
+    /// (Minecraft-family) servers, where a missing executable almost always means the configured
+    /// "Java executable" path is wrong or no longer exists — not that the server itself failed to
+    /// install (see Discord report from DatBrokeBoi: NeoForge installed successfully, then Start
+    /// failed with this exact message because of an unrelated setting).
+    /// </summary>
+    private string ExecutableNotFoundHint() => Plugin?.EngineFamily == MinecraftRcon.Family
+        ? "[ERR] Server executable not found. This usually means the \"Java executable\" setting points to a path that doesn't exist — clear it to use the system default, or fix the path. (If Java itself isn't installed, install it first.)"
+        : "[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.";
 
     [RelayCommand]
     private async Task StopAsync()
@@ -632,7 +643,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         catch (FileNotFoundException ex)
         {
-            AppendLog("[ERR] Server executable not found. Try clicking Install/Update again — if that doesn't help, check the Files tab to confirm the game actually downloaded, or check Settings → Install Path.", ConsoleMessageType.Error);
+            AppendLog(ExecutableNotFoundHint(), ConsoleMessageType.Error);
             AppendLog("[ERR] " + ex.Message, ConsoleMessageType.Error);
         }
         catch (InvalidOperationException ex)
