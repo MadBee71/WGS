@@ -57,6 +57,19 @@ public abstract class MinecraftPluginBase : GamePluginBase
         return string.IsNullOrWhiteSpace(path) ? "java" : path;
     }
 
+    /// <summary>
+    /// Must always be the server's own install folder, never java.exe's own folder. ServerManagerService
+    /// defaults the working directory to the resolved executable's directory when it has one — correct
+    /// for a bundled JRE living inside InstallPath, but wrong here: a custom "Java executable" path
+    /// (GraalVM, a specific Adoptium/Temurin JDK, etc.) points outside InstallPath entirely, which made
+    /// the process start from Java's own bin folder instead of the server folder. NeoForge/Forge's
+    /// win_args.txt/unix_args.txt then can't find its own libraries via their relative paths, failing
+    /// with "Could not find or load main class cpw.mods.bootstraplauncher.BootstrapLauncher" — reported
+    /// on Discord (DatBrokeBoi) for every custom Java path tried, while leaving the field blank (bare
+    /// "java", which has no directory component and so already defaulted to InstallPath) worked fine.
+    /// </summary>
+    public override string? GetWorkingDirectory(GameServer s) => s.InstallPath;
+
     /// <summary>Config field shown at the bottom of every Minecraft-family plugin's settings.</summary>
     protected static ConfigField JavaPathField => new()
     {
