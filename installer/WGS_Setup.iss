@@ -1,5 +1,5 @@
 #define AppName "Windows Game Server"
-#define AppVersion "1.5.7"
+#define AppVersion "1.5.8"
 #define AppPublisher "MadBee71"
 #define AppURL "https://wgsserver.com"
 #define AppExeName "WindowsGameServer.exe"

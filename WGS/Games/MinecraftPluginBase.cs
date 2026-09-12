@@ -15,6 +15,12 @@ public abstract class MinecraftPluginBase : GamePluginBase
     public override string? GetUnbanCommand(string p)                        => MinecraftRcon.Unban(p);
     public override string? GetPlayersCommand()                              => MinecraftRcon.Players();
 
+    // Without this, StopAsync had no stop command to send and fell straight through to
+    // killing the process tree — vanilla/Forge/NeoForge/Fabric all support "stop" on stdin
+    // (stdin is already open for this family; UseNativeConsole is false), which saves the
+    // world before shutting down instead of relying on the last autosave.
+    public override string? GetStopCommand(GameServer server)                => "stop";
+
     // Java/JVM and Forge/Fabric emit these to stderr on every startup — they are
     // informational noise, not errors. Suppressing them keeps the console red-free so
     // real errors stand out.
