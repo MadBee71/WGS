@@ -676,6 +676,21 @@ public class LocalServerBackend : IServerBackend
         else if (plugin is IA2SQueryPlugin a2sPlugin)
         {
             parsed = await A2SQueryService.QueryPlayersAsync(a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(server));
+
+            // Valheim's A2S response never carries real names or a usable duration (see
+            // A2SQueryService.ParsePlayers) — backfill as many "?"/0s placeholders as possible with
+            // data tracked live from the server's own console output (ValheimPlayerTracker).
+            // Best-effort: if fewer entries are known than players online, the rest stay "?"/0s.
+            if (server.GameId == "valheim")
+            {
+                var known = _manager.GetInstance(server.Id)?.ValheimPlayers?.GetKnownPlayers() ?? [];
+                for (int i = 0; i < parsed.Count && i < known.Count; i++)
+                {
+                    parsed[i].Name = known[i].Name;
+                    parsed[i].SteamId = known[i].SteamId;
+                    parsed[i].ConnectedSeconds = known[i].ConnectedSeconds;
+                }
+            }
         }
         else if (plugin is MinecraftPluginBase)
         {

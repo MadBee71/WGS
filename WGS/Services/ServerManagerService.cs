@@ -25,7 +25,14 @@ public class ServerInstance
     /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
     public List<DateTime> CrashTimes { get; } = [];
 
-    public ServerInstance(GameServer server) => Server = server;
+    /// <summary>Only allocated for Valheim — see ValheimPlayerTracker for why.</summary>
+    public ValheimPlayerTracker? ValheimPlayers { get; }
+
+    public ServerInstance(GameServer server)
+    {
+        Server = server;
+        if (server.GameId == "valheim") ValheimPlayers = new ValheimPlayerTracker();
+    }
 
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
 
@@ -365,6 +372,7 @@ public class ServerManagerService
             var threshold = System.Diagnostics.Stopwatch.Frequency / 5; // 200 ms
             if (_recentLines.TryGetValue(text, out var seen) && (now - seen) < threshold) return;
             _recentLines[text] = now;
+            inst.ValheimPlayers?.OnLogLine(text);
             var msg = new ConsoleMessage { Text = text, Type = type };
             inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
