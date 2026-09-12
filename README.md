@@ -54,6 +54,8 @@ Built with the help of AI coding tools, with every feature driven, tested and de
 >
 > Since WGS is an independent open-source tool that manages system-level tasks (Firewall, Process Priorities), Windows might show a "SmartScreen" warning.
 > To run WGS: Right-click `WindowsGameServer.exe` → **Properties** → Check **Unblock** at the bottom → **OK**.
+>
+> Some antivirus engines may also flag the unsigned executable as a false positive (e.g. an ML-heuristic detection like `Trojan:Win32/Bearfoos.A!ml`) — see the [Troubleshooting page](https://wgsserver.com/troubleshooting.html) for details.
 
 ---
 
