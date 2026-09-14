@@ -675,7 +675,10 @@ public class LocalServerBackend : IServerBackend
         }
         else if (plugin is IA2SQueryPlugin a2sPlugin)
         {
-            parsed = await A2SQueryService.QueryPlayersAsync(a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(server));
+            string? a2sError;
+            (parsed, a2sError) = await A2SQueryService.QueryPlayersWithDiagnosticsAsync(a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(server));
+            if (a2sError != null)
+                _manager.InjectLogLine(server.Id, $"[Players] {a2sError}", ConsoleMessageType.Warning);
 
             // Valheim's A2S response never carries real names or a usable duration (see
             // A2SQueryService.ParsePlayers) — backfill as many "?"/0s placeholders as possible with

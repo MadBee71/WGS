@@ -13,7 +13,12 @@ public static class A2SQueryService
     private static readonly byte[] ChallengeRequest =
         [0xFF, 0xFF, 0xFF, 0xFF, 0x55, 0xFF, 0xFF, 0xFF, 0xFF];
 
-    public static async Task<List<OnlinePlayer>> QueryPlayersAsync(
+    /// <summary>Same query as the parameterless overload, but also reports why it came back
+    /// empty (timeout, refused, malformed reply) instead of silently returning an empty list —
+    /// a genuine "0 players" reply is indistinguishable from a failed query without this
+    /// (requested by SkOODaT, Discord, 14.9.2026, after his second Valheim instance kept
+    /// reporting 0 players with nothing in the console to explain why).</summary>
+    public static async Task<(List<OnlinePlayer> Players, string? Error)> QueryPlayersWithDiagnosticsAsync(
         string host, int port, int timeoutMs = 3000)
     {
         using var udp = new UdpClient();
@@ -21,6 +26,7 @@ public static class A2SQueryService
         udp.Client.SendTimeout    = timeoutMs;
 
         var endpoint = new IPEndPoint(IPAddress.Parse(host), port);
+        var target   = $"{host}:{port}";
 
         try
         {
@@ -44,11 +50,11 @@ public static class A2SQueryService
             else if (data.Length >= 5 && data[4] == 0x44)
             {
                 // Server replied with players directly (no challenge)
-                return ParsePlayers(data);
+                return (ParsePlayers(data), null);
             }
             else
             {
-                return [];
+                return ([], $"Unexpected A2S reply from {target}: {data.Length} bytes, header 0x{(data.Length >= 5 ? data[4] : 0):X2}");
             }
 
             // Step 2: send A2S_PLAYER with challenge
@@ -57,12 +63,25 @@ public static class A2SQueryService
 
             var cts2   = new CancellationTokenSource(timeoutMs);
             var result2 = await udp.ReceiveAsync(cts2.Token);
-            return ParsePlayers(result2.Buffer);
+            if (result2.Buffer.Length < 6 || result2.Buffer[4] != 0x44)
+                return ([], $"Malformed A2S_PLAYER reply from {target}: {result2.Buffer.Length} bytes");
+            return (ParsePlayers(result2.Buffer), null);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            return [];
+            return ([], $"A2S query to {target} timed out after {timeoutMs}ms — port not open, blocked, or the game isn't answering queries yet");
         }
+        catch (Exception ex)
+        {
+            return ([], $"A2S query to {target} failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    public static async Task<List<OnlinePlayer>> QueryPlayersAsync(
+        string host, int port, int timeoutMs = 3000)
+    {
+        var (players, _) = await QueryPlayersWithDiagnosticsAsync(host, port, timeoutMs);
+        return players;
     }
 
     private static List<OnlinePlayer> ParsePlayers(byte[] data)

@@ -398,11 +398,14 @@ public partial class SettingsViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(WebApiIsRunning));
         OnPropertyChanged(nameof(WebApiStatusIsWarning));
+        var tokenLastUsed = _webApi.ApiTokenLastUsed.HasValue
+            ? $"  ·  access token last used: {_webApi.ApiTokenLastUsed.Value:dd.MM.yyyy HH:mm}"
+            : string.Empty;
         if (!_webApi.IsRunning) return "Stopped";
         if (!_webApi.BoundToAllInterfaces)
             return $"localhost:{_webApi.Port} only — run WGS as Administrator or: " +
-                   $"netsh http add urlacl url=http://+:{_webApi.Port}/ user=Everyone";
-        return $"Running on port {_webApi.Port}  (network reachable)";
+                   $"netsh http add urlacl url=http://+:{_webApi.Port}/ user=Everyone{tokenLastUsed}";
+        return $"Running on port {_webApi.Port}  (network reachable){tokenLastUsed}";
     }
 
     [RelayCommand]

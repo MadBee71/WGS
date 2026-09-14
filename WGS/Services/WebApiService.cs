@@ -23,6 +23,8 @@ public class WebApiService : IDisposable
     public int    Port        { get; private set; } = 8765;
     // Fallback single-token (used when UserService is not available)
     public string Token       { get; private set; } = Guid.NewGuid().ToString("N");
+    // Not tied to any WgsUser, so it's tracked separately from UserService's per-user last_login.
+    public DateTime? ApiTokenLastUsed { get; private set; }
 
     // Injected for user management
     public UserService? Users { get; set; }
@@ -354,6 +356,10 @@ public class WebApiService : IDisposable
 
             bool isApiToken  = token.Equals(Token, StringComparison.OrdinalIgnoreCase);
             bool isUserToken = !isApiToken && (Users?.ValidateToken(token, out authedUser) ?? false);
+
+            // The master token isn't tied to a WgsUser row, so ValidateToken() never runs for
+            // it and its "last used" time was previously invisible anywhere in the UI.
+            if (isApiToken) ApiTokenLastUsed = DateTime.Now;
 
             if (!isApiToken && !isUserToken)
             {
