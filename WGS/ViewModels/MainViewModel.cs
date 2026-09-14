@@ -43,6 +43,7 @@ public partial class MainViewModel : BaseViewModel
     private readonly UPnPService               _upnp;
     private readonly WakeOnDemandService       _wakeOnDemand;
     private readonly System.Timers.Timer       _autoSaveTimer;
+    private readonly System.Timers.Timer       _usersRefreshTimer;
     private readonly System.Timers.Timer       _updateCheckTimer;
 
     public SettingsViewModel Settings { get; }
@@ -254,6 +255,17 @@ public partial class MainViewModel : BaseViewModel
         _autoSaveTimer = new System.Timers.Timer(5000) { AutoReset = true };
         _autoSaveTimer.Elapsed += (_, _) => Save();
         _autoSaveTimer.Start();
+
+        // Users.get re-queries the DB fresh every time, but nothing tells WPF to re-read it —
+        // OnPropertyChanged(nameof(Users)) previously only fired from this VM's own user-admin
+        // commands (regenerate token, toggle enabled, etc.), so a login that happened through
+        // the Web API (its own HTTP thread, invisible to this class) saved last_login correctly
+        // but the Settings page never showed it without an unrelated action forcing a refresh
+        // (reported by Gramidar, Discord, 14.9.2026 — looked like last_login silently not saving
+        // at all, but it was a stale binding, not a missing DB write).
+        _usersRefreshTimer = new System.Timers.Timer(15000) { AutoReset = true };
+        _usersRefreshTimer.Elapsed += (_, _) => WpfApplication.Current?.Dispatcher?.Invoke(RefreshUsers);
+        _usersRefreshTimer.Start();
 
         _healthCheck.StartMonitoring();
 
@@ -982,6 +994,13 @@ public partial class MainViewModel : BaseViewModel
         NewUserName = string.Empty;
         pwBox.Clear();
         RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void CopyUserToken(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        try { System.Windows.Clipboard.SetText(user.Token); } catch { }
     }
 
     [RelayCommand]

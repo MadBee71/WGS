@@ -15,6 +15,7 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly WebApiService       _webApi;
     private readonly UPnPService         _upnp;
     private readonly UserService         _users;
+    private readonly System.Timers.Timer _webApiStatusTimer;
 
     // ── Webhook notifications ─────────────────────────────────────────────────
     [ObservableProperty] private bool   _discordEnabled;
@@ -158,6 +159,15 @@ public partial class SettingsViewModel : BaseViewModel
               .ContinueWith(t => WpfApplication.Current?.Dispatcher?.Invoke(
                   () => AdminPasswordIsDefault = t.Result),
                   TaskScheduler.Default);
+
+        // This VM is a DI singleton built once at startup — WebApiStatus (which now includes
+        // the master token's "last used" time) previously only re-evaluated after Load()/Save(),
+        // so a login through the Web API never showed up here until something unrelated
+        // triggered a rebuild. Same staleness issue as MainViewModel.Users (see its ctor).
+        _webApiStatusTimer = new System.Timers.Timer(15000) { AutoReset = true };
+        _webApiStatusTimer.Elapsed += (_, _) => WpfApplication.Current?.Dispatcher?.Invoke(
+            () => WebApiStatus = BuildWebApiStatus());
+        _webApiStatusTimer.Start();
     }
 
     private void Load()

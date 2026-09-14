@@ -612,8 +612,13 @@
                                         <!-- Row 2: token + last login -->
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
                                             <TextBlock Text="Token: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text="{Binding Token}" FontSize="10" FontFamily="Consolas"
-                                                       Foreground="{StaticResource TextMutedBrush}"/>
+                                            <TextBox Text="{Binding Token, Mode=OneWay}" FontSize="10" FontFamily="Consolas"
+                                                     IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0"
+                                                     Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"
+                                                     IsReadOnlyCaretVisible="True"/>
+                                            <Button Content="📋" Style="{StaticResource GhostButton}" Width="22" Padding="0" Margin="4,0,0,0"
+                                                    Command="{Binding DataContext.CopyUserTokenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Copy token to clipboard"/>
                                             <TextBlock Text="  |  Last login: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                             <TextBlock Text="{Binding LastLoginText}" FontSize="10"
                                                        Foreground="{StaticResource TextMutedBrush}"/>

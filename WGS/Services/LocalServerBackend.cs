@@ -37,6 +37,13 @@ public class LocalServerBackend : IServerBackend
 
     private static readonly HttpClient _manualDownloadHttp = new();
 
+    // Throttles the [Players] A2S failure warning below — per-server last message + when it was
+    // last written, so a persistently-failing query (e.g. a blocked port) logs once immediately
+    // and then at most every 2 minutes instead of flooding the console on every 15s poll
+    // (reported as "kinda spammy" by SkOODaT, Discord, 14.9.2026, right after the warning
+    // shipped in v1.5.11). Resets as soon as a query succeeds so the next failure logs right away.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string Error, DateTime LoggedAt)> _lastA2SError = new();
+
     public LocalServerBackend(ServerManagerService manager, SteamCmdService steamCmd, BackupService backup,
         NotificationService notifications, ConfigService config, ModManagerService mods,
         SourceModService sourceMod, ConfigEditorService configEditor, SteamWorkshopService workshop,
@@ -678,7 +685,21 @@ public class LocalServerBackend : IServerBackend
             string? a2sError;
             (parsed, a2sError) = await A2SQueryService.QueryPlayersWithDiagnosticsAsync(a2sPlugin.A2SHost, a2sPlugin.GetA2SPort(server));
             if (a2sError != null)
-                _manager.InjectLogLine(server.Id, $"[Players] {a2sError}", ConsoleMessageType.Warning);
+            {
+                var now = DateTime.UtcNow;
+                var shouldLog = !_lastA2SError.TryGetValue(server.Id, out var last)
+                    || last.Error != a2sError
+                    || now - last.LoggedAt > TimeSpan.FromMinutes(2);
+                if (shouldLog)
+                {
+                    _manager.InjectLogLine(server.Id, $"[Players] {a2sError}", ConsoleMessageType.Warning);
+                    _lastA2SError[server.Id] = (a2sError, now);
+                }
+            }
+            else
+            {
+                _lastA2SError.TryRemove(server.Id, out _);
+            }
 
             // Valheim's A2S response never carries real names or a usable duration (see
             // A2SQueryService.ParsePlayers) — backfill as many "?"/0s placeholders as possible with
