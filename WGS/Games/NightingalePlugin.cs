@@ -40,7 +40,16 @@ public class NightingalePlugin : GamePluginBase, IRestPlayersPlugin
     {
         try
         {
-            var resp = await _http.GetAsync($"{GetRestApiBaseUrl(server)}/status");
+            // Nightingale's status endpoint is a minimal embedded HTTP server that doesn't
+            // support keep-alive — it closes the socket after every response. HttpClient's
+            // default connection pooling then tries to reuse that already-dead connection on
+            // the very next poll and fails with HttpRequestException, even though a brand-new
+            // connection (a browser, Test-NetConnection) always succeeds at that same instant
+            // (confirmed by Gramidar, Discord, 16.9.2026). ConnectionClose forces a fresh TCP
+            // connection every request instead of pooling one, matching how those tools behave.
+            using var req = new HttpRequestMessage(HttpMethod.Get, $"{GetRestApiBaseUrl(server)}/status");
+            req.Headers.ConnectionClose = true;
+            var resp = await _http.SendAsync(req);
             if (!resp.IsSuccessStatusCode)
             {
                 LastRestApiError = $"HTTP {(int)resp.StatusCode} {resp.StatusCode} from {GetRestApiBaseUrl(server)}/status";
