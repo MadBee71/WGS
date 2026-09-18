@@ -20,6 +20,12 @@ public class StationeersPlugin : GamePluginBase, IA2SQueryPlugin, IRestCommandPl
     // reserved range. Moved well clear of it.
     public override int    DefaultQueryPort => 27050;
     public override int    DefaultMaxPlayers => 16;
+    // Headless Unity (-nographics -batchmode) runs against a fake "Null" graphics device and
+    // logs a "Shader X is not supported on this GPU" line for every shader it tries to validate
+    // against it — hundreds of them, all harmless, not a sign the server needs a real GPU
+    // (confirmed live: Jack Daniels, Discord forum, 18.9.2026 — server reached "Ready" and ran
+    // fine despite the flood). Same noise class already filtered for Valheim/Rust/SCUM etc.
+    protected override bool FilterUnityShaderNoise => true;
 
     // Full rewrite 18.9.2026 — the plugin previously sent only "-batchmode -nographics -port N"
     // and never actually configured anything, so the server ran with no real name/password/limits
