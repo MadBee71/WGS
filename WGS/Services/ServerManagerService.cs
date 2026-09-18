@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using WGS.Games;
@@ -440,6 +442,7 @@ public class ServerManagerService
                 LogReceived?.Invoke(server.Id, delayMsg);
 
                 await Task.Delay(delaySec * 1000);
+                await WaitForPortsFreeAsync(server);
 
                 // Re-check: user might have disabled auto-restart during the delay
                 if (!server.AutoRestart || !_running.ContainsKey(server.Id))
@@ -577,6 +580,29 @@ public class ServerManagerService
             await Task.Delay(5000);
         }
 
+        // For games with no stdin stop command but a known RCON one (e.g. Project Zomboid's
+        // "quit") — send it and give the process a few seconds to exit gracefully on its own
+        // before falling through to the kill below.
+        var rconStopCmd = plugin?.GetRconStopCommand(server);
+        if (stopCmd == null && rconStopCmd != null && plugin?.HasRcon == true && inst.Process?.HasExited == false)
+        {
+            await TrySendRconCommandAsync(server, plugin, rconStopCmd);
+            for (var i = 0; i < 10 && inst.Process?.HasExited == false; i++)
+                await Task.Delay(1000);
+        }
+
+        // Some games (currently Palworld) expose their own graceful-shutdown command through a
+        // REST API instead of stdin or RCON — same "already-working mechanism, just not wired
+        // into Stop" situation as the RCON branch above, using the exact command path the in-app
+        // console's "!stop" already sends successfully.
+        if (stopCmd == null && rconStopCmd == null && plugin is IRestCommandPlugin restCmd
+            && inst.Process?.HasExited == false)
+        {
+            try { await restCmd.TrySendRestCommandAsync(server, "stop"); } catch { }
+            for (var i = 0; i < 10 && inst.Process?.HasExited == false; i++)
+                await Task.Delay(1000);
+        }
+
         inst.DailyRestartCts.Cancel();
         _running.TryRemove(server.Id, out _);
         _network.UnregisterServer(server.Id);
@@ -589,7 +615,15 @@ public class ServerManagerService
         SetStatus(server, ServerStatus.Stopped);
     }
 
-    private static async Task TrySendSaveCommandAsync(GameServer server, IGamePlugin plugin)
+    private static Task TrySendSaveCommandAsync(GameServer server, IGamePlugin plugin)
+        => TrySendRconCommandAsync(server, plugin, [server.SaveCommandBeforeStop], server.SaveCommandDelaySeconds);
+
+    /// <summary>Best-effort: connects over RCON once and sends one or more commands in order over
+    /// that same connection (e.g. ARK's "SaveWorld" then "DoExit"), ignoring any failure (the
+    /// server may not have RCON enabled/reachable at all — not fatal, just skip it). Shared by the
+    /// optional per-server "save before stop" command and plugins' <see cref="IGamePlugin.GetRconStopCommand"/>.
+    /// postDelaySeconds only applies after the last command.</summary>
+    private static async Task TrySendRconCommandAsync(GameServer server, IGamePlugin plugin, string[] commands, int postDelaySeconds = 0)
     {
         var protocol = plugin.EngineFamily switch
         {
@@ -609,12 +643,68 @@ public class ServerManagerService
         try
         {
             var ok = await rcon.ConnectAsync(ip, port, server.RconPassword);
-            if (!ok) return; // server may not have RCON enabled/reachable — not fatal, just skip the save
-            await rcon.SendCommandAsync(server.SaveCommandBeforeStop);
-            if (server.SaveCommandDelaySeconds > 0)
-                await Task.Delay(server.SaveCommandDelaySeconds * 1000);
+            if (!ok) return;
+            for (var i = 0; i < commands.Length; i++)
+            {
+                await rcon.SendCommandAsync(commands[i]);
+                // Brief gap between a save-type command and the stop that follows it — some
+                // engines' save is fire-and-forget and needs a moment before it's safe to exit.
+                if (i < commands.Length - 1)
+                    await Task.Delay(2000);
+            }
+            if (postDelaySeconds > 0)
+                await Task.Delay(postDelaySeconds * 1000);
         }
-        catch { /* best-effort — a failed save command shouldn't block stopping the server */ }
+        catch { /* best-effort — a failed RCON command shouldn't block stopping the server */ }
+    }
+
+    /// <summary>
+    /// Polls whether a killed server's ports have actually been released by the OS before a
+    /// restart tries to rebind them — a hard Kill doesn't guarantee the socket is free
+    /// immediately, and Windows can hold onto it far longer than a short fixed delay accounts
+    /// for. Both the manual/daily restart path (previously a blind 3s delay) and the crash-loop
+    /// auto-restart (previously the fixed AutoRestartDelaySec, default 10s) could otherwise keep
+    /// retrying straight into "port already in use" until the crash-loop limit gave up entirely
+    /// (reported by rushin, Discord forum "Valheim Server Restart issue", 17.9.2026 — needed
+    /// roughly a minute before the ports were free again).
+    /// </summary>
+    public async Task WaitForPortsFreeAsync(GameServer server, int maxWaitSeconds = 60)
+    {
+        var ports = new[] { server.ServerPort, server.QueryPort, server.SteamPort, server.RconPort }
+            .Where(p => p > 0).Distinct().ToArray();
+        if (ports.Length == 0) return;
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(maxWaitSeconds);
+        var warned = false;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (Array.TrueForAll(ports, IsPortFree)) return;
+            if (!warned)
+            {
+                warned = true;
+                InjectLogLine(server.Id, "[WGS] Waiting for ports to be released by the OS before restarting...", ConsoleMessageType.System);
+            }
+            await Task.Delay(1000);
+        }
+        InjectLogLine(server.Id, $"[WGS] Ports still appear in use after {maxWaitSeconds}s — starting anyway.", ConsoleMessageType.Warning);
+    }
+
+    private static bool IsPortFree(int port)
+    {
+        try
+        {
+            using var udp = new UdpClient(port);
+        }
+        catch (SocketException) { return false; }
+
+        try
+        {
+            using var tcp = new TcpListener(IPAddress.Any, port);
+            tcp.Start();
+        }
+        catch (SocketException) { return false; }
+
+        return true;
     }
 
     /// <summary>
@@ -812,7 +902,8 @@ public class ServerManagerService
             LogReceived?.Invoke(server.Id, msg);
 
             await StopAsync(server);
-            await Task.Delay(3000);
+            await Task.Delay(1000);
+            await WaitForPortsFreeAsync(server);
             await StartAsync(server);
             return; // new instance will spawn its own RunDailyRestartAsync
         }

@@ -43,6 +43,12 @@ public class RustPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQuer
     public override string? GetUnbanCommand(string p)                        => RustRcon.Unban(p);
     public override string? GetPlayersCommand()                              => RustRcon.Players();
 
+    // Rust's stdin doesn't accept a stop command, so Stop always fell straight through to a hard
+    // kill. "server.save" then "quit" over RCON is the documented graceful shutdown sequence —
+    // killing the process directly (what every control panel does by default) skips the save and
+    // risks losing progress since the last autosave.
+    public override string[]? GetRconStopCommand(GameServer server) => ["server.save", "quit"];
+
 
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;

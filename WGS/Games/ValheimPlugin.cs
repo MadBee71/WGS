@@ -47,14 +47,19 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
         var pass   = s.ServerPassword;
         var cross  = S(s, "crossplay", "false") == "true" ? "-crossplay" : "";
         var pub    = S(s, "public", "true") == "true" ? "1" : "0";
-        return $"-nographics -batchmode -name \"{name}\" -world \"{world}\" -password \"{pass}\" -port {s.ServerPort} -savedir \"{s.InstallPath}\\saves\" -public {pub} {cross}";
+        // Guard against a malformed/empty stored value breaking the launch command (matches the
+        // TryParse-with-fallback pattern used for other numeric GameSpecificSettings elsewhere,
+        // e.g. PalworldPlugin.RestApiPort) — ConfigFieldType.Number is a UI hint, not a guarantee.
+        var saveInterval = int.TryParse(S(s, "saveInterval", "1800"), out var si) && si > 0 ? si : 1800;
+        return $"-nographics -batchmode -name \"{name}\" -world \"{world}\" -password \"{pass}\" -port {s.ServerPort} -savedir \"{s.InstallPath}\\saves\" -public {pub} {cross} -saveinterval {saveInterval}";
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new()
     {
-        ["worldName"]  = "Dedicated",
-        ["crossplay"]  = "false",
-        ["public"]     = "true",
+        ["worldName"]     = "Dedicated",
+        ["crossplay"]     = "false",
+        ["public"]        = "true",
+        ["saveInterval"]  = "1800",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -62,8 +67,11 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
         var fields = BaseFields();
         fields.AddRange([
             new() { Key = "worldName",  Label = "World name",  FieldType = ConfigFieldType.Text,   DefaultValue = "Dedicated" },
-            new() { Key = "crossplay",  Label = "Crossplay",      FieldType = ConfigFieldType.Toggle, DefaultValue = "false" },
+            new() { Key = "crossplay",  Label = "Crossplay",      FieldType = ConfigFieldType.Toggle, DefaultValue = "false",
+                    Description = "Routes the server through PlayFab instead of Steam — this reliably breaks WGS's player count/query (confirmed by community testing, Discord, 16-18.9.2026). No fix available: PlayFab's lobby API requires an auth flow WGS has no legitimate way to perform. Also note: PlayFab caches a server's address on its end for up to 2 hours after crossplay was enabled — turning it back off doesn't take effect for players immediately, they may need to wait it out or disconnect/reconnect PlayFab locally to force a refresh (SkOODaT, Discord, 18.9.2026)." },
             new() { Key = "public",     Label = "Public listing",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
+            new() { Key = "saveInterval", Label = "Save interval (seconds)", FieldType = ConfigFieldType.Number, DefaultValue = "1800",
+                    Description = "Valheim has no graceful-stop/force-save command WGS can send — Stop always ends in a hard kill, and any progress since the last autosave is lost. Defaults to Valheim's own 1800s (30 min) so WGS doesn't change existing server behavior. Lowering it shrinks the worst-case loss but triggers more frequent brief lag spikes when saving — confirmed by community testing (SkOODaT, Discord, 18.9.2026) that a short interval like 5 min is too laggy on an active world. Tune to taste." },
         ]);
         return fields;
     }

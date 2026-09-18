@@ -30,6 +30,13 @@ public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQue
     public override string? GetUnbanCommand(string p)                        => ArkRcon.Unban(p);
     public override string? GetPlayersCommand()                              => ArkRcon.Players();
 
+    // ARK's stdin doesn't accept a stop command, so Stop always fell straight through to a hard
+    // kill. "SaveWorld" then "DoExit" over RCON is the documented graceful sequence (confirmed
+    // across multiple independent sources incl. arkids.net's command reference and long-standing
+    // community consensus) — SaveWorld first because DoExit alone isn't guaranteed to save on
+    // every platform/build.
+    public override string[]? GetRconStopCommand(GameServer server) => ["SaveWorld", "DoExit"];
+
 
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;

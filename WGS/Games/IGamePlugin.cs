@@ -71,6 +71,12 @@ public interface IGamePlugin
     /// if this game doesn't support channel selection.</summary>
     Task<(string? Recommended, string? Latest)> GetAvailableBuildsAsync(GameServer server);
     string? GetStopCommand(GameServer server);
+
+    /// <summary>For RCON-capable games whose stdin doesn't accept a stop command but whose RCON
+    /// protocol has its own graceful-shutdown sequence (e.g. Project Zomboid's "quit", or ARK's
+    /// "SaveWorld" then "DoExit") — sent in order, one per RCON round-trip, before falling back
+    /// to a hard kill. Null (default) means this game has no known RCON stop sequence.</summary>
+    string[]? GetRconStopCommand(GameServer server);
     Task PreStartAsync(GameServer server);
     Task PostInstallAsync(GameServer server, Action<string> log);
     Task PostUpdateAsync(GameServer server, Action<string> log);

@@ -95,6 +95,12 @@ public abstract class GamePluginBase : IGamePlugin
     public abstract Dictionary<string, string> GetDefaultSettings();
     public abstract List<ConfigField> GetConfigFields();
     public virtual string? GetStopCommand(GameServer server) => null;
+
+    /// <summary>For RCON-capable games whose stdin doesn't accept a stop command but whose RCON
+    /// protocol has its own graceful-shutdown sequence (e.g. Project Zomboid's "quit", or ARK's
+    /// "SaveWorld" then "DoExit") — sent in order, one per RCON round-trip, before falling back
+    /// to a hard kill. Null (default) means this game has no known RCON stop sequence.</summary>
+    public virtual string[]? GetRconStopCommand(GameServer server) => null;
     public virtual Task PreStartAsync(GameServer server) => Task.CompletedTask;
 
     /// <summary>Called after a successful SteamCMD install or update. Override to apply post-install

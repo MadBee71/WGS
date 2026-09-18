@@ -29,6 +29,14 @@ public class ProjectZomboidPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPl
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
 
+    // Zomboid's stdin doesn't accept a stop command, so without this Stop always fell straight
+    // through to a hard kill and any progress since the last autosave was lost (reported by
+    // DatBrokeBoi, Discord forum "Project Zomboid stop button acting like Kill", 16.9.2026).
+    // RCON's "quit" performs a save-and-shutdown — confirmed via the community RCON command
+    // reference, not just assumed. StopAsync sends this and gives the process a few seconds to
+    // exit on its own before falling back to the kill it always did.
+    public override string[]? GetRconStopCommand(GameServer server) => ["quit"];
+
     public override string BuildStartArguments(GameServer s)
     {
         var identity = S(s, "identity", "servertest");

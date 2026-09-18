@@ -616,7 +616,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         AppendLog("[WGS] " + Loc.StatusStopping, ConsoleMessageType.System);
         await StopAsync();
-        await Task.Delay(3000);
+        await Task.Delay(1000);
+        await _manager.WaitForPortsFreeAsync(Server);
         await StartAsync();
     }
 
@@ -701,6 +702,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                     var resp = await _rcon.SendCommandAsync(cmd);
                     if (!string.IsNullOrEmpty(resp))
                         AppendLog(resp, ConsoleMessageType.Info);
+                    if (!_rcon.IsConnected) RconConnected = false;
                 }
             }
             finally { _rconLock.Release(); }
@@ -1227,6 +1229,10 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (Plugin == null) return;
 
         List<Models.OnlinePlayer> parsed;
+        // FetchOnlinePlayersAsync runs off a System.Timers.Timer callback (threadpool thread, no
+        // UI SynchronizationContext) — RconConnected is an [ObservableProperty] WPF binds to, so
+        // it can only be set from the Dispatcher.Invoke block below, not inline in the branches.
+        var rconWentStale = false;
 
         if (Plugin is Games.IRestPlayersPlugin restPlugin)
         {
@@ -1246,7 +1252,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             var cmd = Plugin.GetPlayersCommand()!;
             string response;
             await _rconLock.WaitAsync();
-            try   { response = await _rcon.SendCommandAsync(cmd); }
+            try   { response = await _rcon.SendCommandAsync(cmd); if (!_rcon.IsConnected) rconWentStale = true; }
             catch { return; }
             finally { _rconLock.Release(); }
 
@@ -1269,7 +1275,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (RconConnected && _rcon != null)
             {
                 await _rconLock.WaitAsync();
-                try   { response = await _rcon.SendCommandAsync(cmd); }
+                try   { response = await _rcon.SendCommandAsync(cmd); if (!_rcon.IsConnected) rconWentStale = true; }
                 catch { return; }
                 finally { _rconLock.Release(); }
             }
@@ -1312,6 +1318,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
             PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
             RefreshActivityStats();
+            if (rconWentStale) RconConnected = false;
         });
     }
 
@@ -1722,7 +1729,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (RconConnected && _rcon != null)
         {
             await _rconLock.WaitAsync();
-            try { var r = await _rcon.SendCommandAsync(cmd); if (!string.IsNullOrEmpty(r)) AppendLog(r); }
+            try
+            {
+                var r = await _rcon.SendCommandAsync(cmd);
+                if (!string.IsNullOrEmpty(r)) AppendLog(r);
+                if (!_rcon.IsConnected) RconConnected = false;
+            }
             finally { _rconLock.Release(); }
         }
         else

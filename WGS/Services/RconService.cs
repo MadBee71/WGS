@@ -68,17 +68,18 @@ public class RconService : IDisposable
         try
         {
             _client = new TcpClient();
-            await _client.ConnectAsync(host, port);
+            await _client.ConnectAsync(host, port).WaitAsync(TimeSpan.FromSeconds(8));
             _stream = _client.GetStream();
 
             // AUTH packet
             await SendPacketAsync(3, password);
-            var resp = await ReadPacketAsync();
+            var resp = await ReadPacketAsync().WaitAsync(TimeSpan.FromSeconds(8));
             _authenticated = resp.id != -1;
             return _authenticated;
         }
         catch
         {
+            _authenticated = false;
             return false;
         }
     }
@@ -91,10 +92,28 @@ public class RconService : IDisposable
             return await SendBattlEyeCommandAsync(command);
 
         if (!IsConnected) return "[RCON] Not connected";
-        var id = _requestId++;
-        await SendPacketAsync(2, command, id);
-        var resp = await ReadPacketAsync();
-        return resp.body;
+        try
+        {
+            var id = _requestId++;
+            await SendPacketAsync(2, command, id).WaitAsync(TimeSpan.FromSeconds(8));
+            var resp = await ReadPacketAsync().WaitAsync(TimeSpan.FromSeconds(8));
+            return resp.body;
+        }
+        catch (Exception ex)
+        {
+            // A hung read (dead connection, e.g. a NAT/firewall idle-timeout the server never
+            // told us about) previously blocked here forever — every other RCON operation on this
+            // server (console input, the 15s player-list poll, kick/ban) serializes through the
+            // same lock in ServerViewModel, so one stuck command froze all of them until the OS
+            // eventually noticed the socket was dead, which could take minutes (reported as
+            // "RCON greys out" / "player list takes multiple minutes", DatBrokeBoi, Discord forum,
+            // 16.9.2026). Mark the connection dead so IsConnected reflects reality instead of
+            // staying stuck "connected" but non-functional.
+            _authenticated = false;
+            return ex is TimeoutException
+                ? "[RCON] Timed out waiting for a response — connection appears dead."
+                : $"[RCON] {ex.GetType().Name}: {ex.Message}";
+        }
     }
 
     // ── FXServer legacy UDP rcon ─────────────────────────────────────────────
