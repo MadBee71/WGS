@@ -118,8 +118,8 @@ public sealed class WakeOnDemandService : IDisposable
         try
         {
             await Task.WhenAny(
-                WaitForUdpAsync(server.ServerPort, linked),
-                WaitForTcpAsync(server.ServerPort, linked));
+                WaitForUdpAsync(server.Id, server.ServerPort, linked),
+                WaitForTcpAsync(server.Id, server.ServerPort, linked));
             triggered = !ct.IsCancellationRequested;
         }
         catch (OperationCanceledException) { }
@@ -149,17 +149,67 @@ public sealed class WakeOnDemandService : IDisposable
         catch { }
     }
 
-    private static async Task WaitForUdpAsync(int port, CancellationToken ct)
+    // Binding can fail right after Arm() runs — most commonly because the OS hasn't finished
+    // releasing the port yet from the process that just stopped (TCP TIME_WAIT, or a UDP socket
+    // still tearing down). The old code let that SocketException propagate out of
+    // WaitForUdpAsync/WaitForTcpAsync, which Task.WhenAny in ListenAsync then treated as if a
+    // real connection had arrived (it only checks whether ct was cancelled, not why the awaited
+    // task completed) — so a transient bind failure immediately, wrongly, "woke" the server, and
+    // if the retry-start then hit the same still-held port it could fail again and land the
+    // server in an Error/dead-looking state seconds after arming (DatBrokeBoi, Discord forum,
+    // 20.9.2026: "goes blue then grey like it died... trying to connect doesn't wake it").
+    // Retrying the bind itself — instead of ever letting a bind failure look like a trigger —
+    // fixes this at the source. Pre-existing bug, not introduced by the firewall-rule fix above.
+    private const int BindRetryDelayMs = 1000;
+    private const int BindLogWarningAfterAttempts = 15; // ~15s of retries — worth surfacing by then
+
+    private async Task<UdpClient?> BindUdpWithRetryAsync(string serverId, int port, CancellationToken ct)
     {
-        using var udp = new UdpClient(port);
+        for (var attempt = 1; !ct.IsCancellationRequested; attempt++)
+        {
+            try { return new UdpClient(port); }
+            catch (SocketException)
+            {
+                if (attempt == BindLogWarningAfterAttempts)
+                    _manager.InjectLogLine(serverId,
+                        $"[Wake on Demand] Still waiting for UDP port {port} to become free — retrying.",
+                        ConsoleMessageType.Warning);
+                try { await Task.Delay(BindRetryDelayMs, ct); } catch (OperationCanceledException) { return null; }
+            }
+        }
+        return null;
+    }
+
+    private async Task<TcpListener?> BindTcpWithRetryAsync(string serverId, int port, CancellationToken ct)
+    {
+        for (var attempt = 1; !ct.IsCancellationRequested; attempt++)
+        {
+            var candidate = new TcpListener(IPAddress.Any, port);
+            try { candidate.Start(); return candidate; }
+            catch (SocketException)
+            {
+                if (attempt == BindLogWarningAfterAttempts)
+                    _manager.InjectLogLine(serverId,
+                        $"[Wake on Demand] Still waiting for TCP port {port} to become free — retrying.",
+                        ConsoleMessageType.Warning);
+                try { await Task.Delay(BindRetryDelayMs, ct); } catch (OperationCanceledException) { return null; }
+            }
+        }
+        return null;
+    }
+
+    private async Task WaitForUdpAsync(string serverId, int port, CancellationToken ct)
+    {
+        using var udp = await BindUdpWithRetryAsync(serverId, port, ct);
+        if (udp == null) return; // cancelled while retrying — never treat that as a trigger
         using var reg = ct.Register(() => { try { udp.Close(); } catch { } });
         try { await udp.ReceiveAsync(ct); } catch { }
     }
 
-    private static async Task WaitForTcpAsync(int port, CancellationToken ct)
+    private async Task WaitForTcpAsync(string serverId, int port, CancellationToken ct)
     {
-        var listener = new System.Net.Sockets.TcpListener(IPAddress.Any, port);
-        listener.Start();
+        var listener = await BindTcpWithRetryAsync(serverId, port, ct);
+        if (listener == null) return; // cancelled while retrying — never treat that as a trigger
         using var reg = ct.Register(() => { try { listener.Stop(); } catch { } });
         try { await listener.AcceptTcpClientAsync(ct); }
         catch { }
