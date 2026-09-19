@@ -722,6 +722,13 @@ public class LocalServerBackend : IServerBackend
             if (slp == null) return [];
             parsed = Enumerable.Range(0, slp.Value.Online).Select(_ => new OnlinePlayer { Name = "?" }).ToList();
         }
+        else if (server.GameId == "factorio")
+        {
+            // Factorio has neither a Source-compatible A2S query nor a REST players endpoint —
+            // the only live source is its own console output (FactorioPlayerTracker).
+            var known = _manager.GetInstance(server.Id)?.FactorioPlayers?.GetKnownPlayers() ?? [];
+            parsed = known.Select(k => new OnlinePlayer { Name = k.Name, ConnectedSeconds = k.ConnectedSeconds }).ToList();
+        }
         else
         {
             return [];

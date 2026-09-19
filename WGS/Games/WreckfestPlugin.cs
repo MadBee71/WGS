@@ -25,6 +25,13 @@ public class WreckfestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
     public override int    DefaultMaxPlayers => 24;
     public override bool   RequiresSteamLogin  => true;
     public override bool   UseNativeConsole    => true;
+    // Wreckfest has no stdin stop command, RCON, or REST API to shut down through — Stop always
+    // falls straight through to a hard kill. A Ctrl+C-forward-to-console mechanism was prototyped
+    // and tested 19.9.2026 as a possible fix (see project_wgs_ctrlc_stop_investigation_2026-09-19.md)
+    // but proved unreliable in-process — roughly half the test runs crashed the calling .NET
+    // process itself instead of only signalling the target, an unacceptable risk for WGS's own
+    // long-running process. Not implemented; would need a separate disposable helper process to be
+    // safe, which is a bigger change than attempted today.
 
 
     public string A2SHost => "127.0.0.1";

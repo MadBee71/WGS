@@ -23,6 +23,14 @@ public class FactorioPlugin : GamePluginBase
     public override int    DefaultQueryPort => 34197;
     public override int    DefaultMaxPlayers => 32;
 
+    // Factorio has no stop/shutdown console command of its own — but its built-in "/quit" chat
+    // command (typed into the server's stdin console) does exactly that: saves and exits cleanly
+    // ("Quitting: remote-quit." in the log), same as any other stdin-based GetStopCommand. Without
+    // this, Stop had nothing to send and fell straight through to a hard kill (DatBrokeBoi,
+    // Discord forum, 19.9.2026 — confirmed working manually via the in-app console, just never
+    // wired into the Stop button).
+    public override string? GetStopCommand(GameServer server) => "/quit";
+
     public override async Task PreStartAsync(GameServer s)
     {
         var savePath = Path.Combine(s.InstallPath, "saves", "dedicated.zip");

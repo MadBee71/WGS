@@ -30,10 +30,14 @@ public class ServerInstance
     /// <summary>Only allocated for Valheim — see ValheimPlayerTracker for why.</summary>
     public ValheimPlayerTracker? ValheimPlayers { get; }
 
+    /// <summary>Only allocated for Factorio — see FactorioPlayerTracker for why.</summary>
+    public FactorioPlayerTracker? FactorioPlayers { get; }
+
     public ServerInstance(GameServer server)
     {
         Server = server;
         if (server.GameId == "valheim") ValheimPlayers = new ValheimPlayerTracker();
+        if (server.GameId == "factorio") FactorioPlayers = new FactorioPlayerTracker();
     }
 
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
@@ -375,6 +379,7 @@ public class ServerManagerService
             if (_recentLines.TryGetValue(text, out var seen) && (now - seen) < threshold) return;
             _recentLines[text] = now;
             inst.ValheimPlayers?.OnLogLine(text);
+            inst.FactorioPlayers?.OnLogLine(text);
             var msg = new ConsoleMessage { Text = text, Type = type };
             inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);

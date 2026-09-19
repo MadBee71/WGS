@@ -1259,11 +1259,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             if (string.IsNullOrWhiteSpace(response)) return;
             parsed = Services.PlayerParserService.Parse(Plugin.EngineFamily, response);
         }
-        else if (Plugin is Games.IA2SQueryPlugin or Games.MinecraftPluginBase)
+        else if (Plugin is Games.IA2SQueryPlugin or Games.MinecraftPluginBase || Server.GameId == "factorio")
         {
-            // A2S query, or Minecraft SLP fallback when RCON isn't connected — both handled
-            // by the backend. (When Minecraft RCON IS connected, that's covered by the RCON
-            // branch above via GetPlayersCommand(), so this branch is the A2S/no-RCON case.)
+            // A2S query, Minecraft SLP fallback when RCON isn't connected, or Factorio's
+            // console-log-based tracker (no A2S/RCON/REST player source of its own) — all
+            // handled by the backend. (When Minecraft RCON IS connected, that's covered by the
+            // RCON branch above via GetPlayersCommand(), so this branch is the A2S/no-RCON case.)
             parsed = await _backend.GetOnlinePlayersAsync(Server);
         }
         else
