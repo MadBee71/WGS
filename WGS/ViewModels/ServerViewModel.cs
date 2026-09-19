@@ -38,6 +38,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private readonly GroupBanListService    _groupBans;
     private readonly ServerHygieneService   _hygiene;
     private readonly ConfigPresetService    _presets;
+    private readonly WakeOnDemandService    _wakeService;
     private RconService? _rcon;
     private readonly SemaphoreSlim _rconLock  = new(1, 1);
     private readonly object        _perfLock  = new();
@@ -163,6 +164,44 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     // Resource limits
     [ObservableProperty] private long _maxRamMb;
     partial void OnMaxRamMbChanged(long value) => Server.MaxRamMb = value;
+
+    // Wake on Demand / Shut down when empty — wrapped (rather than bound straight to the Server
+    // model, like most other settings) because toggling either one needs to take effect live via
+    // WakeOnDemandService, not just on the next natural start/stop transition. Previously these
+    // bound directly to Server.WakeOnDemand etc., so flipping the checkbox while already stopped
+    // (or already running, for Shut down when empty) silently did nothing until the server was
+    // next started and stopped again.
+    [ObservableProperty] private bool _wakeOnDemand;
+    partial void OnWakeOnDemandChanged(bool value)
+    {
+        Server.WakeOnDemand = value;
+        ApplyWakeOnDemandState();
+    }
+
+    [ObservableProperty] private bool _wakeOnDemandPortTrigger;
+    partial void OnWakeOnDemandPortTriggerChanged(bool value)
+    {
+        Server.WakeOnDemandPortTrigger = value;
+        ApplyWakeOnDemandState();
+    }
+
+    private void ApplyWakeOnDemandState()
+    {
+        // Arming binds a UDP/TCP socket to the server's port — only safe while nothing else
+        // (i.e. the game process itself) already owns that port.
+        if (Server.Status is not (ServerStatus.Stopped or ServerStatus.Error)) return;
+        if (Server.WakeOnDemand && Server.WakeOnDemandPortTrigger) _wakeService.Arm(Server);
+        else _wakeService.Disarm(Server.Id);
+    }
+
+    [ObservableProperty] private bool _shutDownWhenEmpty;
+    partial void OnShutDownWhenEmptyChanged(bool value)
+    {
+        Server.ShutDownWhenEmpty = value;
+        if (!IsRunning) return; // idle-shutdown only matters while running; takes effect on next start otherwise
+        if (value) _wakeService.ArmIdleShutdown(Server);
+        else _wakeService.DisarmIdleShutdown(Server.Id);
+    }
 
     // Backup retention
     [ObservableProperty] private int _backupRetention;
@@ -446,7 +485,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         PerfHistoryService perfHistory, SteamWorkshopService workshop, WorkshopDbService workshopDb,
         TemplateService templates, ScheduledTaskService scheduler, NetworkMonitorService network,
         GroupBanListService groupBans, ServerHygieneService hygiene,
-        ConfigPresetService presets)
+        ConfigPresetService presets, WakeOnDemandService wakeService)
     {
         Server         = server;
         Plugin         = GameRegistry.Get(server.GameId);
@@ -470,6 +509,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _groupBans     = groupBans;
         _hygiene       = hygiene;
         _presets       = presets;
+        _wakeService   = wakeService;
         AvailablePresets = _presets.GetPresetsForGame(server.GameId);
         SelectedPreset   = AvailablePresets.FirstOrDefault();
 
@@ -505,6 +545,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
 
         _maxRamMb = Server.MaxRamMb; // initialize without triggering OnMaxRamMbChanged
+        _wakeOnDemand = Server.WakeOnDemand;
+        _wakeOnDemandPortTrigger = Server.WakeOnDemandPortTrigger;
+        _shutDownWhenEmpty = Server.ShutDownWhenEmpty;
         _backupRetention   = Server.BackupRetention;
         _backupMaxAgeDays  = Server.BackupMaxAgeDays;
         _useIncrementalBackups = Server.UseIncrementalBackups;

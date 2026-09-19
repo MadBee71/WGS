@@ -37,6 +37,16 @@ public sealed class WakeOnDemandService : IDisposable
         lock (_lock)
         {
             if (_watchers.ContainsKey(server.Id)) return;
+
+            // The armed listener binds server.ServerPort BEFORE the server is actually running,
+            // but FirewallService.AddRules is normally only called by StartAsync — so a forwarded
+            // port that reaches this machine gets dropped by Windows Firewall's default inbound
+            // block before it ever reaches this listener (DatBrokeBoi, Discord forum, 19.9.2026:
+            // "WGS can't scan that port... after setting up Wake on demand"). Idempotent — AddRules
+            // removes any existing rule of the same name before recreating it, so calling it again
+            // when the server actually starts (StartAsync's own AddRules call) is harmless.
+            if (server.FirewallAutoManage) FirewallService.AddRules(server);
+
             var cts = new CancellationTokenSource();
             _watchers[server.Id] = cts;
             // After an idle shutdown, wait 5 minutes before listening again so that

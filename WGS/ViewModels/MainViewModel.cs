@@ -726,7 +726,7 @@ public partial class MainViewModel : BaseViewModel
     {
         var vm = new ServerViewModel(srv, _backend, _manager, _steamCmd, _backup, _notifications, _perfMonitor, _config, _mods,
                _sourceMod, _configEditor, _playerStats, _perfHistory, _workshop, _workshopDb, _templates, _scheduler,
-               _network, _groupBans, _hygiene, _presets);
+               _network, _groupBans, _hygiene, _presets, _wakeOnDemand);
         vm.BatchSelectionChanged = () => OnPropertyChanged(nameof(BatchSelectedCount));
         return vm;
     }
@@ -919,6 +919,14 @@ public partial class MainViewModel : BaseViewModel
             }
             await Task.Delay(500); // extra buffer for OS handle release
         }
+
+        // A server can be deleted while stopped-and-armed (Wake on Demand actively listening on
+        // its port) — nothing else ever calls Disarm for that case (its only other call site is
+        // the Running-transition handler above), so the listener task and the firewall rule
+        // WakeOnDemandService.Arm just added for it would otherwise keep running/open forever,
+        // outliving the deleted server entry entirely. Harmless no-op if it was never armed.
+        _wakeOnDemand.Disarm(vm.Server.Id);
+        if (vm.Server.FirewallAutoManage) FirewallService.RemoveRules(vm.Server);
 
         if (dlg.Result == WGS.Views.RemoveServerResult.RemoveWithFiles
             && System.IO.Directory.Exists(vm.Server.InstallPath))
