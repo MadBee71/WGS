@@ -29,6 +29,12 @@ public class NotificationSettings
     public bool   BotStatusEnabled    { get; set; } = false;
     /// <summary>Channel for the live status message. Falls back to BotChannelId when empty.</summary>
     public string BotStatusChannelId  { get; set; } = string.Empty;
+    /// <summary>When true, the "Wake" buttons on the public status board also require the clicking
+    /// user to be in BotAllowedUsers, same as the admin-panel buttons. Off by default — Wake is
+    /// meant to be usable by anyone who could otherwise just connect and trigger it that way.</summary>
+    public bool   RestrictWakeButtons { get; set; } = false;
+    /// <summary>When true, "Wake" buttons never appear on the status board at all.</summary>
+    public bool   HideWakeButtons     { get; set; } = false;
 
     // Status board styling (applies to the live status embed built above)
     public string StatusTitle           { get; set; } = "Server Status";
@@ -72,6 +78,8 @@ file record NotificationSettingsData(
     string BotAllowedUsers           = "",
     bool   BotStatusEnabled          = false,
     string BotStatusChannelId        = "",
+    bool   RestrictWakeButtons       = false,
+    bool   HideWakeButtons           = false,
     string StatusTitle               = "Server Status",
     string StatusColor               = "#1F6FEB",
     string StatusFooterText          = "Windows Game Server · updates every minute",
@@ -136,6 +144,8 @@ public class NotificationService
             _settings.BotAllowedUsers,
             _settings.BotStatusEnabled,
             _settings.BotStatusChannelId,
+            _settings.RestrictWakeButtons,
+            _settings.HideWakeButtons,
             _settings.StatusTitle,
             _settings.StatusColor,
             _settings.StatusFooterText,
@@ -190,6 +200,8 @@ public class NotificationService
                     BotAllowedUsers = data.BotAllowedUsers,
                     BotStatusEnabled   = data.BotStatusEnabled,
                     BotStatusChannelId = data.BotStatusChannelId,
+                    RestrictWakeButtons = data.RestrictWakeButtons,
+                    HideWakeButtons     = data.HideWakeButtons,
                     StatusTitle           = string.IsNullOrEmpty(data.StatusTitle) ? "Server Status" : data.StatusTitle,
                     StatusColor           = string.IsNullOrEmpty(data.StatusColor) ? "#1F6FEB" : data.StatusColor,
                     StatusFooterText      = data.StatusFooterText ?? "Windows Game Server · updates every minute",

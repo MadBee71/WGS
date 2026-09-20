@@ -34,6 +34,8 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string _botPrefix       = "!";
     [ObservableProperty] private string _botAllowedUsers = string.Empty;
     [ObservableProperty] private bool   _botStatusEnabled;
+    [ObservableProperty] private bool   _restrictWakeButtons;
+    [ObservableProperty] private bool   _hideWakeButtons;
     [ObservableProperty] private string _botStatusChannelId = string.Empty;
 
     // Status board styling
@@ -187,6 +189,8 @@ public partial class SettingsViewModel : BaseViewModel
         BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
         BotAllowedUsers    = s.BotAllowedUsers ?? string.Empty;
         BotStatusEnabled   = s.BotStatusEnabled;
+        RestrictWakeButtons = s.RestrictWakeButtons;
+        HideWakeButtons     = s.HideWakeButtons;
         BotStatusChannelId = s.BotStatusChannelId ?? string.Empty;
         StatusTitle           = string.IsNullOrEmpty(s.StatusTitle) ? "Server Status" : s.StatusTitle;
         StatusColor           = string.IsNullOrEmpty(s.StatusColor) ? "#1F6FEB" : s.StatusColor;
@@ -254,6 +258,8 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotPrefix         = BotPrefix;
         s.BotAllowedUsers   = string.Join(",", BotAdminList);
         s.BotStatusEnabled   = BotStatusEnabled;
+        s.RestrictWakeButtons = RestrictWakeButtons;
+        s.HideWakeButtons     = HideWakeButtons;
         s.BotStatusChannelId = BotStatusChannelId;
         s.StatusTitle           = string.IsNullOrWhiteSpace(StatusTitle) ? "Server Status" : StatusTitle;
         s.StatusColor           = string.IsNullOrWhiteSpace(StatusColor) ? "#1F6FEB" : StatusColor;

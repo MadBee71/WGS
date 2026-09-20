@@ -42,6 +42,12 @@ public class DiscordBotService : IDisposable
     public bool    StatusEnabled    { get; set; }
     /// <summary>Channel for the live status message. Falls back to ChannelId when empty.</summary>
     public string  StatusChannelId  { get; set; } = string.Empty;
+    /// <summary>When true, clicking a "Wake" button on the public status board also requires the
+    /// clicking user to be in AllowedUserIds — same gate the admin-panel buttons already use.</summary>
+    public bool    RestrictWakeButtons { get; set; } = false;
+    /// <summary>When true, "Wake" buttons never appear on the status board at all — takes priority
+    /// over RestrictWakeButtons (nothing to restrict if there's no button to click).</summary>
+    public bool    HideWakeButtons  { get; set; } = false;
 
     // ── Status board styling ────────────────────────────────────────────────
     public string  StatusTitle           { get; set; } = "Server Status";
@@ -163,6 +169,8 @@ public class DiscordBotService : IDisposable
         AllowedUserIds = settings.BotAllowedUsers;
         StatusEnabled    = settings.BotStatusEnabled;
         StatusChannelId  = string.IsNullOrWhiteSpace(settings.BotStatusChannelId) ? ChannelId : settings.BotStatusChannelId;
+        RestrictWakeButtons = settings.RestrictWakeButtons;
+        HideWakeButtons     = settings.HideWakeButtons;
 
         StatusTitle           = string.IsNullOrWhiteSpace(settings.StatusTitle) ? "Server Status" : settings.StatusTitle;
         StatusColor           = string.IsNullOrWhiteSpace(settings.StatusColor) ? "#1F6FEB" : settings.StatusColor;
@@ -403,7 +411,9 @@ public class DiscordBotService : IDisposable
     /// plus one optional link button (e.g. "Join our Discord") appended to whichever row still has room.</summary>
     private object[] BuildStatusComponentRows(List<Models.GameServer> servers)
     {
-        var wakeable = servers.Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand).ToList();
+        var wakeable = HideWakeButtons
+            ? []
+            : servers.Where(s => s.Status != ServerStatus.Running && s.WakeOnDemand).ToList();
 
         var buttons = wakeable.Select(s =>
         {
@@ -627,6 +637,20 @@ public class DiscordBotService : IDisposable
             var serverId   = customId[WakeButtonPrefix.Length..];
             var server     = GetServers?.Invoke().FirstOrDefault(s => s.Id == serverId);
             var serverName = server?.DisplayName ?? "server";
+
+            // Defense in depth — a stale status message posted before HideWakeButtons was turned on
+            // could still show an old Wake button for a minute until the next refresh replaces it.
+            if (HideWakeButtons)
+            {
+                await AckInteractionAsync(id, token, "🚫 Wake buttons are disabled.", ct);
+                return;
+            }
+
+            if (RestrictWakeButtons && !IsInteractionUserAllowed(interaction))
+            {
+                await AckInteractionAsync(id, token, "🚫 You're not authorized to wake servers from here.", ct);
+                return;
+            }
 
             await AckInteractionAsync(id, token, $"⏳ Starting **{serverName}**... give it a minute, then connect normally.", ct);
             if (server != null)

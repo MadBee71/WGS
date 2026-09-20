@@ -721,6 +721,16 @@ public class LocalServerBackend : IServerBackend
             var slp = await MinecraftSLPService.QueryAsync("127.0.0.1", server.ServerPort);
             if (slp == null) return [];
             parsed = Enumerable.Range(0, slp.Value.Online).Select(_ => new OnlinePlayer { Name = "?" }).ToList();
+
+            // SLP only ever reports a count, never names or a per-player duration — backfill as
+            // many "?" placeholders as possible with what MinecraftPlayerTracker has parsed live
+            // from the server's own console output (same pattern as Valheim's A2S backfill above).
+            var known = _manager.GetInstance(server.Id)?.MinecraftPlayers?.GetKnownPlayers() ?? [];
+            for (int i = 0; i < parsed.Count && i < known.Count; i++)
+            {
+                parsed[i].Name = known[i].Name;
+                parsed[i].ConnectedSeconds = known[i].ConnectedSeconds;
+            }
         }
         else if (server.GameId == "factorio")
         {

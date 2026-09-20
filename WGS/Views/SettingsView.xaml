@@ -317,6 +317,15 @@
                         <TextBox Style="{StaticResource DarkTextBox}" Width="200"
                                  Text="{Binding BotStatusChannelId, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
+                    <CheckBox IsChecked="{Binding HideWakeButtons}" Style="{StaticResource DarkCheckBox}"
+                              Content="Hide 'Wake' buttons from the status board entirely" Margin="0,0,0,8"
+                              Visibility="{Binding BotStatusEnabled, Converter={StaticResource BoolToVis}}"
+                              ToolTip="Off by default. Turn this on to remove Wake buttons for everyone, including legitimate players — if you only want to stop specific people from abusing them, use 'Restrict' below instead."/>
+                    <CheckBox IsChecked="{Binding RestrictWakeButtons}" Style="{StaticResource DarkCheckBox}"
+                              Content="Restrict 'Wake' buttons to Admin User IDs above" Margin="0,0,0,8"
+                              IsEnabled="{Binding HideWakeButtons, Converter={StaticResource InvBool}}"
+                              Visibility="{Binding BotStatusEnabled, Converter={StaticResource BoolToVis}}"
+                              ToolTip="Off by default — anyone who can see the status board can click Wake, same as anyone could just connect and trigger it that way. Turn this on if people are waking servers just to be disruptive; it applies the same Admin User IDs list used for Start/Stop/Restart/Backup/Update."/>
 
                     <StackPanel Margin="0,8,0,0" Visibility="{Binding BotStatusEnabled, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="Style the status board" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"
