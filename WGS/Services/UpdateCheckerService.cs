@@ -54,7 +54,8 @@ public static class UpdateCheckerService
                 foreach (var asset in assets.EnumerateArray())
                 {
                     var name = asset.GetProperty("name").GetString() ?? "";
-                    if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        name.IndexOf("ServiceHost", StringComparison.OrdinalIgnoreCase) < 0)
                     {
                         downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
                         break;
