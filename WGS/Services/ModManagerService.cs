@@ -16,8 +16,6 @@ public class ModManagerService
 {
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(5) };
 
-    public event Action<string>? StatusChanged;
-
     // ──────────────────────────────────────────────────────────────────────────
     // OXIDE
     // ──────────────────────────────────────────────────────────────────────────
@@ -512,7 +510,6 @@ public class ModManagerService
 
     private void Report(IProgress<(int, string)>? p, int pct, string msg)
     {
-        StatusChanged?.Invoke(msg);
         p?.Report((pct, msg));
     }
 }

@@ -3,6 +3,8 @@ bin/
 obj/
 publish/
 publish_out/
+publish_out_servicehost/
+releases/
 
 # .NET
 *.user

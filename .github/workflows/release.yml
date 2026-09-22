@@ -20,7 +20,10 @@ jobs:
       - name: Publish
         run: dotnet publish WGS/WGS.csproj -c Release -r win-x64 --self-contained false -o publish_out
 
-      - name: Create ZIP (Python)
+      - name: Publish Background Service (optional Service mode)
+        run: dotnet publish WGS.ServiceHost/WGS.ServiceHost.csproj -c Release -r win-x64 --self-contained false -o publish_out_servicehost
+
+      - name: Create ZIPs (Python)
         run: |
           python -c "
           import zipfile, pathlib
@@ -32,14 +35,25 @@ jobs:
               z.write('LICENSE', 'LICENSE')
               z.write('README.md', 'README.md')
           print(f'Created {dst}')
+
+          sh_src = pathlib.Path('publish_out_servicehost')
+          sh_dst = f'WGS-ServiceHost-{tag}.zip'
+          with zipfile.ZipFile(sh_dst, 'w', zipfile.ZIP_DEFLATED) as z:
+              z.write(sh_src / 'WGS.ServiceHost.exe', 'WGS.ServiceHost.exe')
+              z.write('LICENSE', 'LICENSE')
+          print(f'Created {sh_dst}')
           "
 
-      - name: Build Installer
+      - name: Build Installers
         run: |
           $tag = '${{ github.ref_name }}'.TrimStart('v')
           (Get-Content installer\WGS_Setup.iss) -replace '#define AppVersion ".*"', "#define AppVersion `"$tag`"" | Set-Content installer\WGS_Setup.iss
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\WGS_Setup.iss
           Rename-Item "releases\WGS_Setup_$tag.exe" "WGS_Setup_${{ github.ref_name }}.exe"
+
+          (Get-Content installer\WGS_ServiceHost_Setup.iss) -replace '#define AppVersion ".*"', "#define AppVersion `"$tag`"" | Set-Content installer\WGS_ServiceHost_Setup.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\WGS_ServiceHost_Setup.iss
+          Rename-Item "releases\WGS_ServiceHost_Setup_$tag.exe" "WGS_ServiceHost_Setup_${{ github.ref_name }}.exe"
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
@@ -49,4 +63,6 @@ jobs:
           files: |
             WGS-${{ github.ref_name }}.zip
             releases/WGS_Setup_${{ github.ref_name }}.exe
+            WGS-ServiceHost-${{ github.ref_name }}.zip
+            releases/WGS_ServiceHost_Setup_${{ github.ref_name }}.exe
           fail_on_unmatched_files: true

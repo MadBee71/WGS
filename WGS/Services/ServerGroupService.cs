@@ -15,8 +15,6 @@ public class ServerGroupService
     private readonly string _file;
     private List<ServerGroup> _groups = [];
 
-    public event Action? Changed;
-
     public ServerGroupService(ConfigService config)
     {
         _file = System.IO.Path.Combine(config.AppDataPath, "server_groups.json");
@@ -25,9 +23,9 @@ public class ServerGroupService
 
     public IReadOnlyList<ServerGroup> Groups => _groups;
 
-    public void Add(ServerGroup g)    { _groups.Add(g); Save(); Changed?.Invoke(); }
-    public void Remove(string id)     { _groups.RemoveAll(g => g.Id == id); Save(); Changed?.Invoke(); }
-    public void Update(ServerGroup g) { var i = _groups.FindIndex(x => x.Id == g.Id); if (i >= 0) { _groups[i] = g; Save(); Changed?.Invoke(); } }
+    public void Add(ServerGroup g)    { _groups.Add(g); Save(); }
+    public void Remove(string id)     { _groups.RemoveAll(g => g.Id == id); Save(); }
+    public void Update(ServerGroup g) { var i = _groups.FindIndex(x => x.Id == g.Id); if (i >= 0) { _groups[i] = g; Save(); } }
 
     public ServerGroup? GetForServer(string serverId)
         => _groups.FirstOrDefault(g => g.ServerIds.Contains(serverId));
@@ -40,7 +38,7 @@ public class ServerGroupService
             var g = _groups.FirstOrDefault(x => x.Id == groupId);
             g?.ServerIds.Add(serverId);
         }
-        Save(); Changed?.Invoke();
+        Save();
     }
 
     private void Save()

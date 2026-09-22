@@ -31,8 +31,6 @@ public class BackupService
     private readonly ConfigService _config;
     public string BackupRoot => _config.BackupPath;
 
-    public event Action<string>? ProgressMessage;
-
     public BackupService(ConfigService config)
     {
         _config    = config;
@@ -86,8 +84,6 @@ public class BackupService
                      .Select(kv => kv.Key).ToList();
         var deleted = makeFull ? [] : prevFiles.Keys.Where(k => !current.ContainsKey(k)).ToList();
 
-        ProgressMessage?.Invoke($"[Backup] Compressing {server.DisplayName}{(makeFull ? "" : " (incremental)")}...");
-
         try
         {
             await Task.Run(() =>
@@ -116,8 +112,6 @@ public class BackupService
         SaveSidecar(zipPath, new BackupSidecar(!makeFull, makeFull ? "" : previous!.FilePath, current.Values.ToList()));
 
         var info = new FileInfo(zipPath);
-        ProgressMessage?.Invoke($"[Backup] Done — {new BackupEntry { SizeBytes = info.Length }.SizeText}"
-            + (makeFull ? "" : $" ({toInclude.Count} changed file(s))"));
 
         var entry = new BackupEntry
         {
@@ -193,10 +187,6 @@ public class BackupService
         }
         chain.Reverse();
 
-        ProgressMessage?.Invoke(chain.Count > 1
-            ? $"[Restore] Extracting {chain.Count} backups in chain (full + {chain.Count - 1} incremental)..."
-            : "[Restore] Extracting backup...");
-
         await Task.Run(() =>
         {
             foreach (var entry in chain)
@@ -228,8 +218,6 @@ public class BackupService
                 }
             }
         });
-
-        ProgressMessage?.Invoke("[Restore] Done.");
     }
 
     public List<BackupEntry> GetBackupsForServer(GameServer server)

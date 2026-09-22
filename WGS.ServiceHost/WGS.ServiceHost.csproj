@@ -4,8 +4,24 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>WGS.ServiceHost</RootNamespace>
     <AssemblyName>WGS.ServiceHost</AssemblyName>
+    <!-- Kept in sync by hand with WGS/WGS.csproj's <Version> on each release (same limitation
+         publish.ps1's version-bump already has — it only updates WGS.csproj). Was 1.0.0.0 (the
+         MSBuild default) before this, since this project was never actually published until the
+         Service Mode packaging pass, 22.9.2026. -->
+    <Version>1.5.20</Version>
+    <AssemblyVersion>1.5.20</AssemblyVersion>
+    <FileVersion>1.5.20</FileVersion>
+    <InformationalVersion>1.5.20</InformationalVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

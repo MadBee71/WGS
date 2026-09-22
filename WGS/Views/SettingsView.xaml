@@ -789,10 +789,12 @@
                     <TextBlock Text="Service mode (experimental)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
-                        Instead of this window managing game servers itself, talk to a WGS.ServiceHost
-                        running in the background — servers keep running even if you log out of Windows.
-                        WGS.ServiceHost must already be installed and running; this only points this
-                        window at it. Requires a restart of WGS to take effect.
+                        Instead of this window managing game servers itself, talk to a WGS Background
+                        Service running in the background — servers keep running even if you log out of
+                        Windows. Install it first from the WGS_ServiceHost_Setup installer (same GitHub
+                        releases page as WGS itself — it registers and starts the Windows Service, then
+                        shows the access token to enter below); this switch only points this window at
+                        an already-running service. Requires a restart of WGS to take effect.
                     </TextBlock>
 
                     <CheckBox IsChecked="{Binding ServiceModeEnabled}" Style="{StaticResource DarkCheckBox}"

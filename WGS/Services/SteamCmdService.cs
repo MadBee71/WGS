@@ -16,7 +16,6 @@ public class SteamCmdService
     /// <summary>(serverId, line) — serverId is "" for messages not tied to a specific server (e.g. downloading SteamCMD itself before any install starts).</summary>
     public event Action<string, string>? OutputReceived;
     public event Action<string, int>? ProgressChanged;
-    public event Action? Completed;
 
     public SteamCmdService(ConfigService config)
     {
@@ -149,7 +148,6 @@ public class SteamCmdService
         await heartbeat.ConfigureAwait(false);
 
         var exitCode = _currentProcess.ExitCode;
-        Completed?.Invoke();
 
         if (steamError != null)
             throw new InvalidOperationException(steamError);
