@@ -30,6 +30,8 @@ public class CS2Plugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
     public override string? GetBanCommand(string p, string reason)           => SourceRcon.Ban(p, reason);
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
+    // srcds.exe accepts "quit" on stdin for a clean shutdown — was missing, so Stop always hard-killed.
+    public override string? GetStopCommand(GameServer server)                => "quit";
 
 
     public string A2SHost => "127.0.0.1";

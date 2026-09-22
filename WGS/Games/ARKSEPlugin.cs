@@ -46,6 +46,18 @@ public class ARKSEPlugin : GamePluginBase, IWorkshopPlugin, IWipePlugin, IA2SQue
         var args = $"{map}?listen?SessionName=\"{s.ServerName}\"?MultiHome={s.ServerIp}?Port={s.ServerPort}?MaxPlayers={s.MaxPlayers}?QueryPort={s.QueryPort}";
         if (!string.IsNullOrWhiteSpace(S(s, "serverPassword")))
             args += $"?ServerPassword={S(s, "serverPassword")}";
+        // RCON only turns on when the user has actually set an RCON/admin password (ARK's
+        // ServerAdminPassword doubles as the RCON password) — was entirely missing, so
+        // GetRconStopCommand above could never actually connect and Stop silently fell through to
+        // a hard kill despite looking correct in code (audit finding, 22.9.2026). Port defaults to
+        // ServerPort+10 to match the fallback ServerManagerService.TrySendRconCommandAsync already
+        // uses when RconPort isn't set, so the stop sequence connects to the port the server is
+        // really listening on.
+        if (!string.IsNullOrWhiteSpace(s.RconPassword))
+        {
+            var rconPort = s.RconPort > 0 ? s.RconPort : s.ServerPort + 10;
+            args += $"?RCONEnabled=True?RCONPort={rconPort}?ServerAdminPassword={s.RconPassword}";
+        }
         args += " -server -log";
         return args;
     }

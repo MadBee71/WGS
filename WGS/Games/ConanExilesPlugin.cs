@@ -22,6 +22,12 @@ public class ConanExilesPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugi
     public override int    DefaultMaxPlayers => 40;
     public override bool   HasRcon       => true;
 
+    // Verified (22.9.2026): Conan Exiles' RCON has no save/quit/shutdown command — confirmed by
+    // direct testing against real servers by third parties (several commonly-cited commands like
+    // "save"/"quit" turned out not to exist at all). Stop always hard-kills; this is a genuine game
+    // limitation, same category as Wreckfest/Valheim, not a missing WGS feature. RCON is still
+    // usable for the generic "send RCON command" console (HasRcon above), just no dedicated
+    // stop/kick/ban commands are wired here since their exact syntax isn't reliably documented.
 
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;

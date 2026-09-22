@@ -19,6 +19,10 @@ public abstract class GoldSrcPluginBase : GamePluginBase
     public override string? GetBanCommand(string p, string reason)           => SourceRcon.Ban(p, reason);
     public override string? GetUnbanCommand(string p)                        => SourceRcon.Unban(p);
     public override string? GetPlayersCommand()                              => SourceRcon.Players();
+    // hlds.exe accepts "quit" on stdin for a clean shutdown, same as srcds.exe (see
+    // ServerManagerService.StopAsync). Previously missing entirely, so Stop always hard-killed all
+    // 7 GoldSrc games — same bug class as the already-fixed Factorio/Minecraft/Stationeers cases.
+    public override string? GetStopCommand(GameServer server)                => "quit";
 
     /// <summary>The game directory name inside the HLDS install (e.g. "cstrike").</summary>
     protected abstract string GameDir { get; }

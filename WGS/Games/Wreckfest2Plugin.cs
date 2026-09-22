@@ -38,7 +38,11 @@ public class Wreckfest2Plugin : GamePluginBase, IA2SQueryPlugin
     public override string BuildStartArguments(GameServer s)
         => $"--server --save-dir={SavePath(s)}";
 
-    public override string? GetStopCommand(GameServer server) => "shutdown";
+    // Like Wreckfest 1, no known stdin stop command, RCON, or REST API to shut down through — Stop
+    // always falls straight through to a hard kill. A GetStopCommand("shutdown") used to sit here,
+    // but UseNativeConsole=true above means WGS never writes to stdin for this game (see
+    // ServerManagerService.StopAsync), so it could never actually fire — dead, misleading code
+    // that made Stop look graceful when it wasn't. Removed rather than left in place.
 
     // Write server_config.scnf and server_privilege.sprv before start
     public override async Task PreStartAsync(GameServer server)

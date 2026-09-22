@@ -24,6 +24,13 @@ public class UnturnedPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
 
     protected override bool FilterUnityShaderNoise => true;
 
+    // Verified (22.9.2026): "/Shutdown" is Unturned's documented graceful-shutdown command, typed
+    // directly into the server's own local console (same one WGS writes stdin to on Windows) — does
+    // not require RCON or a mod. Was missing entirely, so Stop always hard-killed. Separately: note
+    // Unturned has no native RCON protocol at all — HasRcon above only becomes meaningful once the
+    // third-party RocketMod plugin is installed; out of scope for this fix, not changing it.
+    public override string? GetStopCommand(GameServer server)                => "/Shutdown";
+
 
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
