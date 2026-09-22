@@ -77,6 +77,24 @@ public class ServerManagerService
     /// <summary>Fired when a server's ports were automatically reassigned because they were in use.</summary>
     public event Action<GameServer>? PortsReassigned;
 
+    /// <summary>Wired by MainViewModel to the same ServerViewModel.RestartCommand the manual Restart
+    /// button and the Scheduled tab use — runs a full restart (backup-on-shutdown, update-on-start,
+    /// backup-on-start, per that server's settings) instead of a bare process stop/start. Without
+    /// this, RunDailyRestartAsync's daily restart would silently skip those settings (reported by
+    /// Shmightworks, Discord, 22.9.2026).</summary>
+    public Func<GameServer, Task>? FullRestartHook { get; set; }
+
+    /// <summary>Wired by MainViewModel to the same StartCommand the manual Start button uses — runs
+    /// BackupOnStart/UpdateOnStart/workshop-mod-injection (via IServerBackend) instead of the bare
+    /// process launch this class does on its own. Used only for the crash-loop auto-restart below,
+    /// which needs just the "start" half (the process already exited on its own — there is nothing
+    /// to stop, so FullRestartHook's stop-then-start would be wrong here). Unlike FullRestartHook,
+    /// this falls back to the pre-existing bare StartAsync if unset, since auto-restart failing
+    /// silently after a crash would be worse than the missing-backup bug this fixes — crash
+    /// recovery must never become a no-op (reported by Shmightworks, Discord, 22.9.2026, same bug
+    /// class as the Daily Restart/Scheduled tab fix).</summary>
+    public Func<GameServer, Task>? StartOnlyHook { get; set; }
+
     public ServerManagerService(ConfigService config, NetworkMonitorService network)
     {
         _config  = config;
@@ -461,7 +479,8 @@ public class ServerManagerService
                     return;
                 }
 
-                await StartAsync(server);
+                if (StartOnlyHook != null) await StartOnlyHook(server);
+                else await StartAsync(server);
             }
             catch (Exception ex)
             {
@@ -911,10 +930,7 @@ public class ServerManagerService
             inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
 
-            await StopAsync(server);
-            await Task.Delay(1000);
-            await WaitForPortsFreeAsync(server);
-            await StartAsync(server);
+            if (FullRestartHook != null) await FullRestartHook(server);
             return; // new instance will spawn its own RunDailyRestartAsync
         }
     }

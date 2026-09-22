@@ -6,14 +6,16 @@ namespace WGS.Services;
 public class LogWatcherService
 {
     private readonly ServerManagerService _manager;
+    private readonly IServerBackend       _backend;
     private readonly NotificationService  _notifications;
 
     // serverId -> (keyword -> last trigger time)
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, DateTime>> _lastFired = new();
 
-    public LogWatcherService(ServerManagerService manager, NotificationService notifications)
+    public LogWatcherService(ServerManagerService manager, IServerBackend backend, NotificationService notifications)
     {
         _manager       = manager;
+        _backend       = backend;
         _notifications = notifications;
     }
 
@@ -53,15 +55,17 @@ public class LogWatcherService
             case LogWatchAction.Restart:
                 await _notifications.NotifyAsync($"⚠ Log Watch — {server.DisplayName}",
                     $"Restarting server. Keyword: `{rule.Keyword}`\nLine: `{line.Trim()}`", "#D29922");
-                await _manager.StopAsync(server);
-                await Task.Delay(3000);
-                await _manager.StartAsync(server);
+                // Via _backend (not _manager directly) so BackupOnShutdown/BackupOnStart/UpdateOnStart
+                // are honored — same bug class as the Daily Restart/Scheduled tab fix (22.9.2026).
+                await _backend.StopAsync(server);
+                await _manager.WaitForPortsFreeAsync(server);
+                await _backend.StartAsync(server);
                 break;
 
             case LogWatchAction.Stop:
                 await _notifications.NotifyAsync($"⚠ Log Watch — {server.DisplayName}",
                     $"Stopping server. Keyword: `{rule.Keyword}`\nLine: `{line.Trim()}`", "#DA3633");
-                await _manager.StopAsync(server);
+                await _backend.StopAsync(server);
                 break;
 
             case LogWatchAction.SendRcon:

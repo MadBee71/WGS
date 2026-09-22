@@ -118,7 +118,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     public IReadOnlyList<int> PerfRangeOptions { get; } = [5, 15, 30, 60];
 
     // Workshop
-    [ObservableProperty] private List<Services.WorkshopItem>   _workshopItems = [];
     [ObservableProperty] private List<Services.WorkshopMod>    _workshopDbMods = [];
     [ObservableProperty] private List<Services.WorkshopItem>   _workshopSearchResults = [];
     [ObservableProperty] private List<Services.WorkshopMod>    _outdatedMods = [];
@@ -261,7 +260,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     [ObservableProperty] private List<SourceModPlugin> _sourceModActive   = [];
     [ObservableProperty] private List<SourceModPlugin> _sourceModDisabled = [];
-    [ObservableProperty] private bool   _sourceModBusy;
     [ObservableProperty] private string _sourceModStatusText = string.Empty;
 
     [RelayCommand]
@@ -445,8 +443,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _netIn          = "—";
     [ObservableProperty] private string _netOut         = "—";
     [ObservableProperty] private int    _connectionCount = 0;
-    [ObservableProperty] private IReadOnlyList<double> _netInHistory  = [];
-    [ObservableProperty] private IReadOnlyList<double> _netOutHistory = [];
 
     public bool HasNetworkStats => _network.GetServerStats(Server.Id) != null;
 
@@ -461,8 +457,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             NetIn           = NetworkMonitorService.FormatSpeed(stats.BytesInPerSec);
             NetOut          = NetworkMonitorService.FormatSpeed(stats.BytesOutPerSec);
             ConnectionCount = stats.ConnectionCount;
-            NetInHistory    = stats.HistoryIn.ToList();
-            NetOutHistory   = stats.HistoryOut.ToList();
         });
     }
 
@@ -1012,13 +1006,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     }
 
     // ── Config Presets ───────────────────────────────────────────────────────
-
-    [RelayCommand]
-    private void LoadPresets()
-    {
-        AvailablePresets = _presets.GetPresetsForGame(Server.GameId);
-        SelectedPreset   = AvailablePresets.FirstOrDefault();
-    }
+    // AvailablePresets/SelectedPreset are populated once in the constructor (mirrors the two lines
+    // below) — no refresh button exists in ServerDetailView.xaml's Config Presets card, so nothing
+    // re-populates them after that.
 
     [RelayCommand]
     private async Task ApplyPreset()
@@ -1080,7 +1070,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             Server.AutoRestart = false;
             await _manager.WarnPlayersAsync(Server, "Server restarting for an update in 1 minute");
             await Task.Delay(60_000);
+            // Not _backend.StopAsync here: InstallAsync() below already runs the update this cycle
+            // exists for, so routing the restart through _backend.StartAsync afterwards would trigger
+            // a second, redundant update (UpdateOnStart/AutoUpdate check). BackupOnShutdown/BackupOnStart
+            // are applied manually instead — same missing-backup bug class as the Daily Restart/
+            // Scheduled tab fix (22.9.2026), just without the backend's update re-check.
             await _manager.StopAsync(Server);
+            if (Server.BackupOnShutdown)
+            {
+                try { await _backup.CreateBackupAsync(Server); }
+                catch (Exception ex) { AppendLog($"[WGS] Backup after shutdown failed: {ex.Message}", ConsoleMessageType.Error); }
+            }
             // StopPerfMonitoring called by OnStatusChanged
 
             await InstallAsync(); // runs SteamCMD update
@@ -1092,6 +1092,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             }
             Server.AutoRestart = wasAutoRestart;
 
+            if (Server.BackupOnStart)
+            {
+                try { await _backup.CreateBackupAsync(Server); }
+                catch (Exception ex) { AppendLog($"[WGS] Backup before start failed: {ex.Message}", ConsoleMessageType.Error); }
+            }
             await _manager.StartAsync(Server);
             // StartPerfMonitoring + StartUpdateTimer called by OnStatusChanged(Running)
             AppendLog("[AutoUpdate] ✅ Updated and restarted.", ConsoleMessageType.System);
@@ -1444,9 +1449,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task RefreshWorkshopAsync()
     {
         if (Plugin == null || !HasWorkshop) return;
-        // WorkshopItems (on-disk scan) isn't part of IServerBackend's scope yet — stays a direct
-        // call, matching this pass's documented boundary. WorkshopDbMods (DB-tracked) is covered.
-        WorkshopItems  = await _workshop.GetInstalledItemsAsync(Server, Plugin);
         WorkshopDbMods = await _backend.GetWorkshopModsAsync(Server);
     }
 
@@ -1737,15 +1739,6 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         await SyncBanToGroupAsync(target, reason);
         BanReason = string.Empty;
         _ = FetchOnlinePlayersAsync();
-    }
-
-    [RelayCommand]
-    private async Task ListPlayersAsync()
-    {
-        if (Plugin == null) return;
-        var cmd = Plugin.GetPlayersCommand();
-        if (cmd == null) { AppendLog("[Players] Player list not supported.", ConsoleMessageType.Warning); return; }
-        await SendRconOrConsole(cmd);
     }
 
     /// <summary>Re-applies this group's bans (for this game) a few seconds after start, in

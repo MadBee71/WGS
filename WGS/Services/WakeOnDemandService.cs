@@ -12,6 +12,7 @@ namespace WGS.Services;
 public sealed class WakeOnDemandService : IDisposable
 {
     private readonly ServerManagerService _manager;
+    private readonly IServerBackend _backend;
     private readonly BackupService _backup;
     private readonly NotificationService _notifications;
     private readonly Dictionary<string, CancellationTokenSource> _watchers  = new();
@@ -22,9 +23,10 @@ public sealed class WakeOnDemandService : IDisposable
     /// <summary>Raised after an idle-shutdown backup completes, so an open Backups tab can refresh.</summary>
     public event Action<string>? ServerBackedUp;
 
-    public WakeOnDemandService(ServerManagerService manager, BackupService backup, NotificationService notifications)
+    public WakeOnDemandService(ServerManagerService manager, IServerBackend backend, BackupService backup, NotificationService notifications)
     {
         _manager = manager;
+        _backend = backend;
         _backup  = backup;
         _notifications = notifications;
     }
@@ -145,7 +147,10 @@ public sealed class WakeOnDemandService : IDisposable
         }
         catch { }
 
-        try { await _manager.StartAsync(server); }
+        // Via _backend (not _manager directly) so BackupOnStart/UpdateOnStart are honored — same
+        // bug class as the Daily Restart/Scheduled tab fix (22.9.2026). The stop/idle-shutdown side
+        // below already checks BackupOnShutdown directly, so only the wake side needed this.
+        try { await _backend.StartAsync(server); }
         catch { }
     }
 

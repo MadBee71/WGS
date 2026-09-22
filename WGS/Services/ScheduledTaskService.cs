@@ -68,6 +68,14 @@ public class ScheduledTaskService : IDisposable
     /// <summary>Wired by MainViewModel to trigger a server update via its ViewModel command.</summary>
     public Func<string, Task>? UpdateServer { get; set; }
 
+    /// <summary>Wired by MainViewModel to the same StartCommand/StopCommand/RestartCommand the manual
+    /// buttons use, so scheduled Restart/Stop/Start honor BackupOnShutdown/BackupOnStart/UpdateOnStart
+    /// exactly like the buttons do (previously called ServerManagerService directly and silently
+    /// skipped all three settings — reported by Shmightworks, Discord, 22.9.2026).</summary>
+    public Func<string, Task>? StartServer   { get; set; }
+    public Func<string, Task>? StopServer    { get; set; }
+    public Func<string, Task>? RestartServer { get; set; }
+
     public ScheduledTaskService(ConfigService config, ServerManagerService manager, BackupService backup,
                                 NotificationService notifications)
     {
@@ -139,9 +147,17 @@ public class ScheduledTaskService : IDisposable
 
         if (due.Count == 0) return;
 
-        // Run concurrently — a Restart task now waits ~60s to warn players first, and
-        // that must not delay other due tasks (e.g. other servers' restarts/backups).
-        await Task.WhenAll(due.Select(ExecuteTaskAsync));
+        // Different servers' due tasks still run concurrently with each other (a Restart task
+        // waits ~60s to warn players first, and that must not delay other servers' due tasks) —
+        // but tasks stacked on the SAME server at the same time slot now run sequentially in the
+        // order they were created (GroupBy preserves source order), so e.g. Stop → Backup →
+        // Update → Start behaves predictably instead of all four racing each other (reported by
+        // Shmightworks, Discord, 22.9.2026).
+        await Task.WhenAll(due.GroupBy(t => t.ServerId).Select(async group =>
+        {
+            foreach (var task in group)
+                await ExecuteTaskAsync(task);
+        }));
 
         List<ScheduledTask> snapshot;
         lock (_lock)
@@ -171,17 +187,13 @@ public class ScheduledTaskService : IDisposable
                 case ScheduledActionType.Restart:
                     await _manager.WarnPlayersAsync(server, "Server restarting in 1 minute");
                     await Task.Delay(60_000);
-                    await _manager.StopAsync(server);
-                    if (server.BackupOnShutdown) { try { await _backup.CreateBackupAsync(server); } catch { } }
-                    await Task.Delay(3000);
-                    await _manager.StartAsync(server);
+                    if (RestartServer != null) await RestartServer(server.Id);
                     break;
                 case ScheduledActionType.Stop:
-                    await _manager.StopAsync(server);
-                    if (server.BackupOnShutdown) { try { await _backup.CreateBackupAsync(server); } catch { } }
+                    if (StopServer != null) await StopServer(server.Id);
                     break;
                 case ScheduledActionType.Start:
-                    await _manager.StartAsync(server);
+                    if (StartServer != null) await StartServer(server.Id);
                     break;
                 case ScheduledActionType.Backup:
                     if (!_manager.IsRunning(server.Id) &&
@@ -242,7 +254,12 @@ public class ScheduledTaskService : IDisposable
         {
             await _manager.WarnPlayersAsync(server, "Server wiping in 2 minutes — all world data will be reset");
             await Task.Delay(120_000);
-            await _manager.StopAsync(server);
+            // Via StopServer (not _manager directly) so BackupOnShutdown is honored — a wipe is
+            // exactly the destructive moment that setting exists to protect against. Falls back to
+            // the bare stop if the delegate is somehow unwired (should not happen in practice) —
+            // never skip stopping the server before deleting its files out from under it.
+            if (StopServer != null) await StopServer(server.Id);
+            else await _manager.StopAsync(server);
             await Task.Delay(3000);
         }
 
@@ -292,7 +309,10 @@ public class ScheduledTaskService : IDisposable
             "#D29922");
 
         await Task.Delay(2000);
-        await _manager.StartAsync(server);
+        // Via StartServer (not _manager directly) so BackupOnStart/UpdateOnStart/workshop-mod
+        // injection are honored, same reasoning as the stop side above.
+        if (StartServer != null) await StartServer(server.Id);
+        else await _manager.StartAsync(server);
         return true;
     }
 

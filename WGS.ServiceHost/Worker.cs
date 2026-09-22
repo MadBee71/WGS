@@ -49,6 +49,28 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 
         GameServer? FindServer(string id) => config.LoadServers().FirstOrDefault(s => s.Id == id);
 
+        // Route scheduler/daily-restart Start/Stop/Restart through the backend (same as the WPF
+        // client's MainViewModel wiring) so BackupOnShutdown/BackupOnStart/UpdateOnStart are honored
+        // here too instead of falling through to ServerManagerService's bare stop/start. No WPF
+        // Dispatcher to worry about in this headless host — direct calls are fine.
+        scheduler.StartServer   = id => backend.StartAsync(FindServer(id)!);
+        scheduler.StopServer    = id => backend.StopAsync(FindServer(id)!);
+        scheduler.RestartServer = async id =>
+        {
+            var s = FindServer(id)!;
+            await backend.StopAsync(s);
+            await manager.WaitForPortsFreeAsync(s);
+            await backend.StartAsync(s);
+        };
+        manager.FullRestartHook = async s =>
+        {
+            await backend.StopAsync(s);
+            await manager.WaitForPortsFreeAsync(s);
+            await backend.StartAsync(s);
+        };
+        // Crash-loop auto-restart only needs the "start" half — see StartOnlyHook's doc comment.
+        manager.StartOnlyHook = s => backend.StartAsync(s);
+
         async Task<string?> Try(Func<Task> op)
         {
             try { await op(); return null; }

@@ -13,6 +13,7 @@ namespace WGS.Services;
 public class ServerHealthService : IDisposable
 {
     private readonly ServerManagerService _manager;
+    private readonly IServerBackend       _backend;
     private readonly NotificationService  _notifications;
     private readonly ConfigService        _config;
 
@@ -26,10 +27,12 @@ public class ServerHealthService : IDisposable
     private readonly object _watchLock = new();
 
     public ServerHealthService(ServerManagerService manager,
+                               IServerBackend backend,
                                NotificationService notifications,
                                ConfigService config)
     {
         _manager       = manager;
+        _backend       = backend;
         _notifications = notifications;
         _config        = config;
 
@@ -165,9 +168,11 @@ public class ServerHealthService : IDisposable
         {
             msg += " Restarting automatically.";
             await _notifications.NotifyAsync($"🔄 Health Check — {server.DisplayName}", msg, "#D29922");
-            await _manager.StopAsync(server);
-            await Task.Delay(3000);
-            await _manager.StartAsync(server);
+            // Via _backend (not _manager directly) so BackupOnShutdown/BackupOnStart/UpdateOnStart
+            // are honored — same bug class as the Daily Restart/Scheduled tab fix (22.9.2026).
+            await _backend.StopAsync(server);
+            await _manager.WaitForPortsFreeAsync(server);
+            await _backend.StartAsync(server);
         }
         else
         {

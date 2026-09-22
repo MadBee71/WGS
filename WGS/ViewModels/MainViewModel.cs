@@ -278,12 +278,29 @@ public partial class MainViewModel : BaseViewModel
         _bot.BackupServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.CreateBackupCommand.ExecuteAsync(null) : Task.CompletedTask; });
         _bot.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
 
+        // Daily Restart (Settings checkbox) runs from ServerManagerService's own background delay
+        // chain, not the UI thread — needs DispatchCommandAwaited (declared below, local functions
+        // are visible throughout the method regardless of declaration order) so the restart is
+        // actually finished before this call returns, not just dispatched. Routes through
+        // RestartCommand so it honors BackupOnShutdown/BackupOnStart/UpdateOnStart instead of the
+        // bare stop/start it used to do (reported by Shmightworks, Discord, 22.9.2026).
+        manager.FullRestartHook = server => DispatchCommandAwaited(() => { var vm = FindServer(server.Id); return vm != null ? vm.RestartCommand.ExecuteAsync(null) : Task.CompletedTask; });
+        // Crash-loop auto-restart only needs the "start" half — see StartOnlyHook's doc comment.
+        manager.StartOnlyHook  = server => DispatchCommandAwaited(() => { var vm = FindServer(server.Id); return vm != null ? vm.StartCommand.ExecuteAsync(null)   : Task.CompletedTask; });
+
         // Start bot if already configured
         _bot.ApplySettings(notifications.Settings);
 
-        // Wire Scheduled Task callbacks
-        _scheduler.GetServers   = () => Servers.Select(v => v.Server);
-        _scheduler.UpdateServer = async id => { var vm = FindServer(id); if (vm != null) await vm.UpdateCommand.ExecuteAsync(null); };
+        // Wire Scheduled Task callbacks. Must use DispatchCommandAwaited, not DispatchCommand — the
+        // scheduler's per-server task ordering (Stop must actually finish before Backup/Update/Start
+        // run) and a scheduled Wipe (must not start deleting files until Stop has truly finished)
+        // both depend on these Tasks only completing once the real work is done, not once it's just
+        // been dispatched onto the UI thread.
+        _scheduler.GetServers    = () => Servers.Select(v => v.Server);
+        _scheduler.UpdateServer  = id => DispatchCommandAwaited(() => { var vm = FindServer(id); return vm != null ? vm.UpdateCommand.ExecuteAsync(null)  : Task.CompletedTask; });
+        _scheduler.StartServer   = id => DispatchCommandAwaited(() => { var vm = FindServer(id); return vm != null ? vm.StartCommand.ExecuteAsync(null)   : Task.CompletedTask; });
+        _scheduler.StopServer    = id => DispatchCommandAwaited(() => { var vm = FindServer(id); return vm != null ? vm.StopCommand.ExecuteAsync(null)    : Task.CompletedTask; });
+        _scheduler.RestartServer = id => DispatchCommandAwaited(() => { var vm = FindServer(id); return vm != null ? vm.RestartCommand.ExecuteAsync(null) : Task.CompletedTask; });
 
         // Backup/Restart/Stop scheduled tasks can create a backup behind the scenes (the task
         // itself, or BackupOnShutdown) — refresh the Backups tab if that server is open so the
@@ -319,6 +336,24 @@ public partial class MainViewModel : BaseViewModel
                 try { await action(); } catch { }
             });
             return Task.CompletedTask;
+        }
+        // Same UI-thread marshaling as DispatchCommand above, but the returned Task only completes
+        // once the dispatched command actually finishes, instead of firing-and-forgetting. Needed
+        // wherever a caller depends on the operation having truly completed before it continues —
+        // ScheduledTaskService's per-server sequential task ordering (Stop must actually finish
+        // before Backup/Update/Start run, not just have been dispatched) and the daily-restart/
+        // crash-restart hooks both need this; DispatchCommand's fire-and-forget would silently
+        // break that ordering guarantee (caught while fixing the Scheduled-tab stacking-order bug,
+        // Shmightworks, Discord, 22.9.2026, before it ever shipped).
+        static Task DispatchCommandAwaited(Func<Task> action)
+        {
+            var tcs = new TaskCompletionSource();
+            WpfApplication.Current?.Dispatcher?.InvokeAsync(async () =>
+            {
+                try { await action(); tcs.TrySetResult(); }
+                catch (Exception ex) { tcs.TrySetException(ex); }
+            });
+            return tcs.Task;
         }
         _webApi.StartServer   = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StartCommand.ExecuteAsync(null)         : Task.CompletedTask; });
         _webApi.StopServer    = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.StopCommand.ExecuteAsync(null)          : Task.CompletedTask; });
