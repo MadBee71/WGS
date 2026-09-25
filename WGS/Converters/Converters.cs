@@ -9,6 +9,20 @@ using WpfColorConverter = System.Windows.Media.ColorConverter;
 
 namespace WGS.Converters;
 
+/// <summary>Bindings: [0] = WgsUser row, [1] = MainViewModel (for ResolveAllowedServersLabel).
+/// Two-part MultiBinding instead of a plain IValueConverter because the label needs the live
+/// server list (to resolve IDs back to display names), which isn't reachable from the row alone.</summary>
+public class UserAllowedServersLabelConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type t, object p, CultureInfo c)
+    {
+        if (values.Length < 2 || values[0] is not WGS.Services.WgsUser user || values[1] is not WGS.ViewModels.MainViewModel vm)
+            return "";
+        return vm.ResolveAllowedServersLabel(user);
+    }
+    public object[] ConvertBack(object v, Type[] t, object p, CultureInfo c) => throw new NotImplementedException();
+}
+
 public class BoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object v, Type t, object p, CultureInfo c)

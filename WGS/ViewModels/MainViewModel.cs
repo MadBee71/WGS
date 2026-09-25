@@ -1025,7 +1025,58 @@ public partial class MainViewModel : BaseViewModel
     // ── User Management ───────────────────────────────────────────────────────
 
     [ObservableProperty] private string _userChangePassword = string.Empty;
+    [ObservableProperty] private string _userAllowedServersInput = string.Empty;
     public List<Services.AuditEntry> AuditLog => _users.GetAuditLog(50);
+
+    [RelayCommand]
+    private void SetUserAllowedServers(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        var tokens = UserAllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        // Accept server DISPLAY NAMES (what the user actually knows), matched case-insensitively —
+        // falls back to the raw token as-is if nothing matches, so a pasted ID still works too.
+        var newIds = tokens.Select(t =>
+            Servers.FirstOrDefault(s => string.Equals(s.Server.DisplayName, t, StringComparison.OrdinalIgnoreCase))?.Server.Id
+            ?? t);
+        // Adds to the existing set rather than replacing it — typing one more server and clicking
+        // Add must not silently drop the ones already granted.
+        var merged = user.AllowedServerIds.Union(newIds, StringComparer.OrdinalIgnoreCase);
+        _users.SetAllowedServers(user.Id, merged, "admin");
+        UserAllowedServersInput = string.Empty;
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void RemoveUserAllowedServer(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        var tokens = UserAllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var idsToRemove = tokens.Select(t =>
+            Servers.FirstOrDefault(s => string.Equals(s.Server.DisplayName, t, StringComparison.OrdinalIgnoreCase))?.Server.Id
+            ?? t);
+        var remaining = user.AllowedServerIds.Except(idsToRemove, StringComparer.OrdinalIgnoreCase);
+        _users.SetAllowedServers(user.Id, remaining, "admin");
+        UserAllowedServersInput = string.Empty;
+        RefreshUsers();
+    }
+
+    [RelayCommand]
+    private void ClearUserAllowedServers(Services.WgsUser? user)
+    {
+        if (user == null) return;
+        _users.SetAllowedServers(user.Id, [], "admin");
+        RefreshUsers();
+    }
+
+    /// <summary>Resolves a user's AllowedServerIds back to their display names for the Settings
+    /// UI — raw IDs aren't something the user should ever have to read or type.</summary>
+    public string ResolveAllowedServersLabel(Services.WgsUser user)
+    {
+        if (user.AllowedServerIds.Count == 0) return "All servers";
+        var names = user.AllowedServerIds.Select(id =>
+            Servers.FirstOrDefault(s => s.Server.Id == id)?.Server.DisplayName ?? id);
+        return string.Join(", ", names);
+    }
 
     [RelayCommand]
     private void AddUser(System.Windows.Controls.PasswordBox? pwBox)
@@ -1096,6 +1147,17 @@ public partial class MainViewModel : BaseViewModel
 
     [RelayCommand]
     private void RefreshAuditLog() => OnPropertyChanged(nameof(AuditLog));
+
+    [RelayCommand]
+    private void ClearAuditLog()
+    {
+        var result = System.Windows.MessageBox.Show(
+            "Permanently delete all audit log entries? This cannot be undone.", "Confirm",
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+        _users.ClearAuditLog("admin");
+        OnPropertyChanged(nameof(AuditLog));
+    }
 
     private void RefreshUsers()
     {

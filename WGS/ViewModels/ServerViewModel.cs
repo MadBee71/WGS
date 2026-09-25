@@ -379,18 +379,21 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public bool HasCustomImage => File.Exists(CustomImagePath);
 
-    public string GameImageUrl
+    public string GameImageUrl => HasCustomImage ? CustomImagePath : ResolveGameImageUrl(Plugin);
+
+    // Shared with RemoteServerViewModel, which has no concept of a locally-stored custom image
+    // (that lives in this machine's AppDataPath, not the remote one's).
+    internal static string FormatByteSize(long bytes) => bytes >= 1024 * 1024 * 1024
+        ? $"{bytes / (1024.0 * 1024 * 1024):F2} GB"
+        : $"{bytes / (1024.0 * 1024):F1} MB";
+
+    internal static string ResolveGameImageUrl(IGamePlugin? plugin)
     {
-        get
-        {
-            if (HasCustomImage)
-                return CustomImagePath;
-            if (Plugin?.GameStoreAppId > 0)
-                return $"https://cdn.akamai.steamstatic.com/steam/apps/{Plugin.GameStoreAppId}/capsule_sm_120.jpg";
-            if (Plugin != null && LocalGameImages.TryGetValue(Plugin.GameId, out var localImage))
-                return $"pack://application:,,,/{localImage}";
-            return "pack://application:,,,/no_image.png";
-        }
+        if (plugin?.GameStoreAppId > 0)
+            return $"https://cdn.akamai.steamstatic.com/steam/apps/{plugin.GameStoreAppId}/capsule_sm_120.jpg";
+        if (plugin != null && LocalGameImages.TryGetValue(plugin.GameId, out var localImage))
+            return $"pack://application:,,,/{localImage}";
+        return "pack://application:,,,/no_image.png";
     }
 
     [RelayCommand]
@@ -443,8 +446,29 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _netIn          = "—";
     [ObservableProperty] private string _netOut         = "—";
     [ObservableProperty] private int    _connectionCount = 0;
+    [ObservableProperty] private System.Windows.Media.PointCollection _netInPoints  = new();
+    [ObservableProperty] private System.Windows.Media.PointCollection _netOutPoints = new();
 
     public bool HasNetworkStats => _network.GetServerStats(Server.Id) != null;
+
+    // Sparkline geometry, matches the web dashboard's mini CPU sparkline (100x28 viewbox).
+    private const double SparkW = 100, SparkH = 28;
+
+    private static System.Windows.Media.PointCollection BuildSparkline(IReadOnlyCollection<double> history, double scaleMax)
+    {
+        var pts = new System.Windows.Media.PointCollection();
+        if (history.Count < 2 || scaleMax <= 0) return pts;
+        var n = history.Count;
+        var i = 0;
+        foreach (var v in history)
+        {
+            var x = i / (double)(n - 1) * SparkW;
+            var y = SparkH - Math.Clamp(v / scaleMax, 0, 1) * SparkH;
+            pts.Add(new System.Windows.Point(x, y));
+            i++;
+        }
+        return pts;
+    }
 
     private void OnServerStatsUpdated(string serverId)
     {
@@ -452,11 +476,18 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var stats = _network.GetServerStats(serverId);
         if (stats == null) return;
 
+        // Shared scale so both lines are visually comparable, with headroom above the peak.
+        var scaleMax = Math.Max(1, Math.Max(
+            stats.HistoryIn.DefaultIfEmpty(0).Max(),
+            stats.HistoryOut.DefaultIfEmpty(0).Max())) * 1.15;
+
         WpfApplication.Current?.Dispatcher?.Invoke(() =>
         {
             NetIn           = NetworkMonitorService.FormatSpeed(stats.BytesInPerSec);
             NetOut          = NetworkMonitorService.FormatSpeed(stats.BytesOutPerSec);
             ConnectionCount = stats.ConnectionCount;
+            NetInPoints     = BuildSparkline(stats.HistoryIn,  scaleMax);
+            NetOutPoints    = BuildSparkline(stats.HistoryOut, scaleMax);
         });
     }
 
@@ -765,6 +796,15 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         catch { /* clipboard can be locked by another app — nothing useful to surface here */ }
     }
 
+    // Needed to configure per-server Discord/web-dashboard access restrictions, which reference
+    // servers by this ID — otherwise it's not shown anywhere in the UI.
+    [RelayCommand]
+    private void CopyServerId()
+    {
+        try { System.Windows.Clipboard.SetText(Server.Id); }
+        catch { /* clipboard can be locked by another app — nothing useful to surface here */ }
+    }
+
     // ── Quick commands ───────────────────────────────────────────────────────
 
     [ObservableProperty] private string _newQuickCommandLabel   = string.Empty;
@@ -921,9 +961,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
 
         var totalSize = toDelete.Sum(b => b.SizeBytes);
-        var sizeText  = totalSize >= 1024 * 1024 * 1024
-            ? $"{totalSize / (1024.0 * 1024 * 1024):F2} GB"
-            : $"{totalSize / (1024.0 * 1024):F1} MB";
+        var sizeText  = FormatByteSize(totalSize);
 
         var result = WpfMsgBox.Show(
             $"This will permanently delete {toDelete.Count} backup(s) totaling {sizeText}, based on the current " +
@@ -1630,9 +1668,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
 
         var totalSize = junk.Sum(j => j.SizeBytes);
-        var sizeText  = totalSize >= 1024 * 1024 * 1024
-            ? $"{totalSize / (1024.0 * 1024 * 1024):F2} GB"
-            : $"{totalSize / (1024.0 * 1024):F1} MB";
+        var sizeText  = FormatByteSize(totalSize);
         var byType = junk.GroupBy(j => j.Description).Select(g => $"{g.Count()} {g.Key.ToLowerInvariant()}(s)");
 
         var result = WpfMsgBox.Show(

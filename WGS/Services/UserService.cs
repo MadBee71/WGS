@@ -17,11 +17,16 @@ public class WgsUser
     public bool      IsEnabled  { get; set; } = true;
     public DateTime? LastLogin  { get; set; }
 
+    // Empty = unrestricted (sees/controls every server, subject to Role as before). Non-empty =
+    // this user only sees and can act on these specific server IDs, regardless of Role.
+    public List<string> AllowedServerIds { get; set; } = [];
+
     public string RoleLabel    => Role == UserRole.Admin ? "Admin" : "Viewer";
     public string StatusLabel  => IsEnabled ? "Active" : "Disabled";
     public string LastLoginText => LastLogin.HasValue
         ? LastLogin.Value.ToString("dd.MM.yyyy HH:mm")
         : "Never";
+    public string AllowedServersLabel => AllowedServerIds.Count == 0 ? "All servers" : string.Join(", ", AllowedServerIds);
 }
 
 public class AuditEntry
@@ -88,12 +93,24 @@ public class UserService
         }
         catch { }
 
+        // Migration: add allowed_server_ids column if missing (older schema). Empty/NULL = unrestricted.
+        try
+        {
+            using var alt2 = db.CreateCommand();
+            alt2.CommandText = "ALTER TABLE users ADD COLUMN allowed_server_ids TEXT NOT NULL DEFAULT ''";
+            alt2.ExecuteNonQuery();
+        }
+        catch { }
+
         using var count = db.CreateCommand();
         count.CommandText = "SELECT COUNT(*) FROM users";
         var n = (long)(count.ExecuteScalar() ?? 0L);
         if (n == 0)
             CreateUser("admin", "admin", UserRole.Admin);
     }
+
+    private static List<string> ParseAllowedServerIds(string raw) =>
+        raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
     public List<WgsUser> GetAll()
     {
@@ -102,7 +119,7 @@ public class UserService
         {
             using var db  = OpenDb();
             using var cmd = db.CreateCommand();
-            cmd.CommandText = "SELECT id, username, role, token, is_enabled, last_login FROM users ORDER BY id";
+            cmd.CommandText = "SELECT id, username, role, token, is_enabled, last_login, allowed_server_ids FROM users ORDER BY id";
             using var r = cmd.ExecuteReader();
             var list = new List<WgsUser>();
             while (r.Read())
@@ -114,6 +131,7 @@ public class UserService
                     Token     = r.GetString(3),
                     IsEnabled = r.GetInt32(4) != 0,
                     LastLogin = r.IsDBNull(5) ? null : DateTime.Parse(r.GetString(5)),
+                    AllowedServerIds = r.IsDBNull(6) ? [] : ParseAllowedServerIds(r.GetString(6)),
                 });
             return list;
         }
@@ -124,56 +142,81 @@ public class UserService
     {
         user = null;
         if (!_available || string.IsNullOrEmpty(token)) return false;
+        // RecordLogin opens its own SqliteConnection — must happen only after the reader/connection
+        // below are fully disposed (see ValidatePassword's comment for how this was found: nested
+        // connections while a reader is still open on another connection can hang indefinitely).
         try
         {
-            using var db  = OpenDb();
-            using var cmd = db.CreateCommand();
-            cmd.CommandText = "SELECT id, username, role, token, is_enabled, last_login FROM users WHERE token=$t AND is_enabled=1";
-            cmd.Parameters.AddWithValue("$t", token);
-            using var r = cmd.ExecuteReader();
-            if (!r.Read()) return false;
-            user = new WgsUser
+            using (var db  = OpenDb())
+            using (var cmd = db.CreateCommand())
             {
-                Id        = r.GetInt32(0),
-                Username  = r.GetString(1),
-                Role      = Enum.TryParse<UserRole>(r.GetString(2), out var role) ? role : UserRole.Viewer,
-                Token     = r.GetString(3),
-                IsEnabled = true,
-                LastLogin = r.IsDBNull(5) ? null : DateTime.Parse(r.GetString(5)),
-            };
-            RecordLogin(user.Id, user.Username, "token");
-            return true;
+                cmd.CommandText = "SELECT id, username, role, token, is_enabled, last_login, allowed_server_ids FROM users WHERE token=$t AND is_enabled=1";
+                cmd.Parameters.AddWithValue("$t", token);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) return false;
+                user = new WgsUser
+                {
+                    Id        = r.GetInt32(0),
+                    Username  = r.GetString(1),
+                    Role      = Enum.TryParse<UserRole>(r.GetString(2), out var role) ? role : UserRole.Viewer,
+                    Token     = r.GetString(3),
+                    IsEnabled = true,
+                    LastLogin = r.IsDBNull(5) ? null : DateTime.Parse(r.GetString(5)),
+                    AllowedServerIds = r.IsDBNull(6) ? [] : ParseAllowedServerIds(r.GetString(6)),
+                };
+            }
         }
         catch { return false; }
+
+        RecordLogin(user.Id, user.Username, "token");
+        return true;
     }
 
     public bool ValidatePassword(string username, string password, out WgsUser? user)
     {
         user = null;
         if (!_available) return false;
+        // Audit/RecordLogin open their own SqliteConnection — must happen only after the reader
+        // and connection below are fully disposed, never while a read is still in flight on
+        // another connection to the same file (found via the new /api/login route hanging on a
+        // failed login: this path had never been exercised before, since password login had
+        // nothing wired up to call it until now).
+        bool loginFailed = false;
         try
         {
-            using var db  = OpenDb();
-            using var cmd = db.CreateCommand();
-            cmd.CommandText = "SELECT id, username, role, token, is_enabled, password_hash, last_login FROM users WHERE username=$u AND is_enabled=1";
-            cmd.Parameters.AddWithValue("$u", username);
-            using var r = cmd.ExecuteReader();
-            if (!r.Read()) { WriteAudit(username, "login_fail", "bad password"); return false; }
-            var hash = r.GetString(5);
-            if (!VerifyPassword(password, hash)) { WriteAudit(username, "login_fail", "bad password"); return false; }
-            user = new WgsUser
+            using (var db  = OpenDb())
+            using (var cmd = db.CreateCommand())
             {
-                Id        = r.GetInt32(0),
-                Username  = r.GetString(1),
-                Role      = Enum.TryParse<UserRole>(r.GetString(2), out var role) ? role : UserRole.Viewer,
-                Token     = r.GetString(3),
-                IsEnabled = true,
-                LastLogin = r.IsDBNull(6) ? null : DateTime.Parse(r.GetString(6)),
-            };
-            RecordLogin(user.Id, user.Username, "password");
-            return true;
+                cmd.CommandText = "SELECT id, username, role, token, is_enabled, password_hash, last_login, allowed_server_ids FROM users WHERE username=$u AND is_enabled=1";
+                cmd.Parameters.AddWithValue("$u", username);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) { loginFailed = true; }
+                else
+                {
+                    var hash = r.GetString(5);
+                    if (!VerifyPassword(password, hash)) { loginFailed = true; }
+                    else
+                    {
+                        user = new WgsUser
+                        {
+                            Id        = r.GetInt32(0),
+                            Username  = r.GetString(1),
+                            Role      = Enum.TryParse<UserRole>(r.GetString(2), out var role) ? role : UserRole.Viewer,
+                            Token     = r.GetString(3),
+                            IsEnabled = true,
+                            LastLogin = r.IsDBNull(6) ? null : DateTime.Parse(r.GetString(6)),
+                            AllowedServerIds = r.IsDBNull(7) ? [] : ParseAllowedServerIds(r.GetString(7)),
+                        };
+                    }
+                }
+            }
         }
         catch (Exception ex) { Debug.WriteLine($"[UserService] ValidatePassword error for '{username}': {ex.Message}"); return false; } // #5
+
+        if (loginFailed) { WriteAudit(username, "login_fail", "bad password"); return false; }
+        if (user == null) return false;
+        RecordLogin(user.Id, user.Username, "password");
+        return true;
     }
 
     private void RecordLogin(int userId, string username, string method)
@@ -240,6 +283,25 @@ public class UserService
             cmd.ExecuteNonQuery();
             WriteAudit(changedBy.Length > 0 ? changedBy : username, "change_role",
                 $"user={username} new_role={newRole}", db);
+        }
+        catch { }
+    }
+
+    public void SetAllowedServers(int userId, IEnumerable<string> serverIds, string changedBy = "")
+    {
+        if (!_available) return;
+        try
+        {
+            var username = GetUsername(userId);
+            var csv = string.Join(",", serverIds.Where(s => !string.IsNullOrWhiteSpace(s)));
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "UPDATE users SET allowed_server_ids=$a WHERE id=$id";
+            cmd.Parameters.AddWithValue("$a",  csv);
+            cmd.Parameters.AddWithValue("$id", userId);
+            cmd.ExecuteNonQuery();
+            WriteAudit(changedBy.Length > 0 ? changedBy : username, "set_allowed_servers",
+                $"user={username} servers={(csv.Length > 0 ? csv : "(all)")}", db);
         }
         catch { }
     }
@@ -323,6 +385,23 @@ public class UserService
             return list;
         }
         catch { return []; }
+    }
+
+    public void ClearAuditLog(string clearedBy = "")
+    {
+        if (!_available) return;
+        try
+        {
+            using var db  = OpenDb();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "DELETE FROM audit_log";
+            cmd.ExecuteNonQuery();
+            // Deliberately written AFTER the delete, on the same connection (no open reader here
+            // to conflict with) — this becomes the first entry of the fresh log, not a ghost of
+            // the one just wiped.
+            WriteAudit(clearedBy.Length > 0 ? clearedBy : "admin", "clear_audit_log", "", db);
+        }
+        catch { }
     }
 
     // Public overload without an existing connection

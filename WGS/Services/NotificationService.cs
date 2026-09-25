@@ -25,6 +25,9 @@ public class NotificationSettings
     public string BotChannelId    { get; set; } = string.Empty;
     public string BotPrefix       { get; set; } = "!";
     public string BotAllowedUsers { get; set; } = string.Empty;
+    /// <summary>Narrows specific BotAllowedUsers to specific servers only. See
+    /// DiscordBotService.ServerRestrictedUserIds for the exact format.</summary>
+    public string BotServerRestrictedUsers { get; set; } = string.Empty;
     /// <summary>When true, the bot keeps one message in the status channel updated with live server status instead of posting new messages each time.</summary>
     public bool   BotStatusEnabled    { get; set; } = false;
     /// <summary>Channel for the live status message. Falls back to BotChannelId when empty.</summary>
@@ -96,7 +99,8 @@ file record NotificationSettingsData(
     string SmtpUser                  = "",
     string SmtpPasswordEncrypted     = "",
     string EmailFrom                 = "",
-    string EmailTo                   = "");
+    string EmailTo                   = "",
+    string BotServerRestrictedUsers  = "");
 
 public class NotificationService
 {
@@ -162,7 +166,8 @@ public class NotificationService
             _settings.SmtpUser,
             encryptedSmtp,
             _settings.EmailFrom,
-            _settings.EmailTo);
+            _settings.EmailTo,
+            _settings.BotServerRestrictedUsers);
 
         System.IO.File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(data, Formatting.Indented));
     }
@@ -198,6 +203,7 @@ public class NotificationService
                     BotChannelId    = data.BotChannelId,
                     BotPrefix       = string.IsNullOrEmpty(data.BotPrefix) ? "!" : data.BotPrefix,
                     BotAllowedUsers = data.BotAllowedUsers,
+                    BotServerRestrictedUsers = data.BotServerRestrictedUsers,
                     BotStatusEnabled   = data.BotStatusEnabled,
                     BotStatusChannelId = data.BotStatusChannelId,
                     RestrictWakeButtons = data.RestrictWakeButtons,

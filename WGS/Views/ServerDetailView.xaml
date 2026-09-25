@@ -27,6 +27,14 @@
                     <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Plugin.Category}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
                     </Border>
+                    <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center"
+                            ToolTip="Server ID — used for Discord/web-dashboard per-server access restrictions">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Server.Id}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource TextMutedBrush}"/>
+                            <Button Content="📋" Style="{StaticResource GhostButton}" Width="18" Height="18" Padding="0" Margin="6,0,0,0"
+                                    Command="{Binding CopyServerIdCommand}" ToolTip="Copy server ID"/>
+                        </StackPanel>
+                    </Border>
                     <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="Uptime: " FontSize="12" Foreground="{StaticResource TextMutedBrush}"/>
@@ -105,6 +113,16 @@
                     <TextBlock Text="{Binding NetOut}" FontSize="15" FontWeight="Bold"
                                Foreground="{StaticResource AccentBlueBrush}"/>
                 </StackPanel>
+                <!-- Bandwidth sparkline (last 2 min) -->
+                <Viewbox Width="100" Height="28" Margin="0,0,32,0" VerticalAlignment="Center"
+                         Visibility="{Binding HasNetworkStats, Converter={StaticResource BoolToVis}}">
+                    <Canvas Width="100" Height="28">
+                        <Polyline Points="{Binding NetInPoints}" Stroke="{StaticResource AccentGreenBrush}"
+                                  StrokeThickness="1.5"/>
+                        <Polyline Points="{Binding NetOutPoints}" Stroke="{StaticResource AccentBlueBrush}"
+                                  StrokeThickness="1.5"/>
+                    </Canvas>
+                </Viewbox>
                 <!-- Connections -->
                 <StackPanel Margin="0,0,32,0" VerticalAlignment="Center">
                     <TextBlock Text="Connections" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>

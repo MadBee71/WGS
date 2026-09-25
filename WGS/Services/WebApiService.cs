@@ -141,9 +141,10 @@ public class WebApiService : IDisposable
     public Func<string, Task<List<BackupDetail>>>?                  CleanupBackups       { get; set; }
 
     // ── FiveM/RedM build-channel choice (remote install pause) ─────────────────────
-    // In-memory placeholder store only — nothing pauses InstallAsync yet (that wiring is
-    // a later integration step). This gives RemoteServerBackend's three interface methods
-    // real routes to call against so the plumbing exists end-to-end and compiles now.
+    // Used by LocalServerBackend.InstallFromManualDownloadAsync when running headless under
+    // WGS.ServiceHost (no WPF to show Views.BuildChannelDialog from) — wired via
+    // LocalServerBackend.RegisterBuildChannelChoice in Worker.cs. RemoteServerBackend's three
+    // interface methods poll/submit against the GET/POST .../install/build-channel routes below.
     public class PendingBuildChannelChoice
     {
         public string Recommended { get; set; } = "";
@@ -152,9 +153,9 @@ public class WebApiService : IDisposable
     }
     private readonly ConcurrentDictionary<string, PendingBuildChannelChoice> _pendingBuildChoices = new();
 
-    /// <summary>For a future install flow to call when it needs a build-channel decision from
-    /// a remote client: registers the pending choice and returns once SubmitBuildChannelChoice
-    /// is called for this server. Not called from anywhere yet — InstallAsync doesn't pause.</summary>
+    /// <summary>Called by LocalServerBackend when it needs a build-channel decision and has no WPF
+    /// dialog available: registers the pending choice and returns once SubmitBuildChannelChoice
+    /// is called for this server (via the POST route below, or RemoteServerBackend for master/slave).</summary>
     public Task<bool> RegisterPendingBuildChannelChoice(string serverId, string recommended, string latest)
     {
         var entry = new PendingBuildChannelChoice { Recommended = recommended, Latest = latest };
@@ -344,6 +345,30 @@ public class WebApiService : IDisposable
             return;
         }
 
+        // POST /api/login  body: { username, password }  — issues a token, no auth required (that's
+        // the point: this is how a dashboard user gets one in the first place).
+        if (req.HttpMethod == "POST" && path == "/api/login")
+        {
+            using var loginReader = new System.IO.StreamReader(req.InputStream);
+            var loginBody = await loginReader.ReadToEndAsync();
+            JsonDocument loginDoc;
+            try { loginDoc = JsonDocument.Parse(loginBody.Length > 0 ? loginBody : "{}"); }
+            catch { resp.StatusCode = 400; await SendJson(resp, new { error = "Invalid request" }); return; }
+            using (loginDoc)
+            {
+                var username = loginDoc.RootElement.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
+                var password = loginDoc.RootElement.TryGetProperty("password", out var p) ? p.GetString() ?? "" : "";
+                if (Users == null || !Users.ValidatePassword(username, password, out var loggedInUser) || loggedInUser == null)
+                {
+                    resp.StatusCode = 401;
+                    await SendJson(resp, new { error = "Invalid username or password" });
+                    return;
+                }
+                await SendJson(resp, new { token = loggedInUser.Token, username = loggedInUser.Username, role = loggedInUser.RoleLabel });
+                return;
+            }
+        }
+
         // Auth check for API
         // Two accepted forms:
         //   1. Config API token (Token property) → full access (master↔slave, legacy)
@@ -373,11 +398,40 @@ public class WebApiService : IDisposable
         // Viewer role can't change server state (only applies to user-account logins)
         bool isViewer = authedUser?.Role == UserRole.Viewer;
 
+        // Per-server access restriction (WgsUser.AllowedServerIds) — applies uniformly to every
+        // /api/servers/{id}/... route, regardless of sub-action, before any route-specific parsing
+        // below. Empty AllowedServerIds = unrestricted (existing behavior, unchanged). The master
+        // API token (authedUser == null) is never restricted — see the comment above isViewer.
+        if (authedUser != null && authedUser.AllowedServerIds.Count > 0)
+        {
+            var scopeMatch = System.Text.RegularExpressions.Regex.Match(path, @"^/api/servers/([^/]+)(/.*)?$");
+            if (scopeMatch.Success && !authedUser.AllowedServerIds.Contains(scopeMatch.Groups[1].Value))
+            {
+                resp.StatusCode = 403;
+                await SendJson(resp, new { error = "You don't have access to this server" });
+                return;
+            }
+        }
+
         try
         {
+            // GET /api/me — lets the dashboard know whether to show admin-heavy action buttons
+            // (Update/Backup) for the currently logged-in user, per their AllowedServerIds scoping.
+            if (req.HttpMethod == "GET" && path == "/api/me")
+            {
+                await SendJson(resp, new {
+                    username   = authedUser?.Username ?? "",
+                    role       = authedUser?.RoleLabel ?? "Admin",
+                    restricted = authedUser != null && authedUser.AllowedServerIds.Count > 0,
+                });
+                return;
+            }
+
             if (req.HttpMethod == "GET" && path == "/api/servers")
             {
                 var servers = GetServers?.Invoke() ?? [];
+                if (authedUser != null && authedUser.AllowedServerIds.Count > 0)
+                    servers = servers.Where(s => authedUser.AllowedServerIds.Contains(s.Id));
                 await SendJson(resp, servers.Select(s => new {
                     s.Id, s.DisplayName, s.GameId, Status = s.Status.ToString(),
                     s.ServerPort, s.MaxPlayers, s.CurrentPlayers,
@@ -1373,6 +1427,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
   <div class="hdr-right">
     <span id="refreshTxt"></span>
     <span class="badge" id="conBadge">Connecting…</span>
+    <a href="#" onclick="logout();return false" style="font-size:11px;color:#8b949e;margin-left:10px">Log out</a>
   </div>
 </div>
 
@@ -1380,11 +1435,26 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 <div id="authWrap" class="auth-wrap">
   <div class="auth-card">
     <h2><img src="/favicon.ico" alt="WGS" style="height:32px;vertical-align:middle;margin-right:8px"/>Dashboard</h2>
-    <div class="field"><label>Access Token</label>
-      <input type="password" id="tokInp" placeholder="Enter token…"
-             onkeydown="if(event.key==='Enter')connect()">
+    <div id="loginErr" style="display:none;color:#f85149;font-size:12px;margin-bottom:8px"></div>
+    <div class="field"><label>Username</label>
+      <input type="text" id="userInp" placeholder="Username" autocomplete="username"
+             onkeydown="if(event.key==='Enter')document.getElementById('passInp').focus()">
     </div>
-    <button class="btn-full" onclick="connect()">Connect</button>
+    <div class="field"><label>Password</label>
+      <input type="password" id="passInp" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="btn-full" onclick="login()">Log in</button>
+    <div style="text-align:center;margin-top:10px">
+      <a href="#" style="font-size:11px;color:#8b949e" onclick="toggleTokenLogin();return false">Use an access token instead</a>
+    </div>
+    <div id="tokLoginWrap" style="display:none;margin-top:8px">
+      <div class="field"><label>Access Token</label>
+        <input type="password" id="tokInp" placeholder="Enter token…"
+               onkeydown="if(event.key==='Enter')connect()">
+      </div>
+      <button class="btn-full" onclick="connect()">Connect</button>
+    </div>
   </div>
 </div>
 
@@ -1428,8 +1498,39 @@ let TOKEN='', refreshIv=null, logOffsets={}, logOpen={};
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 function connect(){
-  TOKEN=(document.getElementById('tokInp').value||'').trim();
-  if(TOKEN){localStorage.setItem('wgs_token',TOKEN);loadAll();}
+  const t=(document.getElementById('tokInp').value||'').trim();
+  // Full reload, not loadAll() in place — guarantees no stale server cards survive from whoever
+  // was logged in before (their button set may differ, e.g. restricted vs unrestricted).
+  if(t){localStorage.setItem('wgs_token',t);location.reload();}
+}
+function toggleTokenLogin(){
+  const w=document.getElementById('tokLoginWrap');
+  w.style.display=w.style.display==='none'?'':'none';
+}
+async function login(){
+  const errEl=document.getElementById('loginErr');
+  errEl.style.display='none';
+  const username=(document.getElementById('userInp').value||'').trim();
+  const password=document.getElementById('passInp').value||'';
+  if(!username||!password)return;
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})});
+    if(!r.ok){errEl.textContent='Invalid username or password';errEl.style.display='';return;}
+    const data=await r.json();
+    localStorage.setItem('wgs_token',data.token);
+    location.reload(); // guarantees no stale cards from a previous session's user/permissions
+  }catch(e){errEl.textContent='Could not reach the server';errEl.style.display='';}
+}
+function logout(){
+  TOKEN='';
+  RESTRICTED=null;
+  localStorage.removeItem('wgs_token');
+  if(refreshIv){clearInterval(refreshIv);refreshIv=null;}
+  document.getElementById('userInp').value='';
+  document.getElementById('passInp').value='';
+  document.getElementById('appWrap').style.display='none';
+  document.getElementById('authWrap').style.display='';
 }
 (function(){
   const t=localStorage.getItem('wgs_token');
@@ -1448,8 +1549,12 @@ async function api(path,method,body){
 }
 
 // ── Main refresh ─────────────────────────────────────────────────────────
+let RESTRICTED=null; // null = not yet known; resolved once per session from /api/me
 async function loadAll(){
   try{
+    if(RESTRICTED===null){
+      try{const me=await api('me');RESTRICTED=!!me.restricted;}catch(e){RESTRICTED=false;}
+    }
     const[sv,sys]=await Promise.all([api('servers'),api('system')]);
     loadScheduled();
     document.getElementById('conBadge').textContent='Connected';
@@ -1553,9 +1658,11 @@ function upsertCard(s){
   <button class="btn bg" id="btn_start_${s.Id}" onclick="act('${s.Id}','start')">▶ Start</button>
   <button class="btn br" id="btn_stop_${s.Id}"  onclick="act('${s.Id}','stop')">■ Stop</button>
   <button class="btn bb" id="btn_restart_${s.Id}" onclick="act('${s.Id}','restart')">↺ Restart</button>
+  ${RESTRICTED?'':`
   <button class="btn bo" onclick="act('${s.Id}','update')">⬇ Update</button>
   <button class="btn bo" onclick="act('${s.Id}','backup')">💾 Backup</button>
   <button class="btn bo" onclick="toggleBackups('${s.Id}')">📂 Backups</button>
+  `}
 </div>
 <div id="bkrow_${s.Id}" style="display:none;padding:6px 16px;border-top:1px solid #21262d"></div>
 <button class="players-toggle" id="pltog_${s.Id}" onclick="togglePlayers('${s.Id}')">▼ Players (0)</button>

@@ -37,6 +37,7 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private bool   _restrictWakeButtons;
     [ObservableProperty] private bool   _hideWakeButtons;
     [ObservableProperty] private string _botStatusChannelId = string.Empty;
+    [ObservableProperty] private string _botServerRestrictedUsers = string.Empty;
 
     // Status board styling
     [ObservableProperty] private string _statusTitle           = "Server Status";
@@ -188,6 +189,7 @@ public partial class SettingsViewModel : BaseViewModel
         BotChannelId       = s.BotChannelId    ?? string.Empty;
         BotPrefix          = string.IsNullOrEmpty(s.BotPrefix) ? "!" : s.BotPrefix;
         BotAllowedUsers    = s.BotAllowedUsers ?? string.Empty;
+        BotServerRestrictedUsers = s.BotServerRestrictedUsers ?? string.Empty;
         BotStatusEnabled   = s.BotStatusEnabled;
         RestrictWakeButtons = s.RestrictWakeButtons;
         HideWakeButtons     = s.HideWakeButtons;
@@ -257,6 +259,7 @@ public partial class SettingsViewModel : BaseViewModel
         s.BotChannelId      = BotChannelId;
         s.BotPrefix         = BotPrefix;
         s.BotAllowedUsers   = string.Join(",", BotAdminList);
+        s.BotServerRestrictedUsers = BotServerRestrictedUsers;
         s.BotStatusEnabled   = BotStatusEnabled;
         s.RestrictWakeButtons = RestrictWakeButtons;
         s.HideWakeButtons     = HideWakeButtons;

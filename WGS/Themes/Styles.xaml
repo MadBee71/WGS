@@ -4,6 +4,7 @@
 
     <!-- Converters -->
     <conv:BoolToVisibilityConverter        x:Key="BoolToVis"/>
+    <conv:UserAllowedServersLabelConverter x:Key="UserAllowedServersLabel"/>
     <conv:InverseBoolToVisibilityConverter x:Key="InvBoolToVis"/>
     <conv:InverseBoolConverter             x:Key="InvBool"/>
     <conv:NullToVisibilityConverter        x:Key="NullToVis"/>

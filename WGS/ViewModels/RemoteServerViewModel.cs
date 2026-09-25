@@ -21,18 +21,7 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
     public string   GameId      => Info.GameId;
     public string   MachineName { get; }
 
-    public string GameImageUrl
-    {
-        get
-        {
-            var plugin = Games.GameRegistry.Get(Info.GameId);
-            if (plugin?.GameStoreAppId > 0)
-                return $"https://cdn.akamai.steamstatic.com/steam/apps/{plugin.GameStoreAppId}/capsule_sm_120.jpg";
-            if (plugin != null && ServerViewModel.LocalGameImages.TryGetValue(plugin.GameId, out var localImage))
-                return $"pack://application:,,,/{localImage}";
-            return "pack://application:,,,/no_image.png"; // games with no Steam store page and no local logo
-        }
-    }
+    public string GameImageUrl => ServerViewModel.ResolveGameImageUrl(Games.GameRegistry.Get(Info.GameId));
 
     public string GameName
     {

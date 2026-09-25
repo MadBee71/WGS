@@ -308,6 +308,17 @@
                         </StackPanel>
                     </Grid>
 
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock Style="{StaticResource FieldLabel}">
+                            <Run Text="Restrict specific Admin User IDs to specific servers (advanced)"/>
+                        </TextBlock>
+                        <TextBox Style="{StaticResource DarkTextBox}"
+                                 Text="{Binding BotServerRestrictedUsers, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Format: userId1=serverId1,serverId2;userId2=serverId3 — a user listed here can only Start/Stop/Restart/Backup/Update/Wake the server IDs after their '='. Users not listed here (but present in Admin User IDs above) keep unrestricted access to every server, as before."/>
+                        <TextBlock FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="Optional narrowing on top of Admin User IDs above — leave empty for no restrictions. Copy a server's ID from the 📋 badge next to its name at the top of its page."/>
+                    </StackPanel>
+
                     <CheckBox IsChecked="{Binding BotStatusEnabled}" Style="{StaticResource DarkCheckBox}"
                               Content="Keep a live status message updated instead of posting new messages" Margin="0,4,0,8"
                               ToolTip="Edits one message in place every minute with each server's online/offline state, player count and connect IP:port. Offline servers with Wake on demand enabled get a 'Wake' button right on the message — opens a live gateway connection to receive button clicks."/>
@@ -642,6 +653,32 @@
                                                     Command="{Binding DataContext.ChangeUserPasswordCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
+                                        <!-- Row 4: restrict to specific servers -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <TextBlock Text="Allowed servers: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource UserAllowedServersLabel}">
+                                                        <Binding/>
+                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                            <TextBox x:Name="AllowedServersBox"
+                                                     Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
+                                                     Text="{Binding DataContext.UserAllowedServersInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Comma-separated server names (as shown in the sidebar)"/>
+                                            <Button Content="+ Add" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.SetUserAllowedServersCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Adds these server(s) to this user's allowed list (kept alongside whatever's already allowed)"/>
+                                            <Button Content="− Remove" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.RemoveUserAllowedServerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Removes these server(s) from this user's allowed list, keeping the rest"/>
+                                            <Button Content="Clear" Style="{StaticResource GhostButton}"
+                                                    Command="{Binding DataContext.ClearUserAllowedServersCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Removes all restrictions — user can see/control every server again"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -655,6 +692,9 @@
                                        Foreground="{StaticResource TextSecondaryBrush}"/>
                             <Button Content="↻" Style="{StaticResource GhostButton}" Width="28" Padding="0" Margin="8,0,0,0"
                                     Command="{Binding DataContext.RefreshAuditLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="🗑 Clear" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Padding="8,2"
+                                    Command="{Binding DataContext.ClearAuditLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    ToolTip="Permanently delete all audit log entries"/>
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding DataContext.AuditLog, RelativeSource={RelativeSource AncestorType=Window}}">
                             <ItemsControl.ItemTemplate>

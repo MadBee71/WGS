@@ -86,6 +86,10 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         var webApi = new WebApiService { Users = users, DashboardEnabled = true };
         _webApi = webApi;
 
+        // FiveM/RedM install can't show Views.BuildChannelDialog here (no WPF) — pause via the
+        // web dashboard/API instead. See LocalServerBackend.InstallFromManualDownloadAsync.
+        backend.RegisterBuildChannelChoice = webApi.RegisterPendingBuildChannelChoice;
+
         // ── Pre-existing delegate surface ───────────────────────────────────────────────────
         webApi.GetServers    = () => config.LoadServers();
         webApi.StartServer   = id => backend.StartAsync(FindServer(id)!);

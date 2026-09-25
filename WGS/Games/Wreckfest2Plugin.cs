@@ -23,10 +23,33 @@ public class Wreckfest2Plugin : GamePluginBase, IA2SQueryPlugin
     public override int    DefaultSteamPort   => 30200;
     public override int    DefaultMaxPlayers  => 16;
 
-    // --save-dir path: must have no spaces (Bugbear's arg parser can't handle them, even with quotes).
+    // Save folder, always directly inside this server's own InstallPath — one per server,
+    // no collision even if two Wreckfest 2 servers share a parent game folder.
+    private const string SaveDirName = "Saves";
     private static string SavePath(GameServer s)
+        => Path.Combine(s.InstallPath.TrimEnd('\\', '/'), SaveDirName);
+
+    // Pre-fix versions used the PARENT of InstallPath, which every server under the same game folder
+    // shares — so multiple Wreckfest 2 servers all wrote to (and overwrote) the same "Saves" folder.
+    private static string LegacySharedSavePath(GameServer s)
         => Path.Combine(Path.GetDirectoryName(s.InstallPath.TrimEnd('\\', '/'))!, "Saves")
                .Replace(" ", "_");
+
+    // One-time migration: if this server has no per-server Saves folder yet but the old shared one
+    // has data, copy it in so existing config/admin list isn't lost. Never deletes the old copy.
+    private static void MigrateLegacySaveDataIfNeeded(GameServer s)
+    {
+        var newPath = SavePath(s);
+        var oldPath = LegacySharedSavePath(s);
+        if (Directory.Exists(newPath) || !Directory.Exists(oldPath)) return;
+
+        Directory.CreateDirectory(newPath);
+        foreach (var file in Directory.GetFiles(oldPath))
+        {
+            try { File.Copy(file, Path.Combine(newPath, Path.GetFileName(file)), overwrite: false); }
+            catch { }
+        }
+    }
 
     // The game always loads server_cup_config.ccnl from {InstallPath}\save\ regardless of --save-dir.
     private static string GameNativeSavePath(GameServer s)
@@ -35,8 +58,13 @@ public class Wreckfest2Plugin : GamePluginBase, IA2SQueryPlugin
 
     public string A2SHost => "127.0.0.1";
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
+
+    // Relative, not the absolute SavePath: the process's WorkingDirectory is always this server's
+    // own InstallPath (see ServerManagerService), so a bare relative name resolves to InstallPath\Saves
+    // with zero spaces in the argument itself — sidesteps Bugbear's parser choking on spaces even when
+    // quoted, without requiring the install folder name to be space-free.
     public override string BuildStartArguments(GameServer s)
-        => $"--server --save-dir={SavePath(s)}";
+        => $"--server --save-dir={SaveDirName}";
 
     // Like Wreckfest 1, no known stdin stop command, RCON, or REST API to shut down through — Stop
     // always falls straight through to a hard kill. A GetStopCommand("shutdown") used to sit here,
@@ -58,6 +86,7 @@ public class Wreckfest2Plugin : GamePluginBase, IA2SQueryPlugin
         var carType     = S(server, "carType", "");
         var savePath    = SavePath(server);
 
+        MigrateLegacySaveDataIfNeeded(server);
         Directory.CreateDirectory(savePath);
 
         // --- server_config.scnf ---

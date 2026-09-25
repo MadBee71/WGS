@@ -37,6 +37,11 @@ public class DiscordBotService : IDisposable
     public string  CommandPrefix  { get; set; } = "!";
     /// <summary>Comma-separated Discord user IDs allowed to send commands. Empty = anyone in the channel.</summary>
     public string  AllowedUserIds { get; set; } = string.Empty;
+    /// <summary>Optional narrowing on top of AllowedUserIds: restricts specific users to specific
+    /// servers only. Format: "userId1=serverId1,serverId2;userId2=serverId3" (semicolon between
+    /// users, comma between that user's allowed server IDs). A user with no entry here, or an
+    /// entry with an empty server list, is unrestricted (can act on every server, as before).</summary>
+    public string  ServerRestrictedUserIds { get; set; } = string.Empty;
     public bool    IsEnabled      { get; set; }
     /// <summary>When true, a single message in StatusChannelId is edited in place with live status instead of posting new ones.</summary>
     public bool    StatusEnabled    { get; set; }
@@ -167,6 +172,7 @@ public class DiscordBotService : IDisposable
         ChannelId      = settings.BotChannelId;
         CommandPrefix  = string.IsNullOrWhiteSpace(settings.BotPrefix) ? "!" : settings.BotPrefix;
         AllowedUserIds = settings.BotAllowedUsers;
+        ServerRestrictedUserIds = settings.BotServerRestrictedUsers;
         StatusEnabled    = settings.BotStatusEnabled;
         StatusChannelId  = string.IsNullOrWhiteSpace(settings.BotStatusChannelId) ? ChannelId : settings.BotStatusChannelId;
         RestrictWakeButtons = settings.RestrictWakeButtons;
@@ -651,6 +657,11 @@ public class DiscordBotService : IDisposable
                 await AckInteractionAsync(id, token, "🚫 You're not authorized to wake servers from here.", ct);
                 return;
             }
+            if (!IsUserAllowedForServer(InteractionUserId(interaction), serverId))
+            {
+                await AckInteractionAsync(id, token, "🚫 You're not authorized to control this server.", ct);
+                return;
+            }
 
             await AckInteractionAsync(id, token, $"⏳ Starting **{serverName}**... give it a minute, then connect normally.", ct);
             if (server != null)
@@ -671,6 +682,11 @@ public class DiscordBotService : IDisposable
                 await AckInteractionAsync(id, token, "🚫 You're not authorized to control servers from here.", ct);
                 return;
             }
+            if (!IsUserAllowedForServer(InteractionUserId(interaction), serverId))
+            {
+                await AckInteractionAsync(id, token, "🚫 You're not authorized to control this server.", ct);
+                return;
+            }
 
             await AckInteractionAsync(id, token, $"{label} **{serverName}**...", ct);
             if (server == null) return;
@@ -689,13 +705,34 @@ public class DiscordBotService : IDisposable
         }
     }
 
+    private static string InteractionUserId(JObject interaction) =>
+        interaction["member"]?["user"]?["id"]?.ToString() ?? interaction["user"]?["id"]?.ToString() ?? "";
+
     private bool IsInteractionUserAllowed(JObject interaction)
     {
         if (string.IsNullOrWhiteSpace(AllowedUserIds)) return true;
-        var userId = interaction["member"]?["user"]?["id"]?.ToString() ?? interaction["user"]?["id"]?.ToString();
+        var userId = InteractionUserId(interaction);
         if (string.IsNullOrEmpty(userId)) return false;
         var allowed = AllowedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return allowed.Contains(userId);
+    }
+
+    /// <summary>Per-server narrowing on top of the general allow-list — see ServerRestrictedUserIds.
+    /// True (allowed) when the user has no entry, or their entry's list is empty, or it contains
+    /// this server's ID.</summary>
+    private bool IsUserAllowedForServer(string userId, string serverId)
+    {
+        if (string.IsNullOrWhiteSpace(ServerRestrictedUserIds) || string.IsNullOrEmpty(userId)) return true;
+        foreach (var entry in ServerRestrictedUserIds.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = entry.IndexOf('=');
+            if (eq < 0) continue;
+            var entryUserId = entry[..eq].Trim();
+            if (entryUserId != userId) continue;
+            var servers = entry[(eq + 1)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return servers.Length == 0 || servers.Contains(serverId);
+        }
+        return true; // no entry for this user = unrestricted
     }
 
     /// <summary>Must respond within 3 seconds of receiving the interaction — sends an ephemeral acknowledgement.</summary>
@@ -771,13 +808,13 @@ public class DiscordBotService : IDisposable
                 if (!allowed.Contains(authorId)) continue;
             }
 
-            await HandleCommand(id, content, ct);
+            await HandleCommand(id, authorId, content, ct);
         }
     }
 
     // ── Command router ────────────────────────────────────────────────────────
 
-    private async Task HandleCommand(string triggerMsgId, string content, CancellationToken ct)
+    private async Task HandleCommand(string triggerMsgId, string authorId, string content, CancellationToken ct)
     {
         var parts   = content.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var command = parts[0][CommandPrefix.Length..].ToLowerInvariant();
@@ -790,12 +827,12 @@ public class DiscordBotService : IDisposable
                 "help"    => BuildHelp(),
                 "status"  => BuildStatus(),
                 "list"    => BuildStatus(),
-                "start"   => await RunServerAction(args, StartServer,   "▶️ Starting",   "start"),
-                "stop"    => await RunServerAction(args, StopServer,    "⏹ Stopping",    "stop"),
-                "restart" => await RunServerAction(args, RestartServer, "🔄 Restarting", "restart"),
-                "update"  => await RunServerAction(args, UpdateServer,  "🔄 Updating",   "update"),
-                "backup"  => await RunServerAction(args, BackupServer,  "💾 Backing up", "backup"),
-                "cmd"     => await RunConsoleCmd(args),
+                "start"   => await RunServerAction(args, authorId, StartServer,   "▶️ Starting",   "start"),
+                "stop"    => await RunServerAction(args, authorId, StopServer,    "⏹ Stopping",    "stop"),
+                "restart" => await RunServerAction(args, authorId, RestartServer, "🔄 Restarting", "restart"),
+                "update"  => await RunServerAction(args, authorId, UpdateServer,  "🔄 Updating",   "update"),
+                "backup"  => await RunServerAction(args, authorId, BackupServer,  "💾 Backing up", "backup"),
+                "cmd"     => await RunConsoleCmd(args, authorId),
                 _         => $"❓ Unknown command `{command}`. Type `{CommandPrefix}help`."
             };
 
@@ -842,7 +879,7 @@ public class DiscordBotService : IDisposable
         return sb.ToString().TrimEnd();
     }
 
-    private async Task<string> RunServerAction(string[] args,
+    private async Task<string> RunServerAction(string[] args, string authorId,
         Func<string, Task>? action, string verb, string cmdName)
     {
         if (args.Length == 0)
@@ -854,12 +891,14 @@ public class DiscordBotService : IDisposable
         var srv  = FindServer(name);
         if (srv == null)
             return $"❌ Server not found: `{name}`\nUse `{CommandPrefix}status` to see server names.";
+        if (!IsUserAllowedForServer(authorId, srv.Id))
+            return "🚫 You're not authorized to control this server.";
 
         await action(srv.Id);
         return $"{verb} **{srv.DisplayName}**...";
     }
 
-    private async Task<string> RunConsoleCmd(string[] args)
+    private async Task<string> RunConsoleCmd(string[] args, string authorId)
     {
         if (args.Length < 2)
             return $"Usage: `{CommandPrefix}cmd <server name> <command>`";
@@ -869,6 +908,8 @@ public class DiscordBotService : IDisposable
         var srv  = FindServer(name);
         if (srv == null)
             return $"❌ Server not found: `{name}`";
+        if (!IsUserAllowedForServer(authorId, srv.Id))
+            return "🚫 You're not authorized to control this server.";
 
         if (SendCmd != null)
             await SendCmd(srv.Id, cmd);

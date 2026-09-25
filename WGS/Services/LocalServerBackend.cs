@@ -35,6 +35,12 @@ public class LocalServerBackend : IServerBackend
     private readonly ServerHygieneService _hygiene;
     private readonly ConfigPresetService  _presets;
 
+    // Set by WGS.ServiceHost/Worker.cs (wired to WebApiService.RegisterPendingBuildChannelChoice)
+    // when this backend is running headless, i.e. with no WPF Application to show
+    // Views.BuildChannelDialog from. Left null in the normal desktop app — that path keeps
+    // showing the dialog directly, unchanged. See InstallFromManualDownloadAsync below.
+    public Func<string, string, string, Task<bool>>? RegisterBuildChannelChoice { get; set; }
+
     private static readonly HttpClient _manualDownloadHttp = new();
 
     // Throttles the [Players] A2S failure warning below — per-server last message + when it was
@@ -130,8 +136,10 @@ public class LocalServerBackend : IServerBackend
     // (ServerViewModel.cs:630-833) as closely as possible. AppendLog(msg, type) calls become
     // log?.Report(msg) — the message text itself already carries the same "[WGS]"/"[ERR]"/"[Backup]"
     // prefixes the console view used to color-code by type, so nothing is lost but the color.
-    // The FiveM/RedM build-channel picker keeps showing Views.BuildChannelDialog synchronously,
-    // exactly as today — this backend only ever runs in-process with WPF (per task instructions).
+    // The FiveM/RedM build-channel picker shows Views.BuildChannelDialog when running in-process
+    // with WPF (normal desktop app); when running headless under WGS.ServiceHost, it instead pauses
+    // via RegisterBuildChannelChoice and waits for the choice through the web dashboard/API — see
+    // InstallFromManualDownloadAsync below.
 
     public async Task InstallAsync(GameServer server, IProgress<string>? log = null)
     {
@@ -255,15 +263,33 @@ public class LocalServerBackend : IServerBackend
         if (plugin.SupportsVersionCheck)
         {
             var (recommended, latest) = await plugin.GetAvailableBuildsAsync(server);
-            var dlg = new Views.BuildChannelDialog(plugin.GameName, recommended, latest, () => plugin.GetAvailableBuildsAsync(server))
-            { Owner = System.Windows.Application.Current?.MainWindow };
-            dlg.ShowDialog();
-            if (dlg.Result == Views.BuildChannelResult.Cancel)
+            bool useLatest;
+            if (System.Windows.Application.Current != null)
             {
-                server.Status = ServerStatus.Stopped;
-                return;
+                var dlg = new Views.BuildChannelDialog(plugin.GameName, recommended, latest, () => plugin.GetAvailableBuildsAsync(server))
+                { Owner = System.Windows.Application.Current?.MainWindow };
+                dlg.ShowDialog();
+                if (dlg.Result == Views.BuildChannelResult.Cancel)
+                {
+                    server.Status = ServerStatus.Stopped;
+                    return;
+                }
+                useLatest = dlg.Result == Views.BuildChannelResult.Latest;
             }
-            server.GameSpecificSettings["buildChannel"] = dlg.Result == Views.BuildChannelResult.Latest ? "latest" : "recommended";
+            else if (RegisterBuildChannelChoice != null)
+            {
+                // Headless (Service mode) — no WPF to show a dialog from. Pause here and wait for
+                // the choice to arrive via the web dashboard/API (GET/POST .../install/build-channel).
+                log?.Report($"[WGS] Waiting for a build channel choice for {plugin.GameName} — pick one from the web dashboard.");
+                useLatest = await RegisterBuildChannelChoice(server.Id, recommended ?? "", latest ?? "");
+            }
+            else
+            {
+                // No WPF and no headless wiring registered — don't hang the install forever.
+                log?.Report("[WGS] No UI available to choose a build channel — defaulting to the recommended build.");
+                useLatest = false;
+            }
+            server.GameSpecificSettings["buildChannel"] = useLatest ? "latest" : "recommended";
         }
 
         var info = await plugin.GetManualDownloadInfoAsync(server);
