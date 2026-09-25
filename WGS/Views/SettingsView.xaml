@@ -647,7 +647,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBox x:Name="PwChangeBox"
                                                      Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
-                                                     Text="{Binding DataContext.UserChangePassword, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                                     Text="{Binding PasswordInput, UpdateSourceTrigger=PropertyChanged}"
                                                      ToolTip="New password"/>
                                             <Button Content="🔑 Change password" Style="{StaticResource GhostButton}"
                                                     Command="{Binding DataContext.ChangeUserPasswordCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -667,7 +667,7 @@
                                             </TextBlock>
                                             <TextBox x:Name="AllowedServersBox"
                                                      Style="{StaticResource DarkTextBox}" Width="180" Margin="0,0,6,0"
-                                                     Text="{Binding DataContext.UserAllowedServersInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"
+                                                     Text="{Binding AllowedServersInput, UpdateSourceTrigger=PropertyChanged}"
                                                      ToolTip="Comma-separated server names (as shown in the sidebar)"/>
                                             <Button Content="+ Add" Style="{StaticResource GhostButton}" Margin="0,0,4,0"
                                                     Command="{Binding DataContext.SetUserAllowedServersCommand, RelativeSource={RelativeSource AncestorType=Window}}"

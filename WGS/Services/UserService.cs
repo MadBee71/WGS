@@ -21,6 +21,12 @@ public class WgsUser
     // this user only sees and can act on these specific server IDs, regardless of Role.
     public List<string> AllowedServerIds { get; set; } = [];
 
+    // Transient UI-only input buffers for the Settings > Users row — never persisted. Local to
+    // each WgsUser instance so every row's textbox has its own state instead of all rows sharing
+    // one Window-level property (which made typing in one row's field appear in every row's field).
+    public string PasswordInput        { get; set; } = string.Empty;
+    public string AllowedServersInput  { get; set; } = string.Empty;
+
     public string RoleLabel    => Role == UserRole.Admin ? "Admin" : "Viewer";
     public string StatusLabel  => IsEnabled ? "Active" : "Disabled";
     public string LastLoginText => LastLogin.HasValue

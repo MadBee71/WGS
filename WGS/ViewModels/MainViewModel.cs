@@ -1024,15 +1024,13 @@ public partial class MainViewModel : BaseViewModel
 
     // ── User Management ───────────────────────────────────────────────────────
 
-    [ObservableProperty] private string _userChangePassword = string.Empty;
-    [ObservableProperty] private string _userAllowedServersInput = string.Empty;
     public List<Services.AuditEntry> AuditLog => _users.GetAuditLog(50);
 
     [RelayCommand]
     private void SetUserAllowedServers(Services.WgsUser? user)
     {
         if (user == null) return;
-        var tokens = UserAllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokens = user.AllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         // Accept server DISPLAY NAMES (what the user actually knows), matched case-insensitively —
         // falls back to the raw token as-is if nothing matches, so a pasted ID still works too.
         var newIds = tokens.Select(t =>
@@ -1042,7 +1040,6 @@ public partial class MainViewModel : BaseViewModel
         // Add must not silently drop the ones already granted.
         var merged = user.AllowedServerIds.Union(newIds, StringComparer.OrdinalIgnoreCase);
         _users.SetAllowedServers(user.Id, merged, "admin");
-        UserAllowedServersInput = string.Empty;
         RefreshUsers();
     }
 
@@ -1050,13 +1047,12 @@ public partial class MainViewModel : BaseViewModel
     private void RemoveUserAllowedServer(Services.WgsUser? user)
     {
         if (user == null) return;
-        var tokens = UserAllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokens = user.AllowedServersInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var idsToRemove = tokens.Select(t =>
             Servers.FirstOrDefault(s => string.Equals(s.Server.DisplayName, t, StringComparison.OrdinalIgnoreCase))?.Server.Id
             ?? t);
         var remaining = user.AllowedServerIds.Except(idsToRemove, StringComparer.OrdinalIgnoreCase);
         _users.SetAllowedServers(user.Id, remaining, "admin");
-        UserAllowedServersInput = string.Empty;
         RefreshUsers();
     }
 
@@ -1127,9 +1123,8 @@ public partial class MainViewModel : BaseViewModel
     [RelayCommand]
     private void ChangeUserPassword(Services.WgsUser? user)
     {
-        if (user == null || string.IsNullOrWhiteSpace(UserChangePassword)) return;
-        _users.ChangePassword(user.Id, UserChangePassword, "admin");
-        UserChangePassword = string.Empty;
+        if (user == null || string.IsNullOrWhiteSpace(user.PasswordInput)) return;
+        _users.ChangePassword(user.Id, user.PasswordInput, "admin");
         RefreshUsers();
     }
 
