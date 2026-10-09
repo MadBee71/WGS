@@ -12,6 +12,7 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
     private readonly string               _machineId;
     private System.Timers.Timer?          _pollTimer;
     private int                           _logOffset;
+    private const int                     MaxConsoleLines = 2000;
     private bool                          _isActive;
     private readonly SemaphoreSlim        _pollGate = new(1, 1);
     private readonly object               _startLock = new();
@@ -117,8 +118,9 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
         {
             if (!_isActive) return;
             var chunk = await _remoteMachines.GetLogAsync(_machineId, ServerId, _logOffset);
-            if (chunk == null || chunk.Lines.Count == 0) return;
-            _logOffset = chunk.NextOffset;
+            if (chunk == null) return;
+            _logOffset = chunk.NextOffset;   // also when empty: the server may have restarted with a shorter log
+            if (chunk.Lines.Count == 0) return;
             var app = WpfApplication.Current;
             if (app == null) return;
             app.Dispatcher?.Invoke(() =>
@@ -129,6 +131,7 @@ public partial class RemoteServerViewModel : ObservableObject, IDisposable
                         ? t : ConsoleMessageType.Info;
                     Log.Add(new ConsoleMessage { Text = chunk.Lines[i], Type = type });
                 }
+                while (Log.Count > MaxConsoleLines) Log.RemoveAt(0);
             });
         }
         finally { _pollGate.Release(); }

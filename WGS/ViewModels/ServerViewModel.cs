@@ -268,7 +268,8 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         var (active, disabled) = await _backend.GetSourceModPluginsAsync(Server);
         SourceModActive   = active;
         SourceModDisabled = disabled;
-        SourceModStatusText = $"{SourceModActive.Count} active · {SourceModDisabled.Count} disabled";
+        // Show which folder is being managed — makes a wrong/missing SourceMod location obvious.
+        SourceModStatusText = $"{SourceModActive.Count} active · {SourceModDisabled.Count} disabled  —  {SourceModService.PluginsFolder(Plugin, Server.InstallPath)}";
     }
 
     [RelayCommand]
@@ -368,6 +369,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     internal static readonly Dictionary<string, string> LocalGameImages = new()
     {
         ["minecraft"]          = "minecraft_paper.png",   // GameId "minecraft" actually runs PaperMC
+        ["minecraft_paper"]    = "minecraft_paper_logo.jpg",
         ["minecraft_spigot"]   = "minecraft_spigot.png",
         ["minecraft_forge"]    = "minecraft_forge.png",
         ["minecraft_fabric"]   = "minecraft_fabric.png",
@@ -899,9 +901,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         {
             "fivem"    => Server.ServerPort,
             "battleye" => Server.RconPort > 0 ? Server.RconPort : 19999,
-            _          => Server.RconPort > 0 ? Server.RconPort : Server.ServerPort + 10,
+            _          => Plugin?.GetRconPort(Server) ?? (Server.RconPort > 0 ? Server.RconPort : Server.ServerPort + 10),
         };
-        var ok   = await newRcon.ConnectAsync(ip, port, Server.RconPassword);
+        var ok   = await newRcon.ConnectAsync(ip, port, Plugin?.GetRconPassword(Server) ?? Server.RconPassword);
 
         RconConnected = ok;
         AppendLog(ok ? "[RCON] " + Loc.RconConnectedMsg : "[RCON] " + Loc.RconFailedMsg,
@@ -1319,9 +1321,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // UI SynchronizationContext) — RconConnected is an [ObservableProperty] WPF binds to, so
         // it can only be set from the Dispatcher.Invoke block below, not inline in the branches.
         var rconWentStale = false;
+        var viaBackend = false;   // backend branches set Server.PlayerCountUnknown themselves
 
         if (Plugin is Games.IRestPlayersPlugin restPlugin)
         {
+            viaBackend = true;
             // Routed through the backend (covers REST/A2S/Minecraft-SLP — see
             // LocalServerBackend.GetOnlinePlayersAsync); GameRegistry.Get returns the same
             // shared plugin instance either way, so LastRestApiError is still readable here.
@@ -1347,6 +1351,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         else if (Plugin is Games.IA2SQueryPlugin or Games.MinecraftPluginBase || Server.GameId == "factorio")
         {
+            viaBackend = true;
             // A2S query, Minecraft SLP fallback when RCON isn't connected, or Factorio's
             // console-log-based tracker (no A2S/RCON/REST player source of its own) — all
             // handled by the backend. (When Minecraft RCON IS connected, that's covered by the
@@ -1375,6 +1380,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // Keep the model in sync — used by Shut-down-when-empty and the web dashboard's
         // server list (the detail endpoint already gets a live count separately).
         Server.CurrentPlayers = parsed.Count;
+        // The RCON branches only get here with a real response; the backend branches set the flag themselves.
+        if (!viaBackend) Server.PlayerCountUnknown = false;
+        // A failed query returns an empty list — diffing that against the previous list would log everyone as
+        // having left (and announce them all joining again once the query recovers). Keep the last known list.
+        else if (Server.PlayerCountUnknown) return;
 
         // Compare against the previous list → session logging
         var prev = OnlinePlayers.ToList();
@@ -2075,6 +2085,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
                 StopPlayerRefresh();
                 OnlinePlayers = [];
                 Server.CurrentPlayers = 0;
+                Server.PlayerCountUnknown = false;
                 if (!Server.AutoRestart)
                     StopUpdateTimer();
             });

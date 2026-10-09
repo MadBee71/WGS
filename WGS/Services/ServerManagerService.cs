@@ -47,15 +47,31 @@ public class ServerInstance
     public TimeSpan Uptime => StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero;
 
     private const int MaxLogLines = 500;
+    // Number of lines already trimmed off the front of Log. A line's absolute number is _logTrimmed + its index,
+    // which stays valid as the 500-line window slides — remote/web console clients poll by absolute number.
+    private int _logTrimmed;
     public void AddToLog(ConsoleMessage msg)
     {
         lock (LogLock)
         {
             Log.Add(msg);
-            while (Log.Count > MaxLogLines) Log.RemoveAt(0);
+            while (Log.Count > MaxLogLines) { Log.RemoveAt(0); _logTrimmed++; }
         }
     }
     public List<ConsoleMessage> GetLogSnapshot() { lock (LogLock) return Log.ToList(); }
+
+    /// <summary>Lines with absolute number >= offset, plus the offset to ask for next time. An offset the buffer has
+    /// already trimmed past starts at the oldest line still held; an offset ahead of the log (the client polled a
+    /// previous run of this server) starts over from the oldest line.</summary>
+    public (List<ConsoleMessage> Lines, int NextOffset) GetLogSince(int offset)
+    {
+        lock (LogLock)
+        {
+            var total = _logTrimmed + Log.Count;
+            var start = offset > total ? 0 : Math.Max(0, offset - _logTrimmed);
+            return (Log.Skip(start).ToList(), total);
+        }
+    }
 }
 
 public class ServerManagerService
@@ -665,13 +681,13 @@ public class ServerManagerService
         {
             "fivem"    => server.ServerPort,
             "battleye" => server.RconPort > 0 ? server.RconPort : 19999,
-            _          => server.RconPort > 0 ? server.RconPort : server.ServerPort + 10,
+            _          => plugin.GetRconPort(server),
         };
 
         using var rcon = new RconService(protocol);
         try
         {
-            var ok = await rcon.ConnectAsync(ip, port, server.RconPassword);
+            var ok = await rcon.ConnectAsync(ip, port, plugin.GetRconPassword(server));
             if (!ok) return;
             for (var i = 0; i < commands.Length; i++)
             {

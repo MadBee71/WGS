@@ -367,12 +367,11 @@ public partial class MainViewModel : BaseViewModel
         {
             var inst = manager.GetInstance(id);
             if (inst == null) return ([], [], offset);
-            var all   = inst.GetLogSnapshot();
-            var slice = all.Skip(offset).ToList();
+            var (slice, next) = inst.GetLogSince(offset);
             return (
                 slice.Select(m => m.Text).ToList(),
                 slice.Select(m => m.Type.ToString()).ToList(),
-                offset + slice.Count
+                next
             );
         };
         _webApi.Users     = users;

@@ -71,6 +71,28 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         // Crash-loop auto-restart only needs the "start" half — see StartOnlyHook's doc comment.
         manager.StartOnlyHook = s => backend.StartAsync(s);
 
+        // Remember each running server's PID in servers.json (the WPF client does this through its view models), so a
+        // restarted service can reattach to servers that kept running — see the TryReattach loop below.
+        var pidLock = new object();
+        manager.StatusChanged += (id, status) =>
+        {
+            if (status is not (ServerStatus.Running or ServerStatus.Stopped or ServerStatus.Error)) return;
+            try
+            {
+                lock (pidLock)
+                {
+                    var all   = config.LoadServers();
+                    var entry = all.FirstOrDefault(x => x.Id == id);
+                    if (entry == null) return;
+                    var pid = status == ServerStatus.Running ? manager.GetServer(id)?.RunningPid ?? 0 : 0;
+                    if (entry.RunningPid == pid) return;
+                    entry.RunningPid = pid;
+                    config.SaveServers(all);
+                }
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "Could not save PID for {Id}", id); }
+        };
+
         async Task<string?> Try(Func<Task> op)
         {
             try { await op(); return null; }
@@ -83,6 +105,14 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             catch (Exception ex) { return (default, ex.Message); }
         }
 
+        // Servers that kept running while the service was stopped/restarted: pick them up again (as the WPF client does at
+        // startup), otherwise they would show as stopped and could no longer be stopped from here.
+        foreach (var s in config.LoadServers())
+        {
+            s.Status = ServerStatus.Stopped;
+            try { manager.TryReattach(s); } catch (Exception ex) { logger.LogWarning(ex, "Could not reattach {Server}", s.DisplayName); }
+        }
+
         var webApi = new WebApiService { Users = users, DashboardEnabled = true };
         _webApi = webApi;
 
@@ -91,7 +121,15 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         backend.RegisterBuildChannelChoice = webApi.RegisterPendingBuildChannelChoice;
 
         // ── Pre-existing delegate surface ───────────────────────────────────────────────────
-        webApi.GetServers    = () => config.LoadServers();
+        // servers.json only holds settings: Status/CurrentPlayers are live state on the manager's instances. Listing the freshly
+        // loaded objects as-is showed every server as "NotInstalled" with 0 players, running or not.
+        webApi.GetServers    = () => config.LoadServers().Select(s =>
+        {
+            var live = manager.GetServer(s.Id);
+            s.Status         = live?.Status ?? ServerStatus.Stopped;
+            s.CurrentPlayers = live?.CurrentPlayers ?? 0;
+            return s;
+        }).ToList();
         webApi.StartServer   = id => backend.StartAsync(FindServer(id)!);
         webApi.StopServer    = id => backend.StopAsync(FindServer(id)!);
         webApi.KillServer    = id => backend.KillAsync(FindServer(id)!);
@@ -216,7 +254,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
                 entry.ServerName, entry.CreatedAt, entry.SizeBytes, entry.IsIncremental, entry.BaseFilePath)).ToList();
         };
 
-        webApi.GetOnlinePlayers = id => backend.GetOnlinePlayersAsync(FindServer(id)!).GetAwaiter().GetResult();
+        webApi.GetOnlinePlayers = id => backend.GetOnlinePlayersAsync(manager.GetServer(id) ?? FindServer(id)!).GetAwaiter().GetResult();
 
         // Persistent token: a real service must hand out the same token across restarts, since
         // a WPF client's "Service mode" setting (Settings → Service mode → Access token) has to
@@ -241,11 +279,61 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         Console.WriteLine($"Token: {config.WebApiToken}");
         Console.WriteLine("(This token is saved in settings.json — point a WPF client's Settings -> Service mode at this URL and token.)");
 
+        // The WPF client polls players per open server (ServerViewModel.FetchOnlinePlayersAsync); a headless
+        // service has no view models, so without this nothing ever updated CurrentPlayers, recorded player
+        // sessions or sent the Discord join/leave messages.
+        _ = Task.Run(() => PollPlayersAsync(config, manager, backend, notify, new PlayerStatsService(config), stoppingToken), stoppingToken);
+
         try
         {
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }
         catch (OperationCanceledException) { }
+    }
+
+    private async Task PollPlayersAsync(ConfigService config, ServerManagerService manager, LocalServerBackend backend,
+        NotificationService notify, PlayerStatsService stats, CancellationToken ct)
+    {
+        // Last known player keys per server; absent = not polled yet, so the first poll after a start (or after
+        // WGS.ServiceHost starts with servers already running) records sessions but sends no join messages.
+        var known = new Dictionary<string, Dictionary<string, (string Name, string SteamId)>>();
+        while (!ct.IsCancellationRequested)
+        {
+            try { await Task.Delay(15_000, ct); } catch (OperationCanceledException) { return; }
+            try
+            {
+                var runningIds = new HashSet<string>();
+                foreach (var cfg in config.LoadServers())
+                {
+                    var inst = manager.GetInstance(cfg.Id);
+                    if (inst == null || !manager.IsRunning(cfg.Id)) continue;
+                    runningIds.Add(cfg.Id);
+                    var server = inst.Server;   // the live object — CurrentPlayers/PlayerCountUnknown are set on it, not on a reloaded copy
+
+                    var players = await backend.GetOnlinePlayersAsync(server);
+                    if (server.PlayerCountUnknown) continue;   // failed query ≠ everybody left
+
+                    // Not ToDictionary: nameless players ("?") can repeat a key
+                    var curr = new Dictionary<string, (string Name, string SteamId)>();
+                    foreach (var p in players) curr[p.SteamId.Length > 0 ? p.SteamId : p.Name] = (p.Name, p.SteamId);
+                    var first = !known.TryGetValue(cfg.Id, out var prev);
+                    prev ??= [];
+                    foreach (var (key, p) in curr.Where(c => !prev.ContainsKey(c.Key)))
+                    {
+                        stats.RecordJoin(cfg.Id, p.Name, p.SteamId);
+                        if (!first) _ = notify.NotifyPlayerEventAsync(server, p.Name, joined: true, curr.Count);
+                    }
+                    foreach (var (key, p) in prev.Where(c => !curr.ContainsKey(c.Key)))
+                    {
+                        stats.RecordLeave(cfg.Id, p.Name, p.SteamId);
+                        _ = notify.NotifyPlayerEventAsync(server, p.Name, joined: false, curr.Count);
+                    }
+                    known[cfg.Id] = curr;
+                }
+                foreach (var gone in known.Keys.Where(k => !runningIds.Contains(k)).ToList()) known.Remove(gone);
+            }
+            catch (Exception ex) { logger.LogDebug(ex, "Player poll failed"); }
+        }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

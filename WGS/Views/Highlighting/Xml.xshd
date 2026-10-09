@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="Xml" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment"   foreground="#6A9955"/>
+  <Color name="Tag"       foreground="#569CD6"/>
+  <Color name="Attribute" foreground="#9CDCFE"/>
+  <Color name="String"    foreground="#CE9178"/>
+  <Color name="Punct"     foreground="#808080"/>
+  <RuleSet>
+    <Span color="Comment" multiline="true" begin="&lt;!--" end="--&gt;"/>
+    <Span color="Comment" multiline="true" begin="&lt;!\[CDATA\[" end="\]\]&gt;"/>
+    <Span color="String" begin="&quot;" end="&quot;"/>
+    <Rule color="Tag">&lt;[/?!]?[\w:\.\-]+</Rule>
+    <Rule color="Attribute">[\w:\.\-]+(?=\s*=)</Rule>
+    <Rule color="Punct">/?&gt;|\?&gt;</Rule>
+  </RuleSet>
+</SyntaxDefinition>

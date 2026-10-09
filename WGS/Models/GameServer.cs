@@ -88,6 +88,11 @@ public class GameServer
     [JsonIgnore]
     public int CurrentPlayers { get; set; }
 
+    /// <summary>True while the last player query failed (A2S/REST/SLP unreachable), i.e. CurrentPlayers is
+    /// NOT a real count. Idle shutdown must treat this as "unknown", never as "nobody online".</summary>
+    [JsonIgnore]
+    public bool PlayerCountUnknown { get; set; }
+
     [JsonIgnore]
     public TimeSpan Uptime { get; set; }
 }

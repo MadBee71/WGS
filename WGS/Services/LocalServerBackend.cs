@@ -362,12 +362,11 @@ public class LocalServerBackend : IServerBackend
         var inst = _manager.GetInstance(serverId);
         if (inst == null) return Task.FromResult((new List<string>(), new List<string>(), offset));
 
-        var all   = inst.GetLogSnapshot();
-        var slice = all.Skip(offset).ToList();
+        var (slice, next) = inst.GetLogSince(offset);
         return Task.FromResult((
             slice.Select(m => m.Text).ToList(),
             slice.Select(m => m.Type.ToString()).ToList(),
-            offset + slice.Count
+            next
         ));
     }
 
@@ -528,15 +527,17 @@ public class LocalServerBackend : IServerBackend
 
     public Task<(List<SourceModPlugin> active, List<SourceModPlugin> disabled)> GetSourceModPluginsAsync(GameServer server)
     {
-        var active   = _sourceMod.GetActivePlugins(server.InstallPath);
-        var disabled = _sourceMod.GetDisabledPlugins(server.InstallPath);
+        var root     = SourceModService.ResolveAddonsRoot(GameRegistry.Get(server.GameId), server.InstallPath);
+        var active   = _sourceMod.GetActivePlugins(root);
+        var disabled = _sourceMod.GetDisabledPlugins(root);
         return Task.FromResult((active, disabled));
     }
 
     public Task SetSourceModPluginEnabledAsync(GameServer server, string fileName, bool enabled)
     {
-        if (enabled) _sourceMod.EnablePlugin(server.InstallPath, fileName);
-        else _sourceMod.DisablePlugin(server.InstallPath, fileName);
+        var root = SourceModService.ResolveAddonsRoot(GameRegistry.Get(server.GameId), server.InstallPath);
+        if (enabled) _sourceMod.EnablePlugin(root, fileName);
+        else _sourceMod.DisablePlugin(root, fileName);
         return Task.CompletedTask;
     }
 
@@ -702,9 +703,26 @@ public class LocalServerBackend : IServerBackend
 
         List<OnlinePlayer> parsed;
 
-        if (plugin is IRestPlayersPlugin restPlugin)
+        List<OnlinePlayer>? odinEyePlayers = null;
+        if (server.GameId == "valheim" && Games.ValheimOdinEye.IsEnabled(server))
+            odinEyePlayers = await Games.ValheimOdinEye.GetPlayersAsync(server);
+
+        if (odinEyePlayers != null)
+        {
+            // OdinEye answered: exact list (names + Steam IDs), no A2S needed — also works with -crossplay.
+            parsed = odinEyePlayers;
+            server.PlayerCountUnknown = false;
+            var known = _manager.GetInstance(server.Id)?.ValheimPlayers?.GetKnownPlayers() ?? [];
+            foreach (var p in parsed)
+            {
+                var k = known.FirstOrDefault(x => string.Equals(x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+                if (k.Name != null) p.ConnectedSeconds = k.ConnectedSeconds;
+            }
+        }
+        else if (plugin is IRestPlayersPlugin restPlugin)
         {
             parsed = await restPlugin.GetPlayersAsync(server);
+            server.PlayerCountUnknown = restPlugin.LastRestApiError != null;
         }
         else if (plugin is IA2SQueryPlugin a2sPlugin)
         {
@@ -726,6 +744,19 @@ public class LocalServerBackend : IServerBackend
             {
                 _lastA2SError.TryRemove(server.Id, out _);
             }
+            server.PlayerCountUnknown = a2sError != null;
+
+            // Failed query ≠ empty server. Valheim started with -crossplay, or with the query port blocked,
+            // never answers A2S at all — its console-log tracker is then the only source of truth.
+            if (a2sError != null && server.GameId == "valheim")
+            {
+                var tracked = _manager.GetInstance(server.Id)?.ValheimPlayers?.GetKnownPlayers() ?? [];
+                if (tracked.Count > 0)
+                {
+                    parsed = tracked.Select(k => new OnlinePlayer { Name = k.Name, SteamId = k.SteamId, ConnectedSeconds = k.ConnectedSeconds }).ToList();
+                    server.PlayerCountUnknown = false;
+                }
+            }
 
             // Valheim's A2S response never carries real names or a usable duration (see
             // A2SQueryService.ParsePlayers) — backfill as many "?"/0s placeholders as possible with
@@ -745,7 +776,8 @@ public class LocalServerBackend : IServerBackend
         else if (plugin is MinecraftPluginBase)
         {
             var slp = await MinecraftSLPService.QueryAsync("127.0.0.1", server.ServerPort);
-            if (slp == null) return [];
+            if (slp == null) { server.PlayerCountUnknown = true; return []; }
+            server.PlayerCountUnknown = false;
             parsed = Enumerable.Range(0, slp.Value.Online).Select(_ => new OnlinePlayer { Name = "?" }).ToList();
 
             // SLP only ever reports a count, never names or a per-player duration — backfill as
@@ -764,6 +796,7 @@ public class LocalServerBackend : IServerBackend
             // the only live source is its own console output (FactorioPlayerTracker).
             var known = _manager.GetInstance(server.Id)?.FactorioPlayers?.GetKnownPlayers() ?? [];
             parsed = known.Select(k => new OnlinePlayer { Name = k.Name, ConnectedSeconds = k.ConnectedSeconds }).ToList();
+            server.PlayerCountUnknown = false;
         }
         else
         {

@@ -32,6 +32,9 @@ public interface IGamePlugin
     bool   SupportsOxide      { get; }   // uMod/Oxide compatible
     string MinecraftFlavor    { get; }   // "paper" | "forge" | "fabric" | "" = none
     bool   SupportsSourceMod  { get; }   // Source engine games that support SourceMod plugins
+    /// <summary>The game's own folder inside the server install (srcds "-game" value, e.g. "left4dead2");
+    /// SourceMod lives in &lt;install&gt;/&lt;this&gt;/addons/sourcemod. Empty = not known.</summary>
+    string SourceModGameDir   { get; }
 
     // Workshop & config
     int          WorkshopAppId { get; }  // Steam Workshop app ID (0 = no workshop)
@@ -77,6 +80,11 @@ public interface IGamePlugin
     /// "SaveWorld" then "DoExit") — sent in order, one per RCON round-trip, before falling back
     /// to a hard kill. Null (default) means this game has no known RCON stop sequence.</summary>
     string[]? GetRconStopCommand(GameServer server);
+    /// <summary>The TCP port WGS connects to for RCON when the server has no explicit RCON port set.</summary>
+    int GetRconPort(GameServer server);
+    /// <summary>The password WGS uses for RCON. Normally the server's own RconPassword; srcds games read the
+    /// rcon_password the server actually runs with from its server.cfg, which wins over the command line.</summary>
+    string GetRconPassword(GameServer server);
     Task PreStartAsync(GameServer server);
     Task PostInstallAsync(GameServer server, Action<string> log);
     Task PostUpdateAsync(GameServer server, Action<string> log);

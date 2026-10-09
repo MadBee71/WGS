@@ -1,0 +1,100 @@
+<UserControl x:Class="WGS.Views.CodeEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Find / Replace / Go to line bar (Ctrl+F, Ctrl+H, Ctrl+G) -->
+        <Border x:Name="FindBar" Grid.Row="0" Visibility="Collapsed"
+                Background="{StaticResource BgSurface2Brush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1" Padding="8,6">
+            <StackPanel>
+                <StackPanel x:Name="FindRow" Orientation="Horizontal">
+                    <TextBlock Text="Find" Width="52" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox x:Name="FindBox" Width="240" Style="{StaticResource DarkTextBox}" FontSize="12"
+                             TextChanged="FindBox_TextChanged" PreviewKeyDown="FindBox_PreviewKeyDown"/>
+                    <Button Content="▲" Style="{StaticResource GhostButton}" Padding="8,3" Margin="6,0,0,0"
+                            ToolTip="Previous (Shift+F3)" Click="FindPrev_Click"/>
+                    <Button Content="▼" Style="{StaticResource GhostButton}" Padding="8,3" Margin="2,0,0,0"
+                            ToolTip="Next (F3)" Click="FindNext_Click"/>
+                    <CheckBox x:Name="MatchCaseBox" Content="Match case" Style="{StaticResource DarkCheckBox}"
+                              Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" Click="Option_Click"/>
+                    <CheckBox x:Name="RegexBox" Content="Regex" Style="{StaticResource DarkCheckBox}"
+                              Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" Click="Option_Click"/>
+                    <TextBlock x:Name="FindInfo" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                    <Button Content="✕" Style="{StaticResource GhostButton}" Padding="8,3" Margin="12,0,0,0"
+                            ToolTip="Close (Esc)" Click="CloseBar_Click"/>
+                </StackPanel>
+                <StackPanel x:Name="ReplaceRow" Orientation="Horizontal" Margin="0,6,0,0" Visibility="Collapsed">
+                    <TextBlock Text="Replace" Width="52" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox x:Name="ReplaceBox" Width="240" Style="{StaticResource DarkTextBox}" FontSize="12"
+                             PreviewKeyDown="ReplaceBox_PreviewKeyDown"/>
+                    <Button Content="Replace" Style="{StaticResource GhostButton}" Padding="8,3" Margin="6,0,0,0"
+                            Click="Replace_Click"/>
+                    <Button Content="Replace all" Style="{StaticResource GhostButton}" Padding="8,3" Margin="2,0,0,0"
+                            Click="ReplaceAll_Click"/>
+                </StackPanel>
+                <StackPanel x:Name="GotoRow" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Go to" Width="52" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox x:Name="GotoBox" Width="120" Style="{StaticResource DarkTextBox}" FontSize="12"
+                             PreviewKeyDown="GotoBox_PreviewKeyDown" PreviewTextInput="GotoBox_PreviewTextInput"/>
+                    <TextBlock x:Name="GotoInfo" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                    <Button Content="✕" Style="{StaticResource GhostButton}" Padding="8,3" Margin="12,0,0,0"
+                            ToolTip="Close (Esc)" Click="CloseBar_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <avalon:TextEditor x:Name="Editor" Grid.Row="1"
+                           Background="{StaticResource BgDeepBrush}"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           LineNumbersForeground="#6E7681"
+                           FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="13"
+                           ShowLineNumbers="True" WordWrap="False"
+                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                           BorderThickness="0" Padding="6,4"
+                           PreviewMouseWheel="Editor_PreviewMouseWheel">
+            <avalon:TextEditor.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Undo" Command="ApplicationCommands.Undo"/>
+                    <MenuItem Header="Redo" Command="ApplicationCommands.Redo"/>
+                    <Separator/>
+                    <MenuItem Header="Cut" Command="ApplicationCommands.Cut"/>
+                    <MenuItem Header="Copy" Command="ApplicationCommands.Copy"/>
+                    <MenuItem Header="Paste" Command="ApplicationCommands.Paste"/>
+                    <Separator/>
+                    <MenuItem Header="Select all" Command="ApplicationCommands.SelectAll"/>
+                    <MenuItem Header="Find…  (Ctrl+F)" Click="MenuFind_Click"/>
+                    <MenuItem Header="Replace…  (Ctrl+H)" Click="MenuReplace_Click"/>
+                    <MenuItem Header="Go to line…  (Ctrl+G)" Click="MenuGoto_Click"/>
+                </ContextMenu>
+            </avalon:TextEditor.ContextMenu>
+        </avalon:TextEditor>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="{StaticResource BgSurface2Brush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="10,3">
+            <DockPanel>
+                <ToggleButton x:Name="WrapToggle" DockPanel.Dock="Right" Content="Wrap" Style="{StaticResource GhostToggleButton}"
+                              Padding="8,1" FontSize="11" ToolTip="Word wrap (Alt+Z)"
+                              Checked="WrapToggle_Changed" Unchecked="WrapToggle_Changed"/>
+                <TextBlock x:Name="EolText" DockPanel.Dock="Right" Margin="0,0,14,0" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="LenText" DockPanel.Dock="Right" Margin="0,0,14,0" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="PosText" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

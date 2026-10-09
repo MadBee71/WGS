@@ -81,6 +81,7 @@ public static class GameRegistry
         Register(new CoreKeeperPlugin());
         // Other
         Register(new MinecraftPlugin());
+        Register(new MinecraftPaperPlugin());
         Register(new BedrockPlugin());
         Register(new ForgePlugin());
         Register(new NeoForgePlugin());

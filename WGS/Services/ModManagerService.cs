@@ -81,7 +81,8 @@ public class ModManagerService
     // PAPER (Minecraft)
     // ──────────────────────────────────────────────────────────────────────────
 
-    private const string PaperApiBase = "https://api.papermc.io/v2/projects/paper";
+    // The old v2 API (api.papermc.io) was sunset and now answers HTTP 410 — Paper's Fill v3 API replaces it.
+    private const string PaperApiBase = "https://fill.papermc.io/v3/projects/paper";
 
     public record PaperVersionInfo(string Version, int Build, string DownloadUrl);
 
@@ -89,29 +90,27 @@ public class ModManagerService
     {
         try
         {
-            // 1. Get project info → list of versions
+            // 1. Project info → versions grouped by major, newest group first. Take the newest
+            //    version that isn't a pre-release/RC (those contain a '-', e.g. "26.3-rc-3").
             var projJson = await _http.GetStringAsync(PaperApiBase);
             using var proj = JsonDocument.Parse(projJson);
-            var versions  = proj.RootElement.GetProperty("versions")
-                               .EnumerateArray()
-                               .Select(v => v.GetString()!)
-                               .ToList();
-            if (versions.Count == 0) return null;
-            var latest = versions.Last();
+            string? latest = null;
+            foreach (var group in proj.RootElement.GetProperty("versions").EnumerateObject())
+            {
+                latest = group.Value.EnumerateArray()
+                              .Select(v => v.GetString())
+                              .FirstOrDefault(v => !string.IsNullOrEmpty(v) && !v.Contains('-'));
+                if (latest != null) break;
+            }
+            if (latest == null) return null;
 
-            // 2. Get builds for that version
-            var buildsJson = await _http.GetStringAsync($"{PaperApiBase}/versions/{latest}/builds");
-            using var builds = JsonDocument.Parse(buildsJson);
-            var buildArr = builds.RootElement.GetProperty("builds").EnumerateArray().ToList();
-            if (buildArr.Count == 0) return null;
-
-            var lastBuild = buildArr.Last();
-            var buildNum  = lastBuild.GetProperty("build").GetInt32();
-            var fileName  = lastBuild.GetProperty("downloads")
-                                     .GetProperty("application")
-                                     .GetProperty("name").GetString()!;
-
-            var url = $"{PaperApiBase}/versions/{latest}/builds/{buildNum}/downloads/{fileName}";
+            // 2. Newest build for that version — it carries the jar URL directly.
+            var buildJson = await _http.GetStringAsync($"{PaperApiBase}/versions/{latest}/builds/latest");
+            using var build = JsonDocument.Parse(buildJson);
+            var buildNum = build.RootElement.GetProperty("id").GetInt32();
+            var url      = build.RootElement.GetProperty("downloads")
+                                .GetProperty("server:default")
+                                .GetProperty("url").GetString()!;
             return new PaperVersionInfo(latest, buildNum, url);
         }
         catch { return null; }

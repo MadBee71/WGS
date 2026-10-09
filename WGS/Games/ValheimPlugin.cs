@@ -37,6 +37,18 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
             ? "Valheim requires a server password of at least 5 characters, or the server will reject all connections. Set one in Settings → Password."
             : null;
 
+    // Optional OdinEye (see ValheimOdinEye): installed/removed here so the folder matches the setting at every start.
+    // A failed install must never stop the server from starting.
+    public override async Task PreStartAsync(GameServer s)
+    {
+        try
+        {
+            if (ValheimOdinEye.IsEnabled(s)) await ValheimOdinEye.EnsureInstalledAsync(s);
+            else ValheimOdinEye.RemoveIfManaged(s);
+        }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine("[OdinEye] install failed: " + ex.Message); }
+    }
+
     public override string BuildStartArguments(GameServer s)
     {
         // Server name comes from the dedicated, always-visible "Server name" field (s.ServerName)
@@ -60,6 +72,7 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
         ["crossplay"]     = "false",
         ["public"]        = "true",
         ["saveInterval"]  = "1800",
+        ["odinEye"]       = "false",
     };
 
     public override List<ConfigField> GetConfigFields()
@@ -72,6 +85,8 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
             new() { Key = "public",     Label = "Public listing",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
             new() { Key = "saveInterval", Label = "Save interval (seconds)", FieldType = ConfigFieldType.Number, DefaultValue = "1800",
                     Description = "Valheim has no graceful-stop/force-save command WGS can send — Stop always ends in a hard kill, and any progress since the last autosave is lost. Defaults to Valheim's own 1800s (30 min) so WGS doesn't change existing server behavior. Lowering it shrinks the worst-case loss but triggers more frequent brief lag spikes when saving — confirmed by community testing (SkOODaT, Discord, 18.9.2026) that a short interval like 5 min is too laggy on an active world. Tune to taste." },
+            new() { Key = "odinEye", Label = "Player data via OdinEye", FieldType = ConfigFieldType.Toggle, DefaultValue = "false",
+                    Description = "Installs BepInEx (BepInExPack_Valheim " + ValheimOdinEye.BepInExPackVersion + ", downloaded from Thunderstore, only if the server folder has no BepInEx yet) and the OdinEye plugin (MIT, bundled with WGS) so WGS can read the connected players — works with Crossplay too, and gives real names. Takes effect on the next start. Turning it off removes only the OdinEye plugin; BepInEx and any other mods stay. OdinEye listens on 127.0.0.1 only. Note: OdinEye was built for an older Valheim — its chat-event hook does not work with the current game, the player list does." },
         ]);
         return fields;
     }

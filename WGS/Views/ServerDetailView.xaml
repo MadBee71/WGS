@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:WGS.ViewModels"
+             xmlns:local="clr-namespace:WGS.Views"
              xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
              Background="{StaticResource BgDeepBrush}">
     <Grid>
@@ -249,13 +250,31 @@
                         </Grid>
                     </Border>
 
-                    <!-- Log output -->
-                    <ScrollViewer Grid.Row="2" x:Name="LogScroller"
+                    <!-- Log output. Virtualized: only the rows on screen are built, so switching
+                         servers/tabs stays fast even with a full 2000-line buffer (it used to build
+                         every row each time, ~5 s on long-running servers). Virtualization needs the
+                         ItemsControl's OWN ScrollViewer (inside its template), not an outer one. -->
+                    <ItemsControl Grid.Row="2" x:Name="LogList" ItemsSource="{Binding FilteredLog}"
                                   Background="{StaticResource BgDeepBrush}"
-                                  VerticalScrollBarVisibility="Auto" Padding="8"
-                                  ScrollChanged="LogScroller_ScrollChanged">
-                        <ItemsControl ItemsSource="{Binding FilteredLog}">
-                            <ItemsControl.ItemTemplate>
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  VirtualizingPanel.ScrollUnit="Pixel"
+                                  PreviewMouseWheel="LogList_PreviewMouseWheel"
+                                  ScrollBar.Scroll="LogList_ScrollBarScroll">
+                        <ItemsControl.Template>
+                            <ControlTemplate TargetType="ItemsControl">
+                                <ScrollViewer x:Name="PART_LogScroller" Focusable="False"
+                                              Background="{TemplateBinding Background}"
+                                              VerticalScrollBarVisibility="Auto" Padding="8"
+                                              CanContentScroll="True">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -292,8 +311,7 @@
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    </ItemsControl>
 
                     <!-- Quick commands -->
                     <Border Grid.Row="3" Background="{StaticResource BgSurfaceBrush}"
@@ -1503,19 +1521,10 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="220"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding ConfigContent, UpdateSourceTrigger=PropertyChanged}"
-                                 Background="{StaticResource BgDeepBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 CaretBrush="{StaticResource TextPrimaryBrush}"
-                                 BorderThickness="0"
-                                 FontFamily="Cascadia Code, Consolas, Courier New"
-                                 FontSize="13"
-                                 AcceptsReturn="True" AcceptsTab="True"
-                                 TextWrapping="NoWrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 Padding="16"/>
+                        <local:CodeEditor Grid.Column="0"
+                                          Text="{Binding ConfigContent, Mode=TwoWay}"
+                                          FileName="{Binding SelectedConfigFile.Name}"
+                                          SaveCommand="{Binding SaveConfigFileCommand}"/>
                         <Border Grid.Column="1" Background="{StaticResource BgSurfaceBrush}"
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
                             <DockPanel>
@@ -2250,16 +2259,10 @@
                                     </Border>
 
                                     <!-- Text field -->
-                                    <TextBox Grid.Row="1"
-                                             Text="{Binding FileBrowser.EditorContent,
-                                                 UpdateSourceTrigger=PropertyChanged}"
-                                             AcceptsReturn="True" AcceptsTab="True"
-                                             HorizontalScrollBarVisibility="Auto"
-                                             VerticalScrollBarVisibility="Auto"
-                                             FontFamily="Consolas, Courier New" FontSize="12"
-                                             Background="#0D1117" Foreground="#C9D1D9"
-                                             BorderThickness="0" Padding="10"
-                                             TextWrapping="NoWrap"/>
+                                    <local:CodeEditor Grid.Row="1"
+                                                      Text="{Binding FileBrowser.EditorContent, Mode=TwoWay}"
+                                                      FileName="{Binding FileBrowser.EditingFileName}"
+                                                      SaveCommand="{Binding FileBrowser.SaveEditCommand}"/>
 
                                     <!-- Tallennuspalkki -->
                                     <Border Grid.Row="2" Background="{StaticResource BgSurface2Brush}"

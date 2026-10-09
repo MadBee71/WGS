@@ -65,14 +65,12 @@ public static class MinecraftInstallHelper
     {
         try
         {
-            var buildsJson = await _http.GetStringAsync($"https://api.papermc.io/v2/projects/paper/versions/{version}/builds");
-            using var doc = JsonDocument.Parse(buildsJson);
-            var builds = doc.RootElement.GetProperty("builds");
-            if (builds.GetArrayLength() == 0) return null;
-            var last = builds[builds.GetArrayLength() - 1];
-            var build = last.GetProperty("build").GetInt32();
-            var jarName = last.GetProperty("downloads").GetProperty("application").GetProperty("name").GetString();
-            return $"https://api.papermc.io/v2/projects/paper/versions/{version}/builds/{build}/downloads/{jarName}";
+            // PaperMC sunset its old v2 download API (api.papermc.io now answers HTTP 410, so Paper
+            // downloads silently stopped working). Downloads come from the Fill v3 API now; the
+            // "latest" build endpoint returns the jar URL directly under downloads["server:default"].
+            var json = await _http.GetStringAsync($"https://fill.papermc.io/v3/projects/paper/versions/{version}/builds/latest");
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.GetProperty("downloads").GetProperty("server:default").GetProperty("url").GetString();
         }
         catch { return null; }
     }

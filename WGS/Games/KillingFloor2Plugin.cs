@@ -21,7 +21,8 @@ public class KillingFloor2Plugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlu
     public override int    DefaultQueryPort => 27015;
     public override int    DefaultSteamPort => 20560;
     public override int    DefaultMaxPlayers => 6;
-    public override bool   RequiresSteamLogin => true;
+    // Verified 9.10.2026: the dedicated server (app 232130) downloads with an anonymous SteamCMD login.
+    public override bool   RequiresSteamLogin => false;
     public override bool   HasRcon         => true;
 
         public override string  EngineFamily                                     => UnrealRcon.Family;

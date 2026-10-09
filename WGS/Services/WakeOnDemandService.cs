@@ -237,7 +237,9 @@ public sealed class WakeOnDemandService : IDisposable
                 if (inst == null) break; // server removed
 
                 var players = inst.Server.CurrentPlayers;
-                if (players > 0)
+                // A failed player query (A2S blocked, REST down, still booting) is not "empty": never
+                // count it towards the idle timeout, or a populated server would be shut down.
+                if (players > 0 || inst.Server.PlayerCountUnknown)
                 {
                     idleStart = DateTime.UtcNow; // reset idle clock
                 }

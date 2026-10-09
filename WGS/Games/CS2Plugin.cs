@@ -22,6 +22,7 @@ public class CS2Plugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
     public override int    DefaultMaxPlayers => 10;
     public override bool   HasRcon         => true;
     public override bool   SupportsSourceMod  => true;
+    public override string SourceModGameDir => "game/csgo";
 
         public override string  EngineFamily                                     => SourceRcon.Family;
     public override string? GetKickCommand(string p)                         => SourceRcon.Kick(p);

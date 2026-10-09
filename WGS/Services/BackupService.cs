@@ -327,7 +327,14 @@ public class BackupService
         return server.GameId switch
         {
             "valheim"          => [Path.Combine(server.InstallPath, "saves")],
-            "minecraft"        => [Path.Combine(server.InstallPath, "world"), Path.Combine(server.InstallPath, "plugins")],
+            // "Minecraft Java" can run Paper (Server type), which keeps the Nether and End in their own
+            // folders next to "world" — they were missing from backups. Missing folders are skipped,
+            // so vanilla servers (everything inside "world") are unaffected.
+            "minecraft"        => [Path.Combine(server.InstallPath, "world"), Path.Combine(server.InstallPath, "world_nether"),
+                                   Path.Combine(server.InstallPath, "world_the_end"), Path.Combine(server.InstallPath, "plugins")],
+            // Paper keeps the Nether and End in their own folders next to "world" (missing ones are skipped).
+            "minecraft_paper"  => [Path.Combine(server.InstallPath, "world"), Path.Combine(server.InstallPath, "world_nether"),
+                                   Path.Combine(server.InstallPath, "world_the_end"), Path.Combine(server.InstallPath, "plugins")],
             "conanexiles"      => [Path.Combine(server.InstallPath, "ConanSandbox", "Saved")],
             "rust"             => [Path.Combine(server.InstallPath, "server")],
             "7daystodie"       => [Path.Combine(server.InstallPath, "Saves"), Path.Combine(server.InstallPath, "UserDataFolder")],

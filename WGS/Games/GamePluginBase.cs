@@ -25,6 +25,7 @@ public abstract class GamePluginBase : IGamePlugin
     public virtual bool   SupportsOxide      => false;
     public virtual string MinecraftFlavor    => string.Empty;
     public virtual bool   SupportsSourceMod  => false;
+    public virtual string SourceModGameDir   => string.Empty;
     public virtual int    WorkshopAppId      => 0;
     public virtual List<string> ConfigFiles  => [];
     public virtual int SteamClientAppId => 0;
@@ -101,6 +102,51 @@ public abstract class GamePluginBase : IGamePlugin
     /// "SaveWorld" then "DoExit") — sent in order, one per RCON round-trip, before falling back
     /// to a hard kill. Null (default) means this game has no known RCON stop sequence.</summary>
     public virtual string[]? GetRconStopCommand(GameServer server) => null;
+
+    /// <summary>The " -ip &lt;address&gt;" argument for srcds games. srcds only listens on one adapter's address when no -ip is given
+    /// (verified: it bound the LAN address and ignored loopback), so WGS's own RCON/A2S connections to 127.0.0.1 never reached it —
+    /// and on a machine with several adapters it can pick the wrong one. 0.0.0.0 (the default) = listen on all addresses.</summary>
+    protected static string SrcdsIpArg(GameServer s)
+        => " -ip " + (string.IsNullOrWhiteSpace(s.ServerIp) ? "0.0.0.0" : s.ServerIp.Trim());
+
+    /// <summary>" +rcon_password" argument for srcds games. WGS stops srcds over RCON ("quit"), so the server's RCON password must
+    /// equal the one WGS holds — a shipped default server.cfg doesn't set it, and the cfg is never overwritten once it exists.
+    /// Only passed when the password is a plain token (it ends up on the command line); otherwise the generated server.cfg is the fallback.</summary>
+    protected static string SrcdsRconArg(GameServer s)
+        => System.Text.RegularExpressions.Regex.IsMatch(s.RconPassword ?? "", @"^[A-Za-z0-9_\-]+$") ? $" +rcon_password \"{s.RconPassword}\"" : "";
+
+    /// <summary>Creates &lt;install&gt;\&lt;gameDir&gt;\cfg\server.cfg with name/password/RCON password if it doesn't exist yet.</summary>
+    protected static void WriteSrcdsServerCfg(GameServer s, string gameDir)
+        => WriteConfigIfMissing(Path.Combine(s.InstallPath, gameDir, "cfg", "server.cfg"),
+            $"hostname \"{s.ServerName}\"{Environment.NewLine}sv_password \"{s.ServerPassword}\"{Environment.NewLine}rcon_password \"{s.RconPassword}\"{Environment.NewLine}");
+
+    /// <summary>RCON port used when none is set explicitly. The long-standing default is game port + 10
+    /// (kept for every game that doesn't override this); srcds games serve RCON on the game port itself.</summary>
+    public virtual int GetRconPort(GameServer server) => server.RconPort > 0 ? server.RconPort : server.ServerPort + 10;
+
+    /// <summary>srcds executes server.cfg after the command line, so a cfg that already sets rcon_password (shipped or
+    /// edited by the user) overrides whatever WGS passes — and a wrong password makes srcds ban 127.0.0.1 for the rest of
+    /// the run. WGS therefore uses the password found in the game's server.cfg, and its own only when the cfg has none.</summary>
+    public virtual string GetRconPassword(GameServer server)
+    {
+        if (EngineFamily == SourceRcon.Family && SourceModGameDir.Length > 0)
+        {
+            try
+            {
+                var cfg = Path.Combine(server.InstallPath, SourceModGameDir, "cfg", "server.cfg");
+                if (File.Exists(cfg))
+                {
+                    var matches = System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(cfg),
+                        "^[ \t]*rcon_password[ \t]+\"?([^\"\r\n/]+?)\"?[ \t]*(//.*)?\r?$",
+                        System.Text.RegularExpressions.RegexOptions.Multiline);
+                    if (matches.Count > 0 && matches[^1].Groups[1].Value.Trim().Length > 0)
+                        return matches[^1].Groups[1].Value.Trim();
+                }
+            }
+            catch { /* unreadable cfg — fall back to WGS's own password */ }
+        }
+        return server.RconPassword;
+    }
     public virtual Task PreStartAsync(GameServer server) => Task.CompletedTask;
 
     /// <summary>Called after a successful SteamCMD install or update. Override to apply post-install
