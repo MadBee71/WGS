@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mail;
@@ -108,6 +109,7 @@ public class NotificationService
     private NotificationSettings _settings = new();
     private readonly string _settingsFile;
     private static readonly HttpClient _http = new();
+    private static readonly object WgsNoticeLock = new();
 
     public NotificationSettings Settings => _settings;
 
@@ -245,6 +247,29 @@ public class NotificationService
         if (_settings.EmailEnabled && !string.IsNullOrWhiteSpace(_settings.EmailTo))
             tasks.Add(SendEmailAsync(title, message));
         if (tasks.Count > 0) await Task.WhenAll(tasks);
+    }
+
+    /// <summary>"A new WGS version is available". Sent only when the Update checkbox in the notification settings is on, and
+    /// only ONCE per version for good: the version is remembered on disk, so restarting WGS (or running the service and the
+    /// window side by side) never repeats it. The version is written before sending, so a failed send is never retried
+    /// into a flood either.</summary>
+    public async Task NotifyWgsUpdateAvailableAsync(string version)
+    {
+        if (!_settings.NotifyOnUpdate || string.IsNullOrWhiteSpace(version)) return;
+
+        var marker = Path.Combine(_config.AppDataPath, "last-wgs-update-notice.txt");
+        lock (WgsNoticeLock)   // check + write as one step, so two simultaneous calls can't both pass
+        {
+            try
+            {
+                if (File.Exists(marker) && File.ReadAllText(marker).Trim() == version) return;
+                File.WriteAllText(marker, version);
+            }
+            catch { return; }
+        }   // can't remember it -> better silent than repeating on every start
+
+        await NotifyAsync($"⬆️ WGS {version} is available",
+                          "A new version of Windows Game Server has been released. Open WGS to update.", "#58A6FF");
     }
 
     public async Task NotifyServerStatusAsync(GameServer server, ServerStatus status)

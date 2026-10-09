@@ -637,10 +637,7 @@ public partial class MainViewModel : BaseViewModel
         {
             try
             {
-                await _notifications.NotifyAsync(
-                    $"⬆️ WGS {latest} is available",
-                    "A new version of Windows Game Server has been released. Open WGS to update.",
-                    "#58A6FF");
+                await _notifications.NotifyWgsUpdateAvailableAsync(latest);
             }
             catch { }
         }
