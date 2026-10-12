@@ -1365,7 +1365,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 /* Log panel */
 .log-toggle{background:none;border:none;color:#8b949e;font-size:11px;cursor:pointer;padding:4px 16px 8px;display:block;width:100%;text-align:left}
 .log-toggle:hover{color:#e6edf3}
-.log-box{display:none;background:#0d1117;border-top:1px solid #21262d;padding:10px 14px;max-height:200px;overflow-y:auto;font-family:Consolas,monospace;font-size:11px;line-height:1.5}
+.log-box{display:none;overflow-anchor:none;background:#0d1117;border-top:1px solid #21262d;padding:10px 14px;max-height:200px;overflow-y:auto;font-family:Consolas,monospace;font-size:11px;line-height:1.5}
 .log-box.open{display:block}
 .log-line{color:#8b949e;white-space:pre-wrap;word-break:break-all}
 .log-line.System{color:#58a6ff}
@@ -1620,10 +1620,19 @@ function renderServers(list){
   // Remove stale cards
   existing.forEach(id=>{if(!incoming.has(id))document.querySelector('.srv[data-id="'+id+'"]')?.remove();});
   sorted.forEach(s=>upsertCard(s));
-  // Reorder DOM to match sort order (appendChild moves existing nodes)
+  // Reorder DOM to match sort order. Only touch a card that is actually out of place: moving a node in the DOM resets
+  // the scroll position of everything inside it, which threw an open console log back to the top every 5 seconds.
+  let prev=null;
   sorted.forEach(s=>{
     const card=grid.querySelector('.srv[data-id="'+s.Id+'"]');
-    if(card)grid.appendChild(card);
+    if(!card)return;
+    const expected=prev?prev.nextElementSibling:grid.firstElementChild;
+    if(card!==expected){
+      const lb=card.querySelector('.log-box'),st=lb?lb.scrollTop:0;
+      grid.insertBefore(card,expected);
+      if(lb)lb.scrollTop=st;
+    }
+    prev=card;
   });
 }
 
@@ -1863,15 +1872,19 @@ async function pollLog(id){
     const offset=logOffsets[id]||0;
     const r=await api('servers/'+id+'/log?offset='+offset);
     if(r.lines&&r.lines.length>0){
+      // Follow the output only if the reader is already at the bottom; otherwise leave the view where they put it.
+      const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<30;
       r.lines.forEach((line,i)=>{
         const div=document.createElement('div');
         div.className='log-line '+(r.types[i]||'');
         div.textContent=line;
         box.appendChild(div);
       });
-      box.scrollTop=box.scrollHeight;
-      // Keep max 300 lines
+      // Keep max 300 lines (trimming from the top shifts the content up, so compensate when not following)
+      const heightBefore=box.scrollHeight;
       while(box.children.length>300)box.removeChild(box.firstChild);
+      if(atBottom)box.scrollTop=box.scrollHeight;
+      else box.scrollTop=Math.max(0,box.scrollTop-(heightBefore-box.scrollHeight));
     }
     logOffsets[id]=r.nextOffset;
   }catch(e){}
