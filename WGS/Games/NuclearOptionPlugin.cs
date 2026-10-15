@@ -28,7 +28,7 @@ public class NuclearOptionPlugin : GamePluginBase, IA2SQueryPlugin
         var config = new
         {
             ServerName       = string.IsNullOrWhiteSpace(s.ServerName) ? "Nuclear Option Server" : s.ServerName,
-            Password         = "",
+            Password         = s.ServerPassword ?? "",
             Hidden           = false,
             MaxPlayers       = s.MaxPlayers > 0 ? s.MaxPlayers : 16,
             ModdedServer     = false,

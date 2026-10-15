@@ -23,7 +23,7 @@ public class SoulmaskPlugin : GamePluginBase, IA2SQueryPlugin
         var map       = S(s, "map",       "Level01_Main");
         var mode      = S(s, "gameMode",  "pve");
         var adminPass = S(s, "adminPass", "");
-        var pass      = S(s, "serverPass", "");
+        var pass      = s.ServerPassword ?? "";   // the GUI Password field (not a GameSpecificSettings key)
 
         var args = $"{map} -server -log -UTF8Output " +
                    $"-Port={s.ServerPort} -QueryPort={s.QueryPort} " +

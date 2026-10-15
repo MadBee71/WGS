@@ -54,7 +54,7 @@ public class ArmaReforgerPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlug
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
         var safeName   = server.ServerName.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        var pass       = S(server, "serverPass",   "").Replace("\\", "\\\\").Replace("\"", "\\\"");
+        var pass       = (server.ServerPassword ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
         var adminPass  = S(server, "adminPassword","").Replace("\\", "\\\\").Replace("\"", "\\\"");
         var scenarioId = S(server, "scenarioId", "{ECC61978EDCC2B5A}Missions/23_Campaign.conf");
 

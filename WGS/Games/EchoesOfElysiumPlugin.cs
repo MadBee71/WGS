@@ -32,7 +32,7 @@ public class EchoesOfElysiumPlugin : GamePluginBase, IA2SQueryPlugin
               "logsDir": "./logs/",
               "maxBackups": 5,
               "name": "{{s.ServerName}}",
-              "password": "",
+              "password": "{{(s.ServerPassword ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")}}",
               "port": {{s.ServerPort}},
               "saveFreqMins": 5,
               "worldDataDir": "./world/"

@@ -53,7 +53,10 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
         obj["ServerName"] = server.ServerName;
         obj["MaxPlayers"] = maxPlayers;
         obj["GameMode"]   = gameMode;
-        if (!obj.ContainsKey("Password"))     obj["Password"]     = S(server, "serverPass", "");
+        // The GUI's Password field (server.ServerPassword) — it is not in GameSpecificSettings, so reading it from there
+        // always gave "". Applied every start; an empty GUI password leaves a password set by hand in the file alone.
+        if (!string.IsNullOrEmpty(server.ServerPassword)) obj["Password"] = server.ServerPassword;
+        else if (!obj.ContainsKey("Password"))            obj["Password"] = "";
         if (!obj.ContainsKey("BlobSyncPort")) obj["BlobSyncPort"] = 9700;
         if (!obj.ContainsKey("LanOnly"))      obj["LanOnly"]      = false;
         if (!obj.ContainsKey("SaveSlot"))     obj["SaveSlot"]     = 1;

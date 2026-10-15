@@ -40,13 +40,38 @@ public class EnshroudedPlugin : GamePluginBase, IA2SQueryPlugin
         obj["gamePort"]      = server.ServerPort;
         obj["queryPort"]     = server.QueryPort;
         obj["slotCount"]     = server.MaxPlayers;
-        if (!obj.ContainsKey("password"))     obj["password"]      = S(server, "serverPass");
+        ApplyPassword(obj, server.ServerPassword);
         if (!obj.ContainsKey("saveDirectory")) obj["saveDirectory"] = "./savegame";
         if (!obj.ContainsKey("logDirectory"))  obj["logDirectory"]  = "./logs";
         if (!obj.ContainsKey("ip"))            obj["ip"]            = "0.0.0.0";
 
         await File.WriteAllTextAsync(cfgPath,
             obj.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>
+    /// The server password lives in the "Default" user group of <c>userGroups</c> — the server ignores the old top-level
+    /// "password" key, which is where WGS used to write it (so the GUI password never applied and the server kept the
+    /// random one from its generated config). The value comes from the GUI's Password field (server.ServerPassword).
+    /// An empty GUI password leaves the file's current password alone, so one set by hand in the JSON isn't wiped.
+    /// </summary>
+    internal static void ApplyPassword(JsonObject obj, string? password)
+    {
+        if (obj["userGroups"] is not JsonArray groups) { groups = new JsonArray(); obj["userGroups"] = groups; }
+
+        var target = groups.OfType<JsonObject>().FirstOrDefault(g =>
+                         string.Equals((string?)g["name"], "Default", StringComparison.OrdinalIgnoreCase))
+                     ?? groups.OfType<JsonObject>().FirstOrDefault();
+        if (target == null)
+        {
+            target = new JsonObject
+            {
+                ["name"] = "Default", ["password"] = "", ["canKickBan"] = false, ["canAccessInventories"] = true,
+                ["canEditWorld"] = true, ["canEditBase"] = true, ["canExtendBase"] = true, ["reservedSlots"] = 0,
+            };
+            groups.Add(target);
+        }
+        if (!string.IsNullOrEmpty(password)) target["password"] = password;
     }
 
     public override Dictionary<string, string> GetDefaultSettings() => new();
