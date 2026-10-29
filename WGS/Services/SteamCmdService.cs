@@ -79,14 +79,51 @@ public class SteamCmdService
         }
         catch { }
 
-        var loginArg  = (login != null && password != null)
-            ? $"+login {login} {password}"
-            : "+login anonymous";
         var branchArg = string.IsNullOrEmpty(branch) ? "" : $" -beta {branch}";
         if (!string.IsNullOrEmpty(branch) && !string.IsNullOrEmpty(branchPassword)) branchArg += $" -betapassword {branchPassword}";
 
-        var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId}{branchArg} +quit";
-        await RunAsync(serverId, args, throwOnSteamError: true);
+        string Args(string loginArg) => $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId}{branchArg} +quit";
+
+        if (login == null || password == null)
+        {
+            await RunAsync(serverId, Args("+login anonymous"), throwOnSteamError: true);
+            return;
+        }
+
+        // Giving SteamCMD the password makes it start a brand-new sign-in every time, and with Steam Guard that means an
+        // approval request in the Steam app on every install/update. After one successful sign-in SteamCMD keeps a login
+        // token, and "+login <name>" alone reuses it silently. Try that first; if the token is missing/expired, fall back
+        // to the password (one approval, which renews the token).
+        if (HasCachedLogin(login))
+        {
+            _sawLoginFailure = false;
+            try
+            {
+                await RunAsync(serverId, Args($"+login {login}"), throwOnSteamError: true);
+                return;
+            }
+            catch (InvalidOperationException) when (_sawLoginFailure)
+            {
+                OutputReceived?.Invoke(serverId, "[WGS] Saved Steam login not accepted — signing in with the password (approve it in the Steam app if asked).");
+            }
+        }
+        await RunAsync(serverId, Args($"+login {login} {password}"), throwOnSteamError: true);
+    }
+
+    private bool _sawLoginFailure;
+
+    /// <summary>True when this SteamCMD copy has already signed in as <paramref name="login"/> and remembered it.</summary>
+    private bool HasCachedLogin(string login)
+    {
+        try
+        {
+            var users = Path.Combine(_steamCmdDir, "config", "loginusers.vdf");
+            var cfg   = Path.Combine(_steamCmdDir, "config", "config.vdf");
+            return File.Exists(users) && File.Exists(cfg)
+                && File.ReadAllText(users).Contains($"\"{login}\"", StringComparison.OrdinalIgnoreCase)
+                && File.ReadAllText(cfg).Contains("ConnectCache", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
     }
 
     public async Task RunAsync(string serverId, string arguments, bool throwOnSteamError = false)
@@ -110,6 +147,9 @@ public class SteamCmdService
         {
             if (e.Data == null) return;
             ParseAndForward(serverId, e.Data);
+            if (e.Data.Contains("Logging in user", StringComparison.OrdinalIgnoreCase) && e.Data.Contains("FAILED", StringComparison.OrdinalIgnoreCase)
+                || e.Data.Contains("Cached credentials not found", StringComparison.OrdinalIgnoreCase))
+                _sawLoginFailure = true;
 
             if (throwOnSteamError && e.Data.StartsWith("ERROR!", StringComparison.OrdinalIgnoreCase))
                 steamError = e.Data;
