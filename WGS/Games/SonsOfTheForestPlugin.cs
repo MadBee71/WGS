@@ -62,7 +62,8 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
             catch { obj = new(); }
         }
 
-        obj["IpAddress"]  = "0.0.0.0";
+        // A bind address the user has put in the file (e.g. a specific NIC on a multi-IP host) is kept; 0.0.0.0 only when none is set.
+        if (string.IsNullOrWhiteSpace(obj["IpAddress"]?.ToString())) obj["IpAddress"] = "0.0.0.0";
         obj["GamePort"]   = server.ServerPort;
         obj["QueryPort"]  = server.QueryPort;
         obj["ServerName"] = server.ServerName;
