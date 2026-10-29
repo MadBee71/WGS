@@ -40,7 +40,9 @@ public class ConfigEditorService
                 if (File.Exists(full))
                     result.Add(new ConfigFileEntry
                     {
-                        Name = System.IO.Path.GetFileName(full),
+                        // A plugin may list a file outside the install folder (e.g. a per-user data folder): label it so it
+                        // is not mistaken for a same-named file inside the install folder.
+                        Name = System.IO.Path.IsPathRooted(rel) ? System.IO.Path.GetFileName(full) + " (user data folder)" : System.IO.Path.GetFileName(full),
                         Path = full,
                     });
             }

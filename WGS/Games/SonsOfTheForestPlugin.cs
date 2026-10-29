@@ -28,6 +28,11 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
 
 
     public string A2SHost => "127.0.0.1";
+
+    /// <summary>The user-data copy of dedicatedserver.cfg is the one the game actually reads; listed (absolute path) so the Config tab edits it.</summary>
+    public static string UserDataConfigPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        "AppData", "LocalLow", "Endnight", "SonsOfTheForestDS", "dedicatedserver.cfg");
+    public override List<string> ConfigFiles => [UserDataConfigPath];
     public int GetA2SPort(Models.GameServer server) => server.QueryPort > 0 ? server.QueryPort : DefaultQueryPort;
     public override string BuildStartArguments(GameServer s)
         => string.Empty; // config via dedicatedserver.cfg
@@ -38,8 +43,7 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
         // The game keeps its dedicatedserver.cfg in the user data folder (AppData\LocalLow\Endnight\SonsOfTheForestDS) unless
         // -userdatapath says otherwise; some guides place it in the server root. Merge into both so an existing file there is
         // read and kept (GitHub #18) and the GUI settings reach whichever one the game loads.
-        var userData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "AppData", "LocalLow", "Endnight", "SonsOfTheForestDS");
+        var userData = Path.GetDirectoryName(UserDataConfigPath)!;
         Directory.CreateDirectory(userData);   // also on the very first start, so the game finds our file instead of generating defaults
         var paths = new List<string>
         {
@@ -62,8 +66,11 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
             catch { obj = new(); }
         }
 
-        // A bind address the user has put in the file (e.g. a specific NIC on a multi-IP host) is kept; 0.0.0.0 only when none is set.
-        if (string.IsNullOrWhiteSpace(obj["IpAddress"]?.ToString())) obj["IpAddress"] = "0.0.0.0";
+        // The Settings tab's IP address wins when the user set one; otherwise a bind address already in the file (e.g. a specific
+        // NIC on a multi-IP host) is kept, and 0.0.0.0 is used only when there is none.
+        var ip = server.ServerIp?.Trim();
+        if (!string.IsNullOrEmpty(ip) && ip != "0.0.0.0") obj["IpAddress"] = ip;
+        else if (string.IsNullOrWhiteSpace(obj["IpAddress"]?.ToString())) obj["IpAddress"] = "0.0.0.0";
         obj["GamePort"]   = server.ServerPort;
         obj["QueryPort"]  = server.QueryPort;
         obj["ServerName"] = server.ServerName;
@@ -78,6 +85,17 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
         if (!obj.ContainsKey("SaveSlot"))     obj["SaveSlot"]     = 1;
         if (!obj.ContainsKey("SaveMode"))     obj["SaveMode"]     = "Continue";
         if (!obj.ContainsKey("SaveInterval")) obj["SaveInterval"] = 600;
+        // The rest of the game's own default file, added only where missing so a hand-edited value is never touched.
+        // SkipNetworkAccessibilityTest defaults to true: the test calls Steam's HTTP API, and on a host where that call
+        // fails the server hangs there instead of starting (seen on a test server, 29.10.2026). It only checks reachability.
+        if (!obj.ContainsKey("IdleDayCycleSpeed"))            obj["IdleDayCycleSpeed"]            = 0.0;
+        if (!obj.ContainsKey("IdleTargetFramerate"))          obj["IdleTargetFramerate"]          = 5;
+        if (!obj.ContainsKey("ActiveTargetFramerate"))        obj["ActiveTargetFramerate"]        = 60;
+        if (!obj.ContainsKey("LogFilesEnabled"))              obj["LogFilesEnabled"]              = false;
+        if (!obj.ContainsKey("TimestampLogFilenames"))        obj["TimestampLogFilenames"]        = true;
+        if (!obj.ContainsKey("TimestampLogEntries"))          obj["TimestampLogEntries"]          = true;
+        if (!obj.ContainsKey("SkipNetworkAccessibilityTest")) obj["SkipNetworkAccessibilityTest"] = true;
+        if (!obj.ContainsKey("CustomGameModeSettings"))       obj["CustomGameModeSettings"]       = new JsonObject();
 
         // Merge GameSettings sub-object without overwriting existing keys
         if (obj["GameSettings"] is not JsonObject gs) { gs = new JsonObject(); obj["GameSettings"] = gs; }
