@@ -117,11 +117,13 @@ public class SteamCmdService
     {
         try
         {
-            var users = Path.Combine(_steamCmdDir, "config", "loginusers.vdf");
-            var cfg   = Path.Combine(_steamCmdDir, "config", "config.vdf");
-            return File.Exists(users) && File.Exists(cfg)
-                && File.ReadAllText(users).Contains($"\"{login}\"", StringComparison.OrdinalIgnoreCase)
-                && File.ReadAllText(cfg).Contains("ConnectCache", StringComparison.OrdinalIgnoreCase);
+            // SteamCMD records signed-in accounts and their login tokens in config\config.vdf ("Accounts" + "ConnectCache");
+            // loginusers.vdf belongs to the full Steam client and is not always present.
+            var cfg = Path.Combine(_steamCmdDir, "config", "config.vdf");
+            if (!File.Exists(cfg)) return false;
+            var text = File.ReadAllText(cfg);
+            return text.Contains("ConnectCache", StringComparison.OrdinalIgnoreCase)
+                && text.Contains($"\"{login}\"", StringComparison.OrdinalIgnoreCase);
         }
         catch { return false; }
     }
