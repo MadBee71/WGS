@@ -35,7 +35,22 @@ public class SonsOfTheForestPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryP
     // Merges WGS-managed fields into existing config to preserve user customizations
     public override async Task PreStartAsync(GameServer server)
     {
-        var cfgPath    = Path.Combine(server.InstallPath, "dedicatedserver.cfg");
+        // The game keeps its dedicatedserver.cfg in the user data folder (AppData\LocalLow\Endnight\SonsOfTheForestDS) unless
+        // -userdatapath says otherwise; some guides place it in the server root. Merge into both so an existing file there is
+        // read and kept (GitHub #18) and the GUI settings reach whichever one the game loads.
+        var userData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "AppData", "LocalLow", "Endnight", "SonsOfTheForestDS");
+        Directory.CreateDirectory(userData);   // also on the very first start, so the game finds our file instead of generating defaults
+        var paths = new List<string>
+        {
+            Path.Combine(server.InstallPath, "dedicatedserver.cfg"),
+            Path.Combine(userData, "dedicatedserver.cfg"),
+        };
+        foreach (var p in paths) await MergeConfigAsync(server, p);
+    }
+
+    private async Task MergeConfigAsync(GameServer server, string cfgPath)
+    {
         var maxPlayers = Math.Min(server.MaxPlayers, 8); // game hard cap
         var gameMode   = S(server, "GameDifficulty", "Normal");
         var treeRegen  = S(server, "RegenerationEnabled", "true").Equals("true", StringComparison.OrdinalIgnoreCase);
