@@ -11,6 +11,7 @@ public class MotorTownBTWPlugin : GamePluginBase, IA2SQueryPlugin
     public override string Description     => "Open-world trucking and driving simulator";
     public override string Category        => "Racing";
     public override int    SteamAppId      => 2223650;
+    public override bool   RequiresSteamLogin => true;   // the dedicated server ships inside the game's own app: anonymous login gets "No subscription"
     public override string SteamBranch     => "test";
     public override string Executable      => @"MotorTown\Binaries\Win64\MotorTownServer-Win64-Shipping.exe";
     public override int    DefaultPort      => 7777;
