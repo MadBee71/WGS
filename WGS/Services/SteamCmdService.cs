@@ -51,7 +51,7 @@ public class SteamCmdService
         }
     }
 
-    public async Task InstallOrUpdateAsync(string serverId, int appId, string installPath, string? login = null, string? password = null, string? branch = null)
+    public async Task InstallOrUpdateAsync(string serverId, int appId, string installPath, string? login = null, string? password = null, string? branch = null, string? branchPassword = null)
     {
         if (!IsInstalled) await DownloadSteamCmdAsync(serverId);
 
@@ -83,6 +83,7 @@ public class SteamCmdService
             ? $"+login {login} {password}"
             : "+login anonymous";
         var branchArg = string.IsNullOrEmpty(branch) ? "" : $" -beta {branch}";
+        if (!string.IsNullOrEmpty(branch) && !string.IsNullOrEmpty(branchPassword)) branchArg += $" -betapassword {branchPassword}";
 
         var args = $"+force_install_dir \"{installPath}\" {loginArg} +app_update {appId}{branchArg} +quit";
         await RunAsync(serverId, args, throwOnSteamError: true);

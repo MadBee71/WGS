@@ -22,6 +22,7 @@ public interface IGamePlugin
     int DefaultMaxPlayers { get; }
     bool   RequiresSteamLogin { get; }
     string SteamBranch        { get; }  // beta branch for SteamCMD (empty = default branch)
+    string SteamBranchPassword { get; } // password of that beta branch (empty = none)
     bool HasRcon { get; }
     bool HasHeavyInstall { get; }
     bool UseNativeConsole { get; }

@@ -206,7 +206,7 @@ public class LocalServerBackend : IServerBackend
         {
             var branch = server.GameSpecificSettings.TryGetValue("steamBranch", out var b) && !string.IsNullOrWhiteSpace(b)
                 ? b : plugin.SteamBranch;
-            await _steamCmd.InstallOrUpdateAsync(server.Id, plugin.SteamAppId, server.InstallPath, login, password, branch);
+            await _steamCmd.InstallOrUpdateAsync(server.Id, plugin.SteamAppId, server.InstallPath, login, password, branch, branch == plugin.SteamBranch ? plugin.SteamBranchPassword : null);
             var isUpdate = server.Status != ServerStatus.NotInstalled;
             if (isUpdate)
                 await plugin.PostUpdateAsync(server, msg => log?.Report(msg));

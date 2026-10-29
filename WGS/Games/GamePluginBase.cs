@@ -17,6 +17,7 @@ public abstract class GamePluginBase : IGamePlugin
     public abstract int DefaultMaxPlayers { get; }
     public virtual bool   RequiresSteamLogin => false;
     public virtual string SteamBranch        => string.Empty;
+    public virtual string SteamBranchPassword => string.Empty;
     public virtual bool   HasRcon            => false;
     /// <summary>True when the install compiles locally (e.g. Spigot/BuildTools) and can lag the machine.</summary>
     public virtual bool   HasHeavyInstall    => false;

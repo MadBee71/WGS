@@ -13,6 +13,7 @@ public class MotorTownBTWPlugin : GamePluginBase, IA2SQueryPlugin
     public override int    SteamAppId      => 2223650;
     public override bool   RequiresSteamLogin => true;   // the dedicated server ships inside the game's own app: anonymous login gets "No subscription"
     public override string SteamBranch     => "test";
+    public override string SteamBranchPassword => "motortowndedi";   // the dedicated server beta branch is password protected (published in the game's server docs)
     public override string Executable      => @"MotorTown\Binaries\Win64\MotorTownServer-Win64-Shipping.exe";
     public override int    DefaultPort      => 7777;
     public override int    DefaultQueryPort => 27015;
