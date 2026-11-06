@@ -22,6 +22,7 @@ public class GameServer
     public int  AutoRestartDelaySec    { get; set; } = 10;   // seconds before restart
     public bool AutoUpdate             { get; set; } = false;
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
+    public bool UpdateOnlyWhenEmpty    { get; set; } = false; // periodic auto-update waits until no players are online
     public bool AutoStart              { get; set; } = false;
     public bool WakeOnDemand           { get; set; } = false;
     public bool WakeOnDemandPortTrigger { get; set; } = true;

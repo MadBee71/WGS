@@ -904,6 +904,7 @@ public partial class MainViewModel : BaseViewModel
             MaxPlayers           = src.MaxPlayers,
             AutoRestart          = src.AutoRestart,
             AutoUpdate           = src.AutoUpdate,
+            UpdateOnlyWhenEmpty  = src.UpdateOnlyWhenEmpty,
             DailyRestartEnabled  = src.DailyRestartEnabled,
             DailyRestartTime     = src.DailyRestartTime,
             DiscordAlertsEnabled = src.DiscordAlertsEnabled,

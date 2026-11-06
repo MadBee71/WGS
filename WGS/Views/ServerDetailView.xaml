@@ -733,6 +733,9 @@
                                                  Style="{StaticResource DarkTextBox}"/>
                                     </StackPanel>
                                 </Grid>
+                                <CheckBox IsChecked="{Binding Server.UpdateOnlyWhenEmpty}" Style="{StaticResource DarkCheckBox}"
+                                          Content="Only update when the server is empty" Margin="20,8,0,0"
+                                          ToolTip="When an update is available, wait until no players are online instead of warning and restarting. Checked again every interval."/>
                             </StackPanel>
                         </Border>
 

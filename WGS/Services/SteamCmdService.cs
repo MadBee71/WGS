@@ -112,6 +112,54 @@ public class SteamCmdService
 
     private bool _sawLoginFailure;
 
+    /// <summary>The newest build id Steam offers for <paramref name="appId"/> on <paramref name="branch"/> ("public" when empty),
+    /// or null when it could not be read. Only reads app info — nothing is downloaded or changed. Anonymous first; a saved
+    /// login of <paramref name="login"/> is tried next (never with a password, so no Steam Guard approval is triggered).</summary>
+    public async Task<string?> GetLatestBuildIdAsync(int appId, string? branch, string? login = null)
+    {
+        if (!IsInstalled) return null;
+        var loginArgs = new List<string> { "+login anonymous" };
+        if (!string.IsNullOrEmpty(login) && HasCachedLogin(login)) loginArgs.Add($"+login {login}");
+        foreach (var loginArg in loginArgs)
+        {
+            var id = await ReadBuildIdAsync($"{loginArg} +app_info_update 1 +app_info_print {appId} +quit", branch);
+            if (id != null) return id;
+        }
+        return null;
+    }
+
+    private async Task<string?> ReadBuildIdAsync(string arguments, string? branch)
+    {
+        try
+        {
+            using var proc = new Process { StartInfo = new ProcessStartInfo
+            {
+                FileName = _steamCmdExe, Arguments = arguments, UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+            } };
+            proc.Start();
+            var stdout = proc.StandardOutput.ReadToEndAsync();
+            _ = proc.StandardError.ReadToEndAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            try { await proc.WaitForExitAsync(timeout.Token); }
+            catch (OperationCanceledException) { try { proc.Kill(entireProcessTree: true); } catch { } return null; }
+            return ParseBuildId(await stdout, string.IsNullOrWhiteSpace(branch) ? "public" : branch);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Pulls "branches" → &lt;branch&gt; → "buildid" out of SteamCMD's app_info_print text.</summary>
+    internal static string? ParseBuildId(string output, string branch)
+    {
+        var branches = output.IndexOf("\"branches\"", StringComparison.Ordinal);
+        if (branches < 0) return null;
+        var m = System.Text.RegularExpressions.Regex.Match(output[branches..],
+            "\"" + System.Text.RegularExpressions.Regex.Escape(branch) + "\"\\s*\\{[^{}]*?\"buildid\"\\s*\"(\\d+)\"",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return m.Success ? m.Groups[1].Value : null;
+    }
+
     /// <summary>True when this SteamCMD copy has already signed in as <paramref name="login"/> and remembered it.</summary>
     private bool HasCachedLogin(string login)
     {

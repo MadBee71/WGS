@@ -1090,6 +1090,9 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         AppendLog($"[AutoUpdate] Scheduled — checking every {intervalMin} min", ConsoleMessageType.System);
     }
 
+    /// <summary>True only when the player count is known and zero (an unreachable query counts as "not empty").</summary>
+    private bool ServerIsEmptyForUpdate() => !Server.PlayerCountUnknown && Server.CurrentPlayers == 0;
+
     private void StopUpdateTimer()
     {
         _updateTimer?.Stop();
@@ -1100,7 +1103,54 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private async Task RunPeriodicUpdateAsync()
     {
         if (!IsRunning) return; // server was stopped manually
+        if (_periodicUpdateBusy) return;
+        _periodicUpdateBusy = true;
+        try { await RunPeriodicUpdateCoreAsync(); }
+        finally { _periodicUpdateBusy = false; }
+    }
+
+    private bool _periodicUpdateBusy;
+    private string? _lastUpdateNotice;   // so "waiting for players to leave" etc. is logged once, not every interval
+
+    private void LogUpdateNotice(string text, ConsoleMessageType type = ConsoleMessageType.System)
+    {
+        if (_lastUpdateNotice == text) return;
+        _lastUpdateNotice = text;
+        AppendLog(text, type);
+    }
+
+    private async Task RunPeriodicUpdateCoreAsync()
+    {
         AppendLog("[AutoUpdate] Checking for updates...", ConsoleMessageType.System);
+
+        // Only restart when Steam really has a newer build than the installed one; before this check the server was
+        // stopped and restarted on every interval whether an update existed or not.
+        var plugin = Plugin;
+        if (plugin == null) return;
+        var branch = Server.GameSpecificSettings.TryGetValue("steamBranch", out var b) && !string.IsNullOrWhiteSpace(b)
+            ? b : plugin.SteamBranch;
+        var installed = plugin.GetSteamInstalledBuildId(Server);
+        var latest    = await _steamCmd.GetLatestBuildIdAsync(plugin.SteamAppId, branch,
+                            plugin.RequiresSteamLogin ? _config.SteamLogin : null);
+        if (latest == null)
+        {
+            LogUpdateNotice("[AutoUpdate] ⚠ Could not read the latest build from Steam — skipping this check, the server keeps running.", ConsoleMessageType.Warning);
+            return;
+        }
+        if (installed != null && installed == latest)
+        {
+            LogUpdateNotice($"[AutoUpdate] Up to date (build {installed}).");
+            return;
+        }
+        if (!IsRunning) return;
+
+        if (Server.UpdateOnlyWhenEmpty && !ServerIsEmptyForUpdate())
+        {
+            LogUpdateNotice($"[AutoUpdate] Update available (build {latest}) — waiting until the server is empty.");
+            return;
+        }
+        _lastUpdateNotice = null;
+        AppendLog($"[AutoUpdate] Update available (build {installed ?? "unknown"} → {latest}).", ConsoleMessageType.System);
 
         bool wasAutoRestart = Server.AutoRestart;
         try
@@ -1108,8 +1158,17 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             // Temporarily disable AutoRestart so we don't get an auto-restart
             // during the stop → update → start cycle
             Server.AutoRestart = false;
-            await _manager.WarnPlayersAsync(Server, "Server restarting for an update in 1 minute");
-            await Task.Delay(60_000);
+            if (!Server.UpdateOnlyWhenEmpty)
+            {
+                await _manager.WarnPlayersAsync(Server, "Server restarting for an update in 1 minute");
+                await Task.Delay(60_000);
+            }
+            else if (!ServerIsEmptyForUpdate())
+            {
+                // someone joined between the check and now — try again next interval
+                Server.AutoRestart = wasAutoRestart;
+                return;
+            }
             // Not _backend.StopAsync here: InstallAsync() below already runs the update this cycle
             // exists for, so routing the restart through _backend.StartAsync afterwards would trigger
             // a second, redundant update (UpdateOnStart/AutoUpdate check). BackupOnShutdown/BackupOnStart
