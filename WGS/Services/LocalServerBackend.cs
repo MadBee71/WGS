@@ -772,6 +772,18 @@ public class LocalServerBackend : IServerBackend
                     parsed[i].ConnectedSeconds = known[i].ConnectedSeconds;
                 }
             }
+
+            // Enshrouded's A2S response has the right count but empty names — backfill the "?" entries from the
+            // names tracked live from its console output (EnshroudedPlayerTracker).
+            if (server.GameId == "enshrouded")
+            {
+                var enshroudedKnown = _manager.GetInstance(server.Id)?.EnshroudedPlayers?.GetKnownPlayers() ?? [];
+                for (int i = 0; i < parsed.Count && i < enshroudedKnown.Count; i++)
+                {
+                    parsed[i].Name = enshroudedKnown[i].Name;
+                    parsed[i].ConnectedSeconds = enshroudedKnown[i].ConnectedSeconds;
+                }
+            }
         }
         else if (plugin is MinecraftPluginBase)
         {

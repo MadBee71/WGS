@@ -36,11 +36,15 @@ public class ServerInstance
     /// <summary>Only allocated for Minecraft Java Edition (any mod loader) — see MinecraftPlayerTracker for why.</summary>
     public MinecraftPlayerTracker? MinecraftPlayers { get; }
 
+    /// <summary>Only allocated for Enshrouded — see EnshroudedPlayerTracker for why.</summary>
+    public EnshroudedPlayerTracker? EnshroudedPlayers { get; }
+
     public ServerInstance(GameServer server)
     {
         Server = server;
         if (server.GameId == "valheim") ValheimPlayers = new ValheimPlayerTracker();
         if (server.GameId == "factorio") FactorioPlayers = new FactorioPlayerTracker();
+        if (server.GameId == "enshrouded") EnshroudedPlayers = new EnshroudedPlayerTracker();
         if (GameRegistry.Get(server.GameId) is MinecraftPluginBase) MinecraftPlayers = new MinecraftPlayerTracker();
     }
 
@@ -419,6 +423,7 @@ public class ServerManagerService
             inst.ValheimPlayers?.OnLogLine(text);
             inst.FactorioPlayers?.OnLogLine(text);
             inst.MinecraftPlayers?.OnLogLine(text);
+            inst.EnshroudedPlayers?.OnLogLine(text);
             var msg = new ConsoleMessage { Text = text, Type = type };
             inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
