@@ -435,6 +435,7 @@ public class WebApiService : IDisposable
                 await SendJson(resp, servers.Select(s => new {
                     s.Id, s.DisplayName, s.GameId, Status = s.Status.ToString(),
                     s.ServerPort, s.MaxPlayers, s.CurrentPlayers,
+                    Uptime = GetUptime?.Invoke(s.Id),
                     Notes = s.Notes ?? "" }));
                 return;
             }

@@ -86,6 +86,15 @@ public class LocalServerBackend : IServerBackend
     {
         var plugin = GameRegistry.Get(server.GameId);
 
+        // A start for a server that is already running must not touch it: ServerManagerService.StartAsync first kills any
+        // process of the same executable in this install folder, so a second start (GUI auto-start, scheduler, API call)
+        // killed the running server and orphaned its tracking.
+        if (_manager.IsRunning(server.Id))
+        {
+            log?.Report("[WGS] The server is already running — start ignored.");
+            return;
+        }
+
         if ((server.UpdateOnStart || server.AutoUpdate) && plugin?.SteamAppId > 0)
             await InstallAsync(server, log);
 
@@ -819,4 +828,13 @@ public class LocalServerBackend : IServerBackend
         server.CurrentPlayers = parsed.Count;
         return parsed;
     }
+
+    // ── Live state ───────────────────────────────────────────────────────────
+
+    public Task<List<(string Id, ServerStatus Status, string? Uptime)>> GetServerStatesAsync()
+        => Task.FromResult(_config.LoadServers()
+            .Select(s => (s.Id, _manager.GetServer(s.Id)?.Status ?? ServerStatus.Stopped,
+                _manager.GetInstance(s.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
+                    ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}" : null))
+            .ToList());
 }

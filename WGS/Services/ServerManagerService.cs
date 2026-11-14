@@ -170,6 +170,7 @@ public class ServerManagerService
             try { p.EnableRaisingEvents = true; } catch { }
             p.Exited += (_, _) =>
             {
+                if (!_running.TryGetValue(server.Id, out var current) || !ReferenceEquals(current, inst)) return; // stopped or replaced
                 server.RunningPid = 0;
                 _running.TryRemove(server.Id, out _);
                 SetStatus(server, ServerStatus.Stopped);
@@ -447,6 +448,12 @@ public class ServerManagerService
         {
             try
             {
+                // Only an exit of the run that is still registered (a crash or an external kill) needs handling here.
+                // StopAsync/KillAsync unregister the run and set Stopped themselves, and a fast Stop -> Start (restart,
+                // health check, log watch, update) can start the new process before this old Exited event arrives. The
+                // server object is shared, so reacting here would overwrite or unregister the new run.
+                if (!_running.TryGetValue(server.Id, out var current) || !ReferenceEquals(current, inst)) return;
+
                 SetStatus(server, ServerStatus.Stopped);
                 server.RunningPid = 0;
 

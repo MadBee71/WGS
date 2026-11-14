@@ -19,6 +19,8 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
     private WebApiService? _webApi;
     private ScheduledTaskService? _scheduler;
     private NetworkMonitorService? _network;
+    private WakeOnDemandService? _wake;
+    private ServerHealthService? _health;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -47,7 +49,14 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         var backend = new LocalServerBackend(manager, steamCmd, backup, notify, config, mods, sourceMod,
             configEditor, workshop, workshopDb, templates, scheduler, hygiene, presets);
 
-        GameServer? FindServer(string id) => config.LoadServers().FirstOrDefault(s => s.Id == id);
+        // servers.json only holds settings; the live status belongs to the manager. Without it Install/Stop/Kill saw a stale
+        // saved status (an Update of a running server did not stop it first).
+        GameServer? FindServer(string id)
+        {
+            var found = config.LoadServers().FirstOrDefault(s => s.Id == id);
+            if (found != null) found.Status = manager.GetServer(id)?.Status ?? ServerStatus.Stopped;
+            return found;
+        }
 
         // Route scheduler/daily-restart Start/Stop/Restart through the backend (same as the WPF
         // client's MainViewModel wiring) so BackupOnShutdown/BackupOnStart/UpdateOnStart are honored
@@ -93,6 +102,60 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             catch (Exception ex) { logger.LogWarning(ex, "Could not save PID for {Id}", id); }
         };
 
+        // What the WPF window does when a server changes state (Discord start/stop/crash messages, UPnP ports, Wake on
+        // Demand / idle shutdown) now runs here too, so servers handled by the service behave like in the normal window.
+        var upnp         = new UPnPService();
+        var wake         = new WakeOnDemandService(manager, backend, backup, notify);
+        var healthCheck  = new ServerHealthService(manager, backend, notify, config);
+        var logWatcher   = new LogWatcherService(manager, backend, notify);
+        _wake = wake; _health = healthCheck;
+        healthCheck.StartMonitoring();
+
+        // Rules and settings can change in the client while a server runs, so the service reads the server's saved
+        // settings again at most every 30 seconds for the per-line log watcher.
+        var watchCache = new System.Collections.Concurrent.ConcurrentDictionary<string, (GameServer Server, DateTime At)>();
+        manager.LogReceived += (id, msg) =>
+        {
+            try
+            {
+                var cached = watchCache.TryGetValue(id, out var c) && DateTime.UtcNow - c.At < TimeSpan.FromSeconds(30)
+                    ? c.Server : null;
+                if (cached == null)
+                {
+                    cached = FindServer(id);
+                    if (cached == null) return;
+                    watchCache[id] = (cached, DateTime.UtcNow);
+                }
+                logWatcher.CheckLine(cached, msg.Text);
+            }
+            catch (Exception ex) { logger.LogDebug(ex, "Log watcher check failed"); }
+        };
+
+        // Reattaching to servers that kept running fires "Running" events too — no "started" message for those.
+        var startupDone = false;
+        manager.StatusChanged += (id, status) =>
+        {
+            try
+            {
+                var server = FindServer(id) ?? manager.GetServer(id);
+                if (server == null) return;
+                if (startupDone) _ = notify.NotifyServerStatusAsync(manager.GetServer(id) ?? server, status);
+                if (status == ServerStatus.Running)
+                {
+                    if (config.EnableUPnP) _ = upnp.AddPortsForServerAsync(server);
+                    wake.Disarm(id);
+                    wake.ArmIdleShutdown(server);
+                }
+                else if (status is ServerStatus.Stopped or ServerStatus.Error)
+                {
+                    if (config.EnableUPnP) _ = upnp.RemovePortsForServerAsync(server);
+                    wake.DisarmIdleShutdown(id);
+                    wake.Arm(server);
+                }
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "Status change handling failed for {Id}", id); }
+        };
+
         async Task<string?> Try(Func<Task> op)
         {
             try { await op(); return null; }
@@ -107,11 +170,18 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 
         // Servers that kept running while the service was stopped/restarted: pick them up again (as the WPF client does at
         // startup), otherwise they would show as stopped and could no longer be stopped from here.
+        // Servers marked "Auto-start" are started here when they were not found still running — after a reboot nothing
+        // else would start them (the WPF client no longer does in service mode).
+        var autoStartServers = new List<GameServer>();
         foreach (var s in config.LoadServers())
         {
             s.Status = ServerStatus.Stopped;
-            try { manager.TryReattach(s); } catch (Exception ex) { logger.LogWarning(ex, "Could not reattach {Server}", s.DisplayName); }
+            var reattached = false;
+            try { reattached = manager.TryReattach(s); } catch (Exception ex) { logger.LogWarning(ex, "Could not reattach {Server}", s.DisplayName); }
+            if (s.AutoStart && !reattached) autoStartServers.Add(s);
+            else if (!reattached && s.WakeOnDemand) wake.Arm(s);
         }
+        startupDone = true;
 
         var webApi = new WebApiService { Users = users, DashboardEnabled = true };
         _webApi = webApi;
@@ -270,6 +340,21 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 
         webApi.Start(Port, config.WebApiToken);
 
+        // Everything is wired now — start the "Auto-start" servers (each in its own task, like the WPF client did).
+        foreach (var server in autoStartServers)
+        {
+            var srv = server;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    logger.LogInformation("Auto-starting {Server}", srv.DisplayName);
+                    await backend.StartAsync(srv);
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Auto-start of {Server} failed", srv.DisplayName); }
+            }, stoppingToken);
+        }
+
         var serverCount = config.LoadServers().Count;
         logger.LogInformation("servers.json: {Path} ({Count} server(s))", config.ServersFile, serverCount);
         logger.LogInformation("Listening on http://localhost:{Port}/ (all interfaces: {AllInterfaces})", Port, webApi.BoundToAllInterfaces);
@@ -283,6 +368,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         // service has no view models, so without this nothing ever updated CurrentPlayers, recorded player
         // sessions or sent the Discord join/leave messages.
         _ = Task.Run(() => PollPlayersAsync(config, manager, backend, notify, new PlayerStatsService(config), stoppingToken), stoppingToken);
+        _ = Task.Run(() => PeriodicUpdateLoopAsync(config, manager, backend, steamCmd, backup, notify, stoppingToken), stoppingToken);
 
         try
         {
@@ -336,11 +422,101 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         }
     }
 
+    /// <summary>"Auto-update periodically" for servers run by the service (the WPF window's own timer does not run in
+    /// service mode). Same rules as the window: only when Steam has a newer build, optionally only when the server is
+    /// empty, with an in-game warning and a minute's wait otherwise.</summary>
+    private async Task PeriodicUpdateLoopAsync(ConfigService config, ServerManagerService manager, LocalServerBackend backend,
+        SteamCmdService steamCmd, BackupService backup, NotificationService notify, CancellationToken ct)
+    {
+        var lastCheck = new Dictionary<string, DateTime>();
+        while (!ct.IsCancellationRequested)
+        {
+            try { await Task.Delay(TimeSpan.FromSeconds(30), ct); } catch (OperationCanceledException) { return; }
+            try
+            {
+                foreach (var cfg in config.LoadServers().Where(x => x.AutoUpdate))
+                {
+                    var plugin = Games.GameRegistry.Get(cfg.GameId);
+                    if (plugin == null || plugin.SteamAppId <= 0) continue;
+                    var live = manager.GetServer(cfg.Id);
+                    if (live == null || live.Status != ServerStatus.Running) { lastCheck.Remove(cfg.Id); continue; }
+
+                    var interval = TimeSpan.FromMinutes(cfg.AutoUpdateIntervalMin > 0 ? cfg.AutoUpdateIntervalMin : 30);
+                    // first check one interval after the server came up, like the window's timer
+                    if (!lastCheck.TryGetValue(cfg.Id, out var last)) { lastCheck[cfg.Id] = DateTime.UtcNow; continue; }
+                    if (DateTime.UtcNow - last < interval) continue;
+                    lastCheck[cfg.Id] = DateTime.UtcNow;
+
+                    await UpdateIfNewerAsync(cfg, live, plugin, manager, backend, steamCmd, backup, notify, config, ct);
+                }
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "Periodic update check failed"); }
+        }
+    }
+
+    private async Task UpdateIfNewerAsync(GameServer cfg, GameServer live, Games.IGamePlugin plugin, ServerManagerService manager,
+        LocalServerBackend backend, SteamCmdService steamCmd, BackupService backup, NotificationService notify,
+        ConfigService config, CancellationToken ct)
+    {
+        var branch = cfg.GameSpecificSettings.TryGetValue("steamBranch", out var b) && !string.IsNullOrWhiteSpace(b) ? b : plugin.SteamBranch;
+        var installed = plugin.GetSteamInstalledBuildId(cfg);
+        var latest    = await steamCmd.GetLatestBuildIdAsync(plugin.SteamAppId, branch, plugin.RequiresSteamLogin ? config.SteamLogin : null);
+        if (latest == null || (installed != null && installed == latest)) return;
+
+        bool Empty() => !live.PlayerCountUnknown && live.CurrentPlayers == 0;
+        if (cfg.UpdateOnlyWhenEmpty && !Empty()) return;
+
+        logger.LogInformation("Updating {Server}: build {Old} -> {New}", cfg.DisplayName, installed ?? "unknown", latest);
+        if (!cfg.UpdateOnlyWhenEmpty)
+        {
+            await manager.WarnPlayersAsync(live, "Server restarting for an update in 1 minute");
+            await Task.Delay(60_000, ct);
+        }
+        else if (!Empty()) return;   // someone joined meanwhile — next interval
+
+        var wasAutoRestart = live.AutoRestart;
+        try
+        {
+            live.AutoRestart = false;   // no crash-restart in the middle of stop -> update -> start
+            await manager.StopAsync(live);
+            if (cfg.BackupOnShutdown)
+            {
+                try { await backup.CreateBackupAsync(cfg); }
+                catch (Exception ex) { logger.LogWarning(ex, "Backup after shutdown failed for {Server}", cfg.DisplayName); }
+            }
+            await backend.InstallAsync(FindFresh(config, cfg.Id) ?? cfg);
+            live.AutoRestart = wasAutoRestart;
+
+            var fresh = FindFresh(config, cfg.Id) ?? cfg;
+            if (fresh.BackupOnStart)
+            {
+                try { await backup.CreateBackupAsync(fresh); }
+                catch (Exception ex) { logger.LogWarning(ex, "Backup before start failed for {Server}", cfg.DisplayName); }
+            }
+            await manager.StartAsync(fresh);
+            await notify.NotifyAsync($"🔄 {fresh.DisplayName} updated & restarted", plugin.GameName, "#58A6FF");
+        }
+        catch (Exception ex)
+        {
+            live.AutoRestart = wasAutoRestart;
+            logger.LogWarning(ex, "Auto-update of {Server} failed", cfg.DisplayName);
+        }
+    }
+
+    private static GameServer? FindFresh(ConfigService config, string id)
+    {
+        var s = config.LoadServers().FirstOrDefault(x => x.Id == id);
+        if (s != null) s.Status = ServerStatus.Stopped;
+        return s;
+    }
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("WGS.ServiceHost stopping");
         _webApi?.Stop();
         _scheduler?.Dispose();
+        _wake?.Dispose();
+        _health?.Dispose();
         _network?.Dispose();
         await base.StopAsync(cancellationToken);
     }

@@ -188,6 +188,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     {
         // Arming binds a UDP/TCP socket to the server's port — only safe while nothing else
         // (i.e. the game process itself) already owns that port.
+        if (ServiceMode) return; // the service owns the wake sockets
         if (Server.Status is not (ServerStatus.Stopped or ServerStatus.Error)) return;
         if (Server.WakeOnDemand && Server.WakeOnDemandPortTrigger) _wakeService.Arm(Server);
         else _wakeService.Disarm(Server.Id);
@@ -197,7 +198,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     partial void OnShutDownWhenEmptyChanged(bool value)
     {
         Server.ShutDownWhenEmpty = value;
-        if (!IsRunning) return; // idle-shutdown only matters while running; takes effect on next start otherwise
+        if (ServiceMode || !IsRunning) return; // the service runs idle-shutdown; idle-shutdown only matters while running; takes effect on next start otherwise
         if (value) _wakeService.ArmIdleShutdown(Server);
         else _wakeService.DisarmIdleShutdown(Server.Id);
     }
@@ -429,7 +430,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         Directory.CreateDirectory(targetDir);
         File.Copy(CustomImagePath, Path.Combine(targetDir, targetServerId + ".png"), overwrite: true);
     }
-    public string UptimeText => _manager.GetInstance(Server.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
+    /// <summary>True when the servers are run by the background service instead of this window.</summary>
+    private bool ServiceMode => _backend is RemoteServerBackend;
+
+    public string UptimeText => ServiceMode
+        ? (Server.Status == ServerStatus.Running && _serviceUptime != null ? _serviceUptime : "--:--:--")
+        : _manager.GetInstance(Server.Id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
         ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
         : "--:--:--";
 
@@ -1080,6 +1086,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private void StartUpdateTimer()
     {
         StopUpdateTimer();
+        if (ServiceMode) return; // the service runs the periodic update
         if (!Server.AutoUpdate || Plugin?.SteamAppId == 0) return;
 
         int intervalMin = Server.AutoUpdateIntervalMin > 0 ? Server.AutoUpdateIntervalMin : 30;
@@ -1445,6 +1452,20 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         // having left (and announce them all joining again once the query recovers). Keep the last known list.
         else if (Server.PlayerCountUnknown) return;
 
+        if (ServiceMode)
+        {
+            // The service already records sessions and sends the join/leave notifications — here the list is display-only.
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                OnlinePlayers = parsed;
+                PlayerHistory = _playerStats.GetSessions(Server.Id, 50);
+                PlayerStatsList = _playerStats.GetPlayerStats(Server.Id, 50);
+                RefreshActivityStats();
+                if (rconWentStale) RconConnected = false;
+            });
+            return;
+        }
+
         // Compare against the previous list → session logging
         var prev = OnlinePlayers.ToList();
         var currNames  = parsed.Select(p => p.SteamId.Length > 0 ? p.SteamId : p.Name).ToHashSet();
@@ -1806,11 +1827,25 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (string.IsNullOrEmpty(Server.GroupId) || Plugin == null) return;
         _groupBans.AddBan(Server.GroupId, Server.GameId, target, reason);
 
-        foreach (var sibling in _manager.GetRunningGroupSiblings(Server))
+        IEnumerable<string> siblingIds;
+        if (ServiceMode)
+        {
+            try
+            {
+                var running = (await _backend.GetServerStatesAsync()).Where(x => x.Status == ServerStatus.Running).Select(x => x.Id).ToHashSet();
+                siblingIds = _config.LoadServers()
+                    .Where(s => s.Id != Server.Id && s.GameId == Server.GameId && s.GroupId == Server.GroupId && running.Contains(s.Id))
+                    .Select(s => s.Id).ToList();
+            }
+            catch { siblingIds = []; }
+        }
+        else siblingIds = _manager.GetRunningGroupSiblings(Server).Select(x => x.Id).ToList();
+
+        foreach (var siblingId in siblingIds)
         {
             var cmd = Plugin.GetBanCommand(target, reason);
             if (cmd == null) continue;
-            try { await _manager.SendCommandAsync(sibling.Id, cmd); }
+            try { await _backend.SendConsoleCommandAsync(siblingId, cmd); }
             catch { }
         }
         AppendLog($"[Group Ban] Synced to {Server.GroupId}.", ConsoleMessageType.System);
@@ -2041,9 +2076,21 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     private void StartPerfMonitoring()
     {
-        var inst = _manager.GetInstance(Server.Id);
-        if (inst?.Process == null) return;
-        _perfMonitor.Track(Server.Id, inst.Process.Id);
+        int pid;
+        if (ServiceMode)
+        {
+            // The process belongs to the background service; it saves its PID to servers.json when the server is running.
+            pid = _config.LoadServers().FirstOrDefault(x => x.Id == Server.Id)?.RunningPid ?? 0;
+            if (pid <= 0) return;
+            _servicePerfPid = pid;
+        }
+        else
+        {
+            var inst = _manager.GetInstance(Server.Id);
+            if (inst?.Process == null) return;
+            pid = inst.Process.Id;
+        }
+        _perfMonitor.Track(Server.Id, pid);
 
         lock (_perfLock)
         {
@@ -2207,6 +2254,81 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
             ActionLog.Insert(0, entry);
             if (ActionLog.Count > 100) ActionLog.RemoveAt(ActionLog.Count - 1);
         });
+    }
+
+    // ── Service mode ─────────────────────────────────────────────────────────
+    // With a background service the server processes belong to it; this client's own ServerManagerService never
+    // sees them, so status and console output are read from the service (MainViewModel polls these).
+
+    private int _serviceLogOffset;
+    private bool _servicePollBusy;
+
+    private string? _serviceUptime;
+    private bool _serviceStateSeen;
+    private int _servicePerfPid;
+
+    /// <summary>Service mode: (re)attaches CPU/RAM monitoring to the service's server process when it is running
+    /// and not tracked yet or its PID changed. Called on every state poll.</summary>
+    public void EnsureServicePerfMonitoring()
+    {
+        if (Server.Status != ServerStatus.Running) return;
+        var pid = _config.LoadServers().FirstOrDefault(x => x.Id == Server.Id)?.RunningPid ?? 0;
+        if (pid <= 0 || (_perfTimer != null && pid == _servicePerfPid)) return;
+        StartPerfMonitoring();
+    }
+
+    /// <summary>Takes over the status and uptime the service reports. Runs on the UI thread.</summary>
+    public void ApplyServiceState(ServerStatus status, string? uptime = null)
+    {
+        if (_serviceUptime != uptime)
+        {
+            _serviceUptime = uptime;
+            OnPropertyChanged(nameof(UptimeText));
+        }
+        var firstSeen = !_serviceStateSeen;
+        _serviceStateSeen = true;
+        var was = Server.Status;
+        if (was == status && !firstSeen) return;
+        // A new run starts a fresh console log on the service side: read it from the beginning again.
+        if (status is ServerStatus.Starting or ServerStatus.Running && was is not (ServerStatus.Starting or ServerStatus.Running))
+            _serviceLogOffset = 0;
+        Server.Status = status;
+        RefreshStatus();
+        if (status == ServerStatus.Running && (was != ServerStatus.Running || firstSeen))
+        {
+            if (!firstSeen) { AddActionLog("Server started"); _ = ReplayGroupBansAsync(); }
+            StartPlayerRefresh();
+        }
+        else if (status is ServerStatus.Stopped or ServerStatus.Error && (was is not (ServerStatus.Stopped or ServerStatus.Error) || firstSeen))
+        {
+            if (!firstSeen) AddActionLog(status == ServerStatus.Error ? "Server crashed" : "Server stopped");
+            StopPlayerRefresh();
+            StopPerfMonitoring();
+            _perfHistory.Clear(Server.Id);
+            OnlinePlayers = [];
+            Server.CurrentPlayers = 0;
+            Server.PlayerCountUnknown = false;
+        }
+    }
+
+    /// <summary>True while the service may still produce console output for this server.</summary>
+    public bool NeedsServiceLogPoll => Server.Status is ServerStatus.Starting or ServerStatus.Running or ServerStatus.Stopping
+                                       or ServerStatus.Installing or ServerStatus.Updating;
+
+    /// <summary>Fetches new console lines from the service and appends them to the console.</summary>
+    public async Task PollServiceLogAsync()
+    {
+        if (_servicePollBusy) return;
+        _servicePollBusy = true;
+        try
+        {
+            var (lines, types, next) = await _backend.GetLogAsync(Server.Id, _serviceLogOffset);
+            _serviceLogOffset = next;
+            for (var i = 0; i < lines.Count; i++)
+                AppendLog(lines[i], Enum.TryParse<ConsoleMessageType>(i < types.Count ? types[i] : "", out var t) ? t : ConsoleMessageType.Info);
+        }
+        catch { /* service briefly unreachable — try again on the next tick */ }
+        finally { _servicePollBusy = false; }
     }
 
     private void RefreshStatus()

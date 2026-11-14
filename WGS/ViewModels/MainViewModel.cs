@@ -242,6 +242,15 @@ public partial class MainViewModel : BaseViewModel
         Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedServers));
         RemoteServers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SortedRemoteServers));
         LoadServers();
+        if (_config.UsesServiceBackend)
+        {
+            // The service owns the processes and runs the schedule; this window only mirrors and controls them.
+            _scheduler.PauseSchedule();
+            _serviceStateTimer = new System.Timers.Timer(2000) { AutoReset = true };
+            _serviceStateTimer.Elapsed += async (_, _) => await PollServiceStatesAsync();
+            _serviceStateTimer.Start();
+            _ = PollServiceStatesAsync();
+        }
         _ = CheckForUpdateAsync();
 
         // Re-check for updates periodically — the startup-only check meant anyone leaving
@@ -267,7 +276,7 @@ public partial class MainViewModel : BaseViewModel
         _usersRefreshTimer.Elapsed += (_, _) => WpfApplication.Current?.Dispatcher?.Invoke(RefreshUsers);
         _usersRefreshTimer.Start();
 
-        _healthCheck.StartMonitoring();
+        if (!_config.UsesServiceBackend) _healthCheck.StartMonitoring(); // the service runs its own health monitoring
 
         // Wire up Discord bot callbacks — same Dispatcher fix as WebAPI
         _bot.GetServers    = () => Servers.Select(v => v.Server);
@@ -276,7 +285,7 @@ public partial class MainViewModel : BaseViewModel
         _bot.RestartServer = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.RestartCommand.ExecuteAsync(null)      : Task.CompletedTask; });
         _bot.UpdateServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.UpdateCommand.ExecuteAsync(null)       : Task.CompletedTask; });
         _bot.BackupServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.CreateBackupCommand.ExecuteAsync(null) : Task.CompletedTask; });
-        _bot.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
+        _bot.SendCmd       = async (id, cmd) => { if (_config.UsesServiceBackend) await _backend.SendConsoleCommandAsync(id, cmd); else await manager.SendCommandAsync(id, cmd); };
 
         // Daily Restart (Settings checkbox) runs from ServerManagerService's own background delay
         // chain, not the UI thread — needs DispatchCommandAwaited (declared below, local functions
@@ -360,11 +369,16 @@ public partial class MainViewModel : BaseViewModel
         _webApi.RestartServer = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.RestartCommand.ExecuteAsync(null)       : Task.CompletedTask; });
         _webApi.UpdateServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.UpdateCommand.ExecuteAsync(null)        : Task.CompletedTask; });
         _webApi.BackupServer  = id => DispatchCommand(() => { var vm = FindServer(id); return vm != null ? vm.CreateBackupCommand.ExecuteAsync(null)  : Task.CompletedTask; });
-        _webApi.SendCmd       = async (id, cmd) => await manager.SendCommandAsync(id, cmd);
+        _webApi.SendCmd       = async (id, cmd) => { if (_config.UsesServiceBackend) await _backend.SendConsoleCommandAsync(id, cmd); else await manager.SendCommandAsync(id, cmd); };
         _webApi.GetMetrics    = () => metrics.Current;
         _webApi.GetNetwork    = () => (network.CurrentBytesInPerSec, network.CurrentBytesOutPerSec);
         _webApi.GetLog = (id, offset) =>
         {
+            if (_config.UsesServiceBackend)
+            {
+                try { return _backend.GetLogAsync(id, offset).GetAwaiter().GetResult(); }
+                catch { return ([], [], offset); }
+            }
             var inst = manager.GetInstance(id);
             if (inst == null) return ([], [], offset);
             var (slice, next) = inst.GetLogSince(offset);
@@ -375,7 +389,9 @@ public partial class MainViewModel : BaseViewModel
             );
         };
         _webApi.Users     = users;
-        _webApi.GetUptime = id => manager.GetInstance(id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
+        _webApi.GetUptime = id => _config.UsesServiceBackend
+            ? (FindServer(id) is { IsRunning: true } svm && svm.UptimeText != "--:--:--" ? svm.UptimeText : null)
+            : manager.GetInstance(id)?.Uptime is TimeSpan t && t > TimeSpan.Zero
             ? $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}"
             : null;
         _webApi.GetOnlinePlayers = id =>
@@ -554,10 +570,14 @@ public partial class MainViewModel : BaseViewModel
         foreach (var srv in _config.LoadServers())
         {
             srv.Status = ServerStatus.Stopped;
-            bool reattached = _manager.TryReattach(srv);
+            // In service mode the service owns the processes: don't reattach, arm Wake on Demand or auto-start here
+            // (that started a second copy / killed the one the service runs). The service handles Auto-start itself.
+            var serviceMode = _config.UsesServiceBackend;
+            bool reattached = !serviceMode && _manager.TryReattach(srv);
             var vm = MakeVm(srv);
             vm.ServerNumber = num++;
             Servers.Add(vm);
+            if (serviceMode) continue;
             if (!reattached && srv.WakeOnDemand)
                 _wakeOnDemand.Arm(srv);
             if (srv.AutoStart && !reattached)
@@ -1281,7 +1301,55 @@ public partial class MainViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    public void Save() => _config.SaveServers(Servers.Select(v => v.Server));
+    public void Save()
+    {
+        // In service mode the service records each running server's PID in servers.json (so a restarted service can
+        // reattach). This window's copies are older: writing them back as they are would reset the PIDs to 0.
+        if (_config.UsesServiceBackend)
+        {
+            try
+            {
+                var pids = _config.LoadServers().ToDictionary(s => s.Id, s => s.RunningPid);
+                foreach (var v in Servers) v.Server.RunningPid = pids.GetValueOrDefault(v.Server.Id);
+            }
+            catch { }
+        }
+        _config.SaveServers(Servers.Select(v => v.Server));
+    }
+
+    private System.Timers.Timer? _serviceStateTimer;
+    private bool _serviceStatePollBusy;
+
+    /// <summary>Service mode: mirrors the service's server states and console output into this window.</summary>
+    private async Task PollServiceStatesAsync()
+    {
+        if (_serviceStatePollBusy) return;
+        _serviceStatePollBusy = true;
+        try
+        {
+            var states = await _backend.GetServerStatesAsync();
+            WpfApplication.Current?.Dispatcher?.Invoke(() =>
+            {
+                foreach (var (id, status, uptime) in states)
+                {
+                    var vm = FindServer(id);
+                    if (vm == null) continue;
+                    vm.ApplyServiceState(status, uptime);
+                    vm.EnsureServicePerfMonitoring();
+                }
+                RefreshCounts();
+                OnPropertyChanged(nameof(HasRunningServers));
+                OnPropertyChanged(nameof(CanInstallUpdate));
+                _tray.SetStatus(RunningCount, TotalServers);
+            });
+
+            var vms = WpfApplication.Current?.Dispatcher?.Invoke(() => Servers.ToList()) ?? [];
+            foreach (var vm in vms)
+                if (vm.NeedsServiceLogPoll) await vm.PollServiceLogAsync();
+        }
+        catch { /* service not reachable right now — keep the last known states */ }
+        finally { _serviceStatePollBusy = false; }
+    }
 
     private void RefreshCounts()
     {

@@ -108,4 +108,10 @@ public interface IServerBackend
     // caller that already holds the object (ServerViewModel does, every 15s per running server)
     // shouldn't force a fresh servers.json disk read/deserialize just to look it up again.
     Task<List<Models.OnlinePlayer>> GetOnlinePlayersAsync(GameServer server);
+
+    // ── Live state ───────────────────────────────────────────────────────────
+    // Status of every server as the process owner sees it. In service mode the processes belong to the
+    // background service, so the client's own ServerManagerService knows nothing about them — the client
+    // reads their state from here instead.
+    Task<List<(string Id, ServerStatus Status, string? Uptime)>> GetServerStatesAsync();
 }

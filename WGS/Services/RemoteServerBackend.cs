@@ -450,5 +450,21 @@ public class RemoteServerBackend : IServerBackend
         }).ToList();
     }
 
+    // ── Live state ───────────────────────────────────────────────────────────
+
+    public async Task<List<(string Id, ServerStatus Status, string? Uptime)>> GetServerStatesAsync()
+    {
+        using var doc = await GetJsonAsync("/api/servers");
+        var list = new List<(string, ServerStatus, string?)>();
+        foreach (var el in doc.RootElement.EnumerateArray())
+        {
+            var id = el.TryGetProperty("Id", out var i) ? i.GetString() : null;
+            var st = el.TryGetProperty("Status", out var s) ? s.GetString() : null;
+            var up = el.TryGetProperty("Uptime", out var u) && u.ValueKind == JsonValueKind.String ? u.GetString() : null;
+            if (id != null && Enum.TryParse<ServerStatus>(st, out var status)) list.Add((id, status, up));
+        }
+        return list;
+    }
+
     public void Dispose() => _http.Dispose();
 }

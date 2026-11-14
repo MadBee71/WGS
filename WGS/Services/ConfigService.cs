@@ -110,6 +110,11 @@ public class ConfigService
     /// service was started with.</summary>
     public string ServiceModeToken { get; set; } = string.Empty;
 
+    /// <summary>True when this client really talks to the background service (the condition App.xaml.cs uses to pick
+    /// RemoteServerBackend). In that case the service owns the server processes: this client must not start, reattach
+    /// to or schedule anything itself.</summary>
+    public bool UsesServiceBackend => ServiceModeEnabled && !string.IsNullOrWhiteSpace(ServiceModeUrl);
+
     /// <summary>True when the Web API must be started — either by user choice or slave mode.</summary>
     public bool WebApiRequired => WebApiEnabled || SlaveMode;
 

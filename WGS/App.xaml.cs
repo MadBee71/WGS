@@ -200,7 +200,7 @@ public partial class App : System.Windows.Application
         s.AddSingleton<IServerBackend>(sp =>
         {
             var config = sp.GetRequiredService<ConfigService>();
-            if (config.ServiceModeEnabled && !string.IsNullOrWhiteSpace(config.ServiceModeUrl))
+            if (config.UsesServiceBackend)
                 return new RemoteServerBackend(config.ServiceModeUrl, config.ServiceModeToken);
             return new LocalServerBackend(
                 sp.GetRequiredService<ServerManagerService>(),

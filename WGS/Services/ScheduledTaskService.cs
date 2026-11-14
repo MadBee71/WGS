@@ -91,6 +91,10 @@ public class ScheduledTaskService : IDisposable
         _timer.Start();
     }
 
+    /// <summary>Stops the due-task check. Used by a client in service mode: the background service runs the schedule, and
+    /// running it here too would execute every task twice.</summary>
+    public void PauseSchedule() => _timer.Stop();
+
     public IReadOnlyList<ScheduledTask> Tasks
     {
         get { lock (_lock) { return _tasks.ToList(); } }
