@@ -68,6 +68,14 @@ public interface IServerBackend
     // ── Mods (Oxide/Paper/Spigot/Purpur/Fabric/Forge/Vanilla installers) ────────────────────────
     Task InstallModFrameworkAsync(GameServer server, string framework, IProgress<(int pct, string msg)> progress);
 
+    // ── Thunderstore mods (IThunderstorePlugin games; the server must be stopped for changes) ──
+    // Each change returns the lines to show the user.
+    Task<List<ThunderstoreMod>> GetThunderstoreModsAsync(GameServer server, bool checkUpdates);
+    Task<List<string>> InstallThunderstoreAsync(GameServer server, string input, IProgress<(int pct, string msg)>? progress = null);
+    Task<List<string>> UninstallThunderstoreAsync(GameServer server, string modId);
+    Task<List<string>> SetThunderstoreModEnabledAsync(GameServer server, string modId, bool enabled);
+    Task<List<string>> UpdateThunderstoreModsAsync(GameServer server, IProgress<(int pct, string msg)>? progress = null);
+
     // ── SourceMod plugin manager ─────────────────────────────────────────────
     Task<(List<SourceModPlugin> active, List<SourceModPlugin> disabled)> GetSourceModPluginsAsync(GameServer server);
     Task SetSourceModPluginEnabledAsync(GameServer server, string fileName, bool enabled);

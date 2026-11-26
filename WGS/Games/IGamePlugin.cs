@@ -26,6 +26,8 @@ public interface IGamePlugin
     bool HasRcon { get; }
     bool HasHeavyInstall { get; }
     bool UseNativeConsole { get; }
+    bool UseCtrlCStop { get; }
+    int CtrlCStopTimeoutSeconds { get; }
     /// <summary>When true, steam://connect uses ServerPort instead of QueryPort (e.g. Palworld).</summary>
     bool UseGamePortForConnect { get; }
 

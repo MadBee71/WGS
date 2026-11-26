@@ -1146,6 +1146,75 @@
                                        Foreground="{StaticResource AccentBlueBrush}" TextWrapping="Wrap"/>
                         </Border>
 
+                        <!-- Thunderstore -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                                Visibility="{Binding HasThunderstore, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Thunderstore" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12">
+                                    Paste a mod's thunderstore.io link, Author-ModName or an r2modman profile code. BepInEx and the needed
+                                    dependencies are installed too. Stop the server first. Mods are third-party code that runs on this PC,
+                                    and players usually need the same mods. Existing config files are never overwritten.
+                                </TextBlock>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" VerticalContentAlignment="Center" Style="{StaticResource DarkTextBox}"
+                                             Text="{Binding ThunderstoreInput, UpdateSourceTrigger=PropertyChanged}">
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Key="Return" Command="{Binding InstallThunderstoreCommand}"/>
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                    <Button Grid.Column="1" Content="⬇ Install" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                                            Command="{Binding InstallThunderstoreCommand}"
+                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                </Grid>
+                                <TextBlock Text="{Binding ThunderstoreStatus}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"
+                                           Foreground="{StaticResource AccentBlueBrush}"
+                                           Visibility="{Binding HasThunderstoreStatus, Converter={StaticResource BoolToVis}}"/>
+                                <WrapPanel Margin="0,0,0,8">
+                                    <Button Content="🔍 Check for updates" Style="{StaticResource GhostButton}" Margin="0,0,8,4"
+                                            Command="{Binding CheckThunderstoreUpdatesCommand}"
+                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    <Button Content="⬆ Update all" Style="{StaticResource GhostButton}" Margin="0,0,8,4"
+                                            Command="{Binding UpdateThunderstoreCommand}"
+                                            IsEnabled="{Binding ModBusy, Converter={StaticResource InvBool}}"/>
+                                    <Button Content="↻ Refresh list" Style="{StaticResource GhostButton}" Margin="0,0,8,4"
+                                            Command="{Binding RefreshThunderstoreCommand}"/>
+                                </WrapPanel>
+                                <ItemsControl ItemsSource="{Binding ThunderstoreMods}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgSurface2Brush}" CornerRadius="4" Padding="12,8" Margin="0,0,0,4">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Id}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Content="{Binding ToggleText}" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                                            Visibility="{Binding CanToggle, Converter={StaticResource BoolToVis}}"
+                                                            Command="{Binding DataContext.ToggleThunderstoreModCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                    <Button Grid.Column="2" Content="Remove" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                                            Command="{Binding DataContext.RemoveThunderstoreModCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Oxide section -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,16"
                                 Visibility="{Binding Plugin.SupportsOxide, Converter={StaticResource BoolToVis}}">

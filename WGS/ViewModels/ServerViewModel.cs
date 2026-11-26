@@ -253,8 +253,93 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     private System.Timers.Timer? _perfTimer;
 
     public bool HasModSupport       => Plugin?.SupportsOxide == true
-                                    || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
+                                    || !string.IsNullOrEmpty(Plugin?.MinecraftFlavor)
+                                    || HasThunderstore;
     public bool HasMinecraftSupport => !string.IsNullOrEmpty(Plugin?.MinecraftFlavor);
+
+    // ── Thunderstore mods ─────────────────────────────────────────────────────
+    public bool HasThunderstore => Plugin is IThunderstorePlugin;
+
+    [ObservableProperty] private List<ThunderstoreMod> _thunderstoreMods = [];
+    [ObservableProperty] private string _thunderstoreInput = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThunderstoreStatus))]
+    private string _thunderstoreStatus = string.Empty;
+    public bool HasThunderstoreStatus => ThunderstoreStatus.Length > 0;
+
+    [RelayCommand]
+    private async Task RefreshThunderstoreAsync()
+    {
+        try { ThunderstoreMods = await _backend.GetThunderstoreModsAsync(Server, checkUpdates: false); }
+        catch (Exception ex) { ThunderstoreStatus = $"❌ {ex.Message}"; }
+    }
+
+    [RelayCommand]
+    private Task CheckThunderstoreUpdatesAsync() => RunThunderstoreAsync(async _ =>
+    {
+        var mods = await _backend.GetThunderstoreModsAsync(Server, checkUpdates: true);
+        ThunderstoreMods = mods;
+        var count = mods.Count(m => m.HasUpdate);
+        return [count == 0 ? "Everything is up to date." : $"{count} update(s) available — use 'Update all'."];
+    }, refresh: false);
+
+    [RelayCommand]
+    private Task InstallThunderstoreAsync()
+    {
+        var input = ThunderstoreInput.Trim();
+        if (input.Length == 0) return Task.CompletedTask;
+        return RunThunderstoreAsync(async progress =>
+        {
+            var log = await _backend.InstallThunderstoreAsync(Server, input, progress);
+            ThunderstoreInput = string.Empty;
+            return log;
+        });
+    }
+
+    [RelayCommand]
+    private Task UpdateThunderstoreAsync() => RunThunderstoreAsync(progress => _backend.UpdateThunderstoreModsAsync(Server, progress));
+
+    [RelayCommand]
+    private Task ToggleThunderstoreModAsync(ThunderstoreMod? mod) => mod == null ? Task.CompletedTask
+        : RunThunderstoreAsync(_ => _backend.SetThunderstoreModEnabledAsync(Server, mod.Id, !mod.Enabled));
+
+    [RelayCommand]
+    private Task RemoveThunderstoreModAsync(ThunderstoreMod? mod)
+    {
+        if (mod == null) return Task.CompletedTask;
+        var answer = System.Windows.MessageBox.Show(
+            $"Remove {mod.Id}?\n\nDependencies that only this mod needed are removed too. Config files are kept.",
+            "Remove mod", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        return answer != System.Windows.MessageBoxResult.Yes ? Task.CompletedTask
+            : RunThunderstoreAsync(_ => _backend.UninstallThunderstoreAsync(Server, mod.Id));
+    }
+
+    private async Task RunThunderstoreAsync(Func<IProgress<(int pct, string msg)>, Task<List<string>>> action, bool refresh = true)
+    {
+        if (ModBusy) return;
+        ModBusy = true;
+        ModStatusText = "Working...";
+        ThunderstoreStatus = string.Empty;
+        string result;
+        try
+        {
+            var progress = new Progress<(int pct, string msg)>(x =>
+            {
+                if (ModBusy) ModStatusText = $"[{x.pct}%] {x.msg}";
+            });
+            var log = await action(progress);
+            foreach (var line in log) AppendLog($"[Mods] {line}", ConsoleMessageType.System);
+            result = log.Count > 12 ? string.Join("\n", log.Take(12)) + $"\n… {log.Count - 12} more line(s) in the console." : string.Join("\n", log);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[Mods] ❌ {ex.Message}", ConsoleMessageType.Error);
+            result = $"❌ {ex.Message}";
+        }
+        if (refresh) await RefreshThunderstoreAsync();
+        ModBusy = false;
+        ThunderstoreStatus = result;
+    }
 
     // ── SourceMod plugin manager ──────────────────────────────────────────────
     public bool HasSourceModSupport => SourceModService.IsAvailable(Plugin, Server.InstallPath);
@@ -587,6 +672,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         _fullBackupEveryN  = Server.FullBackupEveryN;
         foreach (var qc in Server.QuickCommands) QuickCommands.Add(qc);
         foreach (var r in Server.LogWatchRules)  LogWatchRules.Add(r);
+        if (HasThunderstore) _ = RefreshThunderstoreAsync();
 
         PluginFields = Plugin?.GetConfigFields()
             .Where(f => f.Key is not ("serverName" or "maxPlayers" or "serverPass"))

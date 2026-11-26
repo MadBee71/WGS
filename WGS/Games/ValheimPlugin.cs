@@ -2,7 +2,7 @@ using WGS.Models;
 
 namespace WGS.Games;
 
-public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
+public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin, IThunderstorePlugin
 {
     public override string GameId        => "valheim";
     public override string GameName      => "Valheim";
@@ -21,6 +21,12 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
     public override int    DefaultQueryPort => 2457;
     public override int    DefaultMaxPlayers => 10;
     protected override bool FilterUnityShaderNoise => true;
+    // Valheim has no stop command, but saves the whole world and exits on Ctrl+C (verified 22.11.2026 against the
+    // real server, console and Windows-service; a hard kill leaves only the world header). Stop sends Ctrl+C
+    // through ConsoleCtrlHelper and kills only if the server hasn't exited by the timeout.
+    public override bool   UseCtrlCStop => true;
+
+    public ThunderstoreGame Thunderstore { get; } = new("valheim", "denikson-BepInExPack_Valheim", "BepInExPack_Valheim");
 
     public string A2SHost => "127.0.0.1";
 
@@ -84,7 +90,7 @@ public class ValheimPlugin : GamePluginBase, IWorkshopPlugin, IA2SQueryPlugin
                     Description = "Routes the server through PlayFab instead of Steam — this reliably breaks WGS's player count/query (confirmed by community testing, Discord, 16-18.9.2026). No fix available: PlayFab's lobby API requires an auth flow WGS has no legitimate way to perform. Also note: PlayFab caches a server's address on its end for up to 2 hours after crossplay was enabled — turning it back off doesn't take effect for players immediately, they may need to wait it out or disconnect/reconnect PlayFab locally to force a refresh (SkOODaT, Discord, 18.9.2026)." },
             new() { Key = "public",     Label = "Public listing",  FieldType = ConfigFieldType.Toggle, DefaultValue = "true" },
             new() { Key = "saveInterval", Label = "Save interval (seconds)", FieldType = ConfigFieldType.Number, DefaultValue = "1800",
-                    Description = "Valheim has no graceful-stop/force-save command WGS can send — Stop always ends in a hard kill, and any progress since the last autosave is lost. Defaults to Valheim's own 1800s (30 min) so WGS doesn't change existing server behavior. Lowering it shrinks the worst-case loss but triggers more frequent brief lag spikes when saving — confirmed by community testing (SkOODaT, Discord, 18.9.2026) that a short interval like 5 min is too laggy on an active world. Tune to taste." },
+                    Description = "Stop saves the world and shuts the server down cleanly (Ctrl+C); only if the server doesn't exit in time is it killed, which loses progress since the last autosave — and so does a crash or a server that was already running without the clean shutdown. Defaults to Valheim's own 1800s (30 min) so WGS doesn't change existing server behavior. Lowering it shrinks the worst-case loss but triggers more frequent brief lag spikes when saving — confirmed by community testing (SkOODaT, Discord, 18.9.2026) that a short interval like 5 min is too laggy on an active world. Tune to taste." },
             new() { Key = "odinEye", Label = "Player data via OdinEye", FieldType = ConfigFieldType.Toggle, DefaultValue = "false",
                     Description = "Installs BepInEx (BepInExPack_Valheim " + ValheimOdinEye.BepInExPackVersion + ", downloaded from Thunderstore, only if the server folder has no BepInEx yet) and the OdinEye plugin (MIT, bundled with WGS) so WGS can read the connected players — works with Crossplay too, and gives real names. Takes effect on the next start. Turning it off removes only the OdinEye plugin; BepInEx and any other mods stay. OdinEye listens on 127.0.0.1 only. Note: OdinEye was built for an older Valheim — its chat-event hook does not work with the current game, the player list does." },
         ]);

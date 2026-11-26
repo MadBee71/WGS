@@ -95,6 +95,9 @@ public class LocalServerBackend : IServerBackend
             return;
         }
 
+        if (ThunderstoreService.IsBusy(server.InstallPath))
+            throw new InvalidOperationException("Mods are being changed — start the server when that has finished.");
+
         if ((server.UpdateOnStart || server.AutoUpdate) && plugin?.SteamAppId > 0)
             await InstallAsync(server, log);
 
@@ -530,6 +533,41 @@ public class LocalServerBackend : IServerBackend
                 throw new ArgumentException($"Unknown mod framework: {framework}", nameof(framework));
         }
     }
+
+    // ── Thunderstore ─────────────────────────────────────────────────────────
+
+    private readonly ThunderstoreService _thunderstore = new();
+
+    // Mod files of a running server are loaded (and locked), and a half-applied change would be picked up on restart.
+    private ThunderstoreGame ThunderstoreTarget(GameServer server)
+    {
+        var plugin = GameRegistry.Get(server.GameId) as IThunderstorePlugin
+            ?? throw new InvalidOperationException("Thunderstore mods are not supported for this game.");
+        if (_manager.IsRunning(server.Id) || server.Status is ServerStatus.Running or ServerStatus.Starting or ServerStatus.Stopping or ServerStatus.Installing)
+            throw new InvalidOperationException("Stop the server before changing mods.");
+        return plugin.Thunderstore;
+    }
+
+    public async Task<List<ThunderstoreMod>> GetThunderstoreModsAsync(GameServer server, bool checkUpdates)
+        => checkUpdates ? await _thunderstore.CheckUpdatesAsync(server) : _thunderstore.GetInstalled(server);
+
+    public Task<List<string>> InstallThunderstoreAsync(GameServer server, string input, IProgress<(int pct, string msg)>? progress = null)
+        => _thunderstore.InstallAsync(server, ThunderstoreTarget(server), input, progress);
+
+    public Task<List<string>> UninstallThunderstoreAsync(GameServer server, string modId)
+    {
+        ThunderstoreTarget(server);
+        return _thunderstore.UninstallAsync(server, modId);
+    }
+
+    public Task<List<string>> SetThunderstoreModEnabledAsync(GameServer server, string modId, bool enabled)
+    {
+        ThunderstoreTarget(server);
+        return _thunderstore.SetModEnabledAsync(server, modId, enabled);
+    }
+
+    public Task<List<string>> UpdateThunderstoreModsAsync(GameServer server, IProgress<(int pct, string msg)>? progress = null)
+        => _thunderstore.UpdateAllAsync(server, ThunderstoreTarget(server), progress);
 
     // ── SourceMod ────────────────────────────────────────────────────────────
     // Mirrors ServerViewModel.cs:222-258.

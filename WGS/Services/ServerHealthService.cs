@@ -95,6 +95,18 @@ public class ServerHealthService : IDisposable
         foreach (var (server, plugin) in snapshot)
         {
             if (server.Status != ServerStatus.Running) continue;
+
+            // A running Valheim server can switch its saved crossplay option before
+            // being restarted. Recheck the current setting on every timer tick:
+            // a missing Steam A2S response is NOT evidence of a PlayFab freeze.
+            // Process-exit/crash recovery remains the responsibility of WGS's
+            // separate restart-after-crash feature.
+            if (!CanHealthCheck(server, plugin))
+            {
+                _failures.TryRemove(server.Id, out _);
+                continue;
+            }
+
             bool alive = await IsRespondingAsync(server, plugin);
 
             if (alive)
@@ -188,9 +200,24 @@ public class ServerHealthService : IDisposable
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static bool CanHealthCheck(GameServer server, IGamePlugin plugin)
-        => plugin is IA2SQueryPlugin
-        || plugin is IRestPlayersPlugin
-        || (plugin.HasRcon && server.RconPort > 0 && !string.IsNullOrEmpty(server.RconPassword));
+    {
+        // Valheim's -crossplay option uses PlayFab for Xbox/PlayStation/PC
+        // connectivity. Its Steam A2S endpoint may not answer at all while the
+        // actual game session is healthy. Treat this as "not verifiable by the
+        // current active probe", NEVER as a consecutive health-check failure.
+        //
+        // This guard is limited to Valheim with crossplay explicitly enabled:
+        // non-crossplay Valheim and other games keep their existing probes.
+        if (plugin is ValheimPlugin
+            && server.GameSpecificSettings.TryGetValue("crossplay", out var crossplay)
+            && crossplay == "true") // Match the exact value used by ValheimPlugin.BuildStartArguments.
+            return false;
+
+        return plugin is IA2SQueryPlugin
+            || plugin is IRestPlayersPlugin
+            || (plugin.HasRcon && server.RconPort > 0
+                && !string.IsNullOrEmpty(server.RconPassword));
+    }
 }
 
 public enum HealthCheckAction { Notify, Restart }

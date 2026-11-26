@@ -259,6 +259,38 @@ public class RemoteServerBackend : IServerBackend
         progress?.Report((100, "Done"));
     }
 
+    // ── Thunderstore ─────────────────────────────────────────────────────────
+
+    public async Task<List<ThunderstoreMod>> GetThunderstoreModsAsync(GameServer server, bool checkUpdates)
+    {
+        using var doc = await GetJsonAsync($"/api/servers/{Enc(server.Id)}/thunderstore/mods?check={(checkUpdates ? 1 : 0)}");
+        return JsonSerializer.Deserialize<List<ThunderstoreMod>>(doc.RootElement.GetProperty("mods").GetRawText()) ?? [];
+    }
+
+    private async Task<List<string>> ThunderstoreAsync(GameServer server, string action, object body)
+    {
+        using var doc = await PostJsonAsync($"/api/servers/{Enc(server.Id)}/thunderstore/{action}", body);
+        return doc.RootElement.GetProperty("log").EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+    }
+
+    public Task<List<string>> InstallThunderstoreAsync(GameServer server, string input, IProgress<(int pct, string msg)>? progress = null)
+    {
+        progress?.Report((0, "Installing on the service..."));
+        return ThunderstoreAsync(server, "install", new { value = input });
+    }
+
+    public Task<List<string>> UninstallThunderstoreAsync(GameServer server, string modId)
+        => ThunderstoreAsync(server, "uninstall", new { value = modId });
+
+    public Task<List<string>> SetThunderstoreModEnabledAsync(GameServer server, string modId, bool enabled)
+        => ThunderstoreAsync(server, "toggle", new { value = modId, enabled });
+
+    public Task<List<string>> UpdateThunderstoreModsAsync(GameServer server, IProgress<(int pct, string msg)>? progress = null)
+    {
+        progress?.Report((0, "Updating mods on the service..."));
+        return ThunderstoreAsync(server, "update", new { value = "" });
+    }
+
     // ── SourceMod ────────────────────────────────────────────────────────────
 
     public async Task<(List<SourceModPlugin> active, List<SourceModPlugin> disabled)> GetSourceModPluginsAsync(GameServer server)

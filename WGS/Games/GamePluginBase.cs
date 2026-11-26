@@ -22,6 +22,11 @@ public abstract class GamePluginBase : IGamePlugin
     /// <summary>True when the install compiles locally (e.g. Spigot/BuildTools) and can lag the machine.</summary>
     public virtual bool   HasHeavyInstall    => false;
     public virtual bool   UseNativeConsole        => false;
+    /// <summary>True for games with no stop command that save and exit on Ctrl+C. Stop then sends it
+    /// (see ConsoleCtrlHelper) and only falls back to the hard kill if the game doesn't exit in time.</summary>
+    public virtual bool   UseCtrlCStop            => false;
+    /// <summary>How long Stop waits for the game to exit after Ctrl+C before it is killed.</summary>
+    public virtual int    CtrlCStopTimeoutSeconds => 90;
     public virtual bool   UseGamePortForConnect   => false;
     public virtual bool   SupportsOxide      => false;
     public virtual string MinecraftFlavor    => string.Empty;

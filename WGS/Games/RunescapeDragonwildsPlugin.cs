@@ -41,12 +41,12 @@ public class RunescapeDragonwildsPlugin : GamePluginBase
     // known flag or ini key) — not a WGS-configurable value, see the locked Min/Max below.
     public override int    DefaultMaxPlayers => 6;
 
-    // No known stdin/RCON/REST stop command exists for this game — Stop falls through to a hard
-    // kill. A Ctrl+C-forward-to-console mechanism was prototyped and tested 19.9.2026 as a possible
-    // fix but proved unreliable in-process (see project_wgs_ctrlc_stop_investigation_2026-09-19.md)
-    // — not implemented. Kept on WGS's normal redirected/embedded console (below) rather than
-    // switching to a native console window for no benefit, since that would only have been worth
-    // the trade-off if Ctrl+C-forwarding actually worked.
+    // No known stdin/RCON/REST stop command exists for this game, but the Unreal server shuts down cleanly
+    // on Ctrl+C ("INTERRUPTED: SHUTTING DOWN", exit code 0 — verified 22.11.2026, console and Windows service).
+    // Stop sends it through ConsoleCtrlHelper (a separate helper process — the in-process attempt of
+    // 19.9.2026 crashed WGS itself) and kills only if the server hasn't exited by the timeout. This works
+    // with WGS's normal redirected/embedded console, no native console window needed.
+    public override bool UseCtrlCStop => true;
     //
     // Only "-port=" is a documented launch argument; "-log" is the vendor-recommended flag for
     // visible server activity output. "-NewConsole" (also suggested by the docs) intentionally

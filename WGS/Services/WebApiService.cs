@@ -87,6 +87,11 @@ public class WebApiService : IDisposable
     /// <summary>(serverId, framework). Blocks until install finishes. Returns error or null.</summary>
     public Func<string, string, Task<string?>>?                    InstallModFramework  { get; set; }
 
+    // ── Thunderstore mods ───────────────────────────────────────────────────
+    public Func<string, bool, Task<List<ThunderstoreMod>>>?        GetThunderstoreMods  { get; set; }
+    /// <summary>(serverId, action: install|uninstall|toggle|update, value, enabled) → lines for the user.</summary>
+    public Func<string, string, string, bool, Task<List<string>>>? ThunderstoreAction   { get; set; }
+
     // ── SourceMod plugin manager ─────────────────────────────────────────────
     public Func<string, Task<(List<SourceModPlugin> active, List<SourceModPlugin> disabled)>>? GetSourceModPlugins { get; set; }
     public Func<string, string, bool, Task>?                       SetSourceModPluginEnabled { get; set; }
@@ -707,6 +712,40 @@ public class WebApiService : IDisposable
                 if (err != null) { resp.StatusCode = 400; await SendJson(resp, new { error = err }); return; }
                 Users?.WriteAudit(authedUser?.Username ?? "api", "install_mod_framework", $"server={serverId} framework={framework}");
                 await SendJson(resp, new { ok = true });
+                return;
+            }
+
+            // ── Thunderstore mods ────────────────────────────────────────────────
+
+            // GET /api/servers/{id}/thunderstore/mods?check=0|1
+            if (req.HttpMethod == "GET" && IsServerSub2("thunderstore", "mods"))
+            {
+                try
+                {
+                    var list = GetThunderstoreMods != null ? await GetThunderstoreMods(np[2], req.QueryString["check"] == "1") : [];
+                    await SendJson(resp, new { mods = list.Select(m => new { m.Id, m.Version, m.Enabled, m.Requested, m.IsLoader, m.Dependencies, m.LatestVersion }) });
+                }
+                catch (Exception ex) { resp.StatusCode = 400; await SendJson(resp, new { error = ex.Message }); }
+                return;
+            }
+
+            // POST /api/servers/{id}/thunderstore/{install|uninstall|toggle|update}  body: { value, enabled }
+            // Installing a mod puts third-party code on the host, so viewers are refused.
+            if (req.HttpMethod == "POST" && np.Length == 5 && np[0] == "api" && np[1] == "servers" && np[3] == "thunderstore"
+                && np[4] is "install" or "uninstall" or "toggle" or "update")
+            {
+                if (isViewer) { resp.StatusCode = 403; await SendJson(resp, new { error = "Forbidden" }); return; }
+                using var doc = await ParseBodyAsync(req);
+                var value   = doc.RootElement.TryGetProperty("value", out var vp) ? vp.GetString() ?? "" : "";
+                var enabled = doc.RootElement.TryGetProperty("enabled", out var ep) && ep.ValueKind == JsonValueKind.True;
+                if (ThunderstoreAction == null) { resp.StatusCode = 400; await SendJson(resp, new { error = "Not available" }); return; }
+                try
+                {
+                    var log = await ThunderstoreAction(np[2], np[4], value, enabled);
+                    Users?.WriteAudit(authedUser?.Username ?? "api", "thunderstore_" + np[4], $"server={np[2]} value={value}");
+                    await SendJson(resp, new { ok = true, log });
+                }
+                catch (Exception ex) { resp.StatusCode = 400; await SendJson(resp, new { error = ex.Message }); }
                 return;
             }
 

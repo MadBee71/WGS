@@ -173,11 +173,15 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         // Servers marked "Auto-start" are started here when they were not found still running — after a reboot nothing
         // else would start them (the WPF client no longer does in service mode).
         var autoStartServers = new List<GameServer>();
+        logger.LogInformation("Service starting as {User}, version {Version}, data folder {Dir}",
+            Environment.UserName, typeof(Worker).Assembly.GetName().Version, config.AppDataPath);
         foreach (var s in config.LoadServers())
         {
             s.Status = ServerStatus.Stopped;
             var reattached = false;
             try { reattached = manager.TryReattach(s); } catch (Exception ex) { logger.LogWarning(ex, "Could not reattach {Server}", s.DisplayName); }
+            logger.LogInformation("Server {Server}: AutoStart={Auto}, reattached={Re}, install path {Path} (exists: {Exists})",
+                s.DisplayName, s.AutoStart, reattached, s.InstallPath, Directory.Exists(s.InstallPath));
             if (s.AutoStart && !reattached) autoStartServers.Add(s);
             else if (!reattached && s.WakeOnDemand) wake.Arm(s);
         }
@@ -246,6 +250,20 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             await backend.ApplyPresetAsync(s, preset);
         });
         webApi.InstallModFramework = (id, framework) => Try(() => backend.InstallModFrameworkAsync(FindServer(id)!, framework, new Progress<(int, string)>()));
+        webApi.GetThunderstoreMods = (id, check) => backend.GetThunderstoreModsAsync(FindServer(id)!, check);
+        webApi.ThunderstoreAction  = (id, action, value, enabled) =>
+        {
+            var s = FindServer(id) ?? throw new InvalidOperationException("Server not found");
+            // Use the live status, not the one in servers.json, so a running server is refused.
+            s.Status = manager.GetServer(id)?.Status ?? ServerStatus.Stopped;
+            return action switch
+            {
+                "install"   => backend.InstallThunderstoreAsync(s, value),
+                "uninstall" => backend.UninstallThunderstoreAsync(s, value),
+                "toggle"    => backend.SetThunderstoreModEnabledAsync(s, value, enabled),
+                _           => backend.UpdateThunderstoreModsAsync(s),
+            };
+        };
         webApi.GetSourceModPlugins = id => backend.GetSourceModPluginsAsync(FindServer(id)!);
         webApi.SetSourceModPluginEnabled = (id, fileName, enabled) => backend.SetSourceModPluginEnabledAsync(FindServer(id)!, fileName, enabled);
         webApi.GetWorkshopMods       = id => backend.GetWorkshopModsAsync(FindServer(id)!);
@@ -350,6 +368,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
                 {
                     logger.LogInformation("Auto-starting {Server}", srv.DisplayName);
                     await backend.StartAsync(srv);
+                    logger.LogInformation("Auto-start of {Server} finished (status {Status})", srv.DisplayName, manager.GetServer(srv.Id)?.Status);
                 }
                 catch (Exception ex) { logger.LogWarning(ex, "Auto-start of {Server} failed", srv.DisplayName); }
             }, stoppingToken);

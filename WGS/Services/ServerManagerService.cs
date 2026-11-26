@@ -24,6 +24,9 @@ public class ServerInstance
     public CancellationTokenSource DailyRestartCts { get; } = new();
     public nint JobHandle { get; set; } = nint.Zero;
 
+    /// <summary>Set while Stop waits for the game to exit by itself (Ctrl+C stop), so that exit isn't handled as a crash.</summary>
+    public volatile bool StopRequested;
+
     /// <summary>Times of recent crashes (last 10 minutes). Used for crash-loop detection.</summary>
     public List<DateTime> CrashTimes { get; } = [];
 
@@ -405,6 +408,8 @@ public class ServerManagerService
 
         var inst = inst0;
 
+        // The "ignore Ctrl+C" flag is inherited by child processes — make sure the game can receive Ctrl+C (see ConsoleCtrlHelper).
+        ConsoleCtrlHelper.EnsureCtrlCEnabled();
         var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
         // Some engines (Unity/Rust) write the same line to both stdout and stderr.
@@ -430,9 +435,11 @@ public class ServerManagerService
             LogReceived?.Invoke(server.Id, msg);
         }
 
+        var stdoutSeen = false;
         proc.OutputDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
+            stdoutSeen = true;
             if (plugin.IsNoiseLine(e.Data)) return;
             AddLog(e.Data, DetectType(e.Data));
         };
@@ -453,6 +460,9 @@ public class ServerManagerService
                 // health check, log watch, update) can start the new process before this old Exited event arrives. The
                 // server object is shared, so reacting here would overwrite or unregister the new run.
                 if (!_running.TryGetValue(server.Id, out var current) || !ReferenceEquals(current, inst)) return;
+
+                // A Ctrl+C stop in progress: StopAsync finishes the cleanup and sets Stopped, this is not a crash.
+                if (inst.StopRequested) return;
 
                 SetStatus(server, ServerStatus.Stopped);
                 server.RunningPid = 0;
@@ -527,6 +537,7 @@ public class ServerManagerService
             catch { }
         }
 
+        var startedUtc = DateTime.UtcNow;
         try
         {
             proc.Start();
@@ -554,6 +565,17 @@ public class ServerManagerService
             // still create a Win32 window via AllocConsole/CreateWindow internally.
             // Poll until the window appears, then hide it completely.
             _ = ApplyWindowStyleAsync(proc, SW_HIDE, 30);
+
+            // Servers that write to their own (hidden) console instead of stdout: show their log file. If the lines
+            // do arrive on stdout (WGS started from a console), the file isn't repeated.
+            if (plugin is IConsoleLogPlugin logPlugin)
+            {
+                var (folder, pattern) = logPlugin.GetConsoleLog(server);
+                _ = FollowLogFileAsync(proc, folder, pattern, startedUtc, () => stdoutSeen, line =>
+                {
+                    if (logPlugin.FormatLogLine(line) is { } text) AddLog(text, DetectType(text));
+                });
+            }
         }
         else
         {
@@ -603,6 +625,51 @@ public class ServerManagerService
             FirewallService.AddRules(server);
 
         SetStatus(server, ServerStatus.Running);
+    }
+
+    /// <summary>Follows the newest log file the run creates, line by line, until the process has exited.</summary>
+    private static async Task FollowLogFileAsync(Process proc, string folder, string pattern, DateTime startedUtc,
+        Func<bool> notNeeded, Action<string> onLine)
+    {
+        try
+        {
+            FileInfo? file = null;
+            while (file == null)
+            {
+                if (proc.HasExited || notNeeded()) return;
+                await Task.Delay(500);
+                if (Directory.Exists(folder))
+                    file = new DirectoryInfo(folder).GetFiles(pattern)
+                        .Where(f => f.CreationTimeUtc >= startedUtc.AddSeconds(-2))
+                        .OrderByDescending(f => f.CreationTimeUtc).FirstOrDefault();
+            }
+
+            using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream);
+            var partial = new System.Text.StringBuilder();
+            var buffer = new char[4096];
+            while (!notNeeded())
+            {
+                var exited = proc.HasExited; // read the rest once more after the exit
+                int count;
+                while ((count = await reader.ReadAsync(buffer)) > 0)
+                    for (var i = 0; i < count; i++)
+                    {
+                        if (buffer[i] == '\n')
+                        {
+                            onLine(partial.ToString().TrimEnd('\r'));
+                            partial.Clear();
+                        }
+                        else partial.Append(buffer[i]);
+                    }
+                if (exited) break;
+                await Task.Delay(500);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // The console just stays without the log; the server is not affected.
+        }
     }
 
     public async Task StopAsync(GameServer server)
@@ -658,6 +725,23 @@ public class ServerManagerService
             try { await restCmd.TrySendRestCommandAsync(server, "stop"); } catch { }
             for (var i = 0; i < 10 && inst.Process?.HasExited == false; i++)
                 await Task.Delay(1000);
+        }
+
+        // Games with no stop command that save and exit on Ctrl+C (Valheim, Dragonwilds): ask for a clean shutdown and
+        // wait for it. If the game doesn't exit, fall through to the kill below exactly as before.
+        if (plugin?.UseCtrlCStop == true && inst.Process?.HasExited == false)
+        {
+            void Note(string text, ConsoleMessageType type)
+            {
+                var m = new ConsoleMessage { Text = text, Type = type };
+                inst.AddToLog(m);
+                LogReceived?.Invoke(server.Id, m);
+            }
+            inst.StopRequested = true;
+            Note("[WGS] Stopping the server cleanly (Ctrl+C)...", ConsoleMessageType.Info);
+            var (exited, error) = await ConsoleCtrlHelper.TryGracefulStopAsync(inst.Process, TimeSpan.FromSeconds(plugin.CtrlCStopTimeoutSeconds));
+            if (exited) Note("[WGS] Server exited cleanly.", ConsoleMessageType.Info);
+            else Note($"[WGS] Clean shutdown did not work ({error}) — killing the server.", ConsoleMessageType.Warning);
         }
 
         inst.DailyRestartCts.Cancel();

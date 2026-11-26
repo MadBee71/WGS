@@ -20,6 +20,11 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
+        // Short-lived helper mode (Ctrl+C stop of a game server) — must run before the single-instance check below,
+        // because it is started while the real WGS is running. See ConsoleCtrlHelper.
+        if (e.Args.Length > 0 && e.Args[0] == WGS.Services.ConsoleCtrlHelper.HelperArg)
+            Environment.Exit(WGS.Services.ConsoleCtrlHelper.RunHelper(e.Args));
+
         _singleInstanceMutex = new System.Threading.Mutex(true, "WGS_SingleInstance_Mutex", out var createdNew);
         if (!createdNew)
         {
