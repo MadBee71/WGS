@@ -23,6 +23,7 @@ public class GameServer
     public bool AutoUpdate             { get; set; } = false;
     public int  AutoUpdateIntervalMin  { get; set; } = 30;   // minutes between update checks
     public bool UpdateOnlyWhenEmpty    { get; set; } = false; // periodic auto-update waits until no players are online
+    public bool AnnouncePendingUpdate  { get; set; } = false; // tell players in game while an update waits for them to leave
     public bool AutoStart              { get; set; } = false;
     public bool WakeOnDemand           { get; set; } = false;
     public bool WakeOnDemandPortTrigger { get; set; } = true;

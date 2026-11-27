@@ -4,7 +4,7 @@
 ; the common case (just running WGS interactively) never triggers a UAC prompt. Splitting this out
 ; means installing/using WGS normally is completely unaffected by this installer's existence.
 #define AppName "WGS Background Service (Experimental)"
-#define AppVersion "1.5.44"
+#define AppVersion "1.5.45"
 #define AppPublisher "MadBee71"
 #define AppURL "https://wgsserver.com"
 #define AppExeName "WGS.ServiceHost.exe"

@@ -19,6 +19,7 @@ public class ServerHealthService : IDisposable
 
     // serverId -> consecutive failure count
     private readonly ConcurrentDictionary<string, int> _failures = new();
+    private readonly ConcurrentDictionary<string, int> _answeredPid = new();
 
     private System.Timers.Timer? _timer;
 
@@ -109,6 +110,13 @@ public class ServerHealthService : IDisposable
 
             bool alive = await IsRespondingAsync(server, plugin);
 
+            if (plugin is IHealthProbePlugin)
+            {
+                // Only a server that has answered during this run can be judged frozen.
+                if (alive) _answeredPid[server.Id] = server.RunningPid;
+                else if (!_answeredPid.TryGetValue(server.Id, out var pid) || pid != server.RunningPid) continue;
+            }
+
             if (alive)
             {
                 _failures[server.Id] = 0;
@@ -131,6 +139,9 @@ public class ServerHealthService : IDisposable
     {
         try
         {
+            if (plugin is IHealthProbePlugin probe)
+                return await probe.IsAliveAsync(server);
+
             if (plugin is IA2SQueryPlugin a2s)
             {
                 // A2S INFO query — more reliable than player query for freeze detection
@@ -213,7 +224,8 @@ public class ServerHealthService : IDisposable
             && crossplay == "true") // Match the exact value used by ValheimPlugin.BuildStartArguments.
             return false;
 
-        return plugin is IA2SQueryPlugin
+        return plugin is IHealthProbePlugin
+            || plugin is IA2SQueryPlugin
             || plugin is IRestPlayersPlugin
             || (plugin.HasRcon && server.RconPort > 0
                 && !string.IsNullOrEmpty(server.RconPassword));

@@ -925,6 +925,7 @@ public partial class MainViewModel : BaseViewModel
             AutoRestart          = src.AutoRestart,
             AutoUpdate           = src.AutoUpdate,
             UpdateOnlyWhenEmpty  = src.UpdateOnlyWhenEmpty,
+            AnnouncePendingUpdate = src.AnnouncePendingUpdate,
             DailyRestartEnabled  = src.DailyRestartEnabled,
             DailyRestartTime     = src.DailyRestartTime,
             DiscordAlertsEnabled = src.DiscordAlertsEnabled,

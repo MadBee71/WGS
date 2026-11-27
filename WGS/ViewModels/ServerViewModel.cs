@@ -46,6 +46,12 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
 
     public GameServer Server { get; }
     public IGamePlugin? Plugin { get; }
+
+    /// <summary>False for games WGS has no way to send in-game messages to (e.g. Satisfactory).</summary>
+    public bool CanMessagePlayers => Plugin?.GetBroadcastCommand("test") != null;
+    public string AnnouncePendingUpdateLabel => CanMessagePlayers
+        ? "Tell players an update is waiting"
+        : "Tell players an update is waiting (this game cannot receive messages from WGS)";
     private const int MaxConsoleLines = 2000;
     public ObservableCollection<ConsoleMessage> Log { get; } = [];
     public ObservableCollection<BackupEntry> Backups { get; } = [];
@@ -1186,8 +1192,47 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
     /// <summary>True only when the player count is known and zero (an unreachable query counts as "not empty").</summary>
     private bool ServerIsEmptyForUpdate() => !Server.PlayerCountUnknown && Server.CurrentPlayers == 0;
 
+    // ── An update waiting for the server to empty ────────────────────────────
+    private System.Timers.Timer? _pendingUpdateTimer;
+    private DateTime _lastPlayerNotice;
+
+    private async Task WaitForEmptyServerAsync()
+    {
+        if (_pendingUpdateTimer == null)
+        {
+            _pendingUpdateTimer = new System.Timers.Timer(PendingUpdate.RecheckSeconds * 1000) { AutoReset = true };
+            _pendingUpdateTimer.Elapsed += async (_, _) =>
+            {
+                try
+                {
+                    if (!IsRunning || !Server.AutoUpdate || !Server.UpdateOnlyWhenEmpty) { StopPendingUpdateTimer(); return; }
+                    if (ServerIsEmptyForUpdate()) { StopPendingUpdateTimer(); await RunPeriodicUpdateAsync(); }
+                    else await AnnouncePendingUpdateAsync();
+                }
+                catch (Exception ex) { AppendLog($"[AutoUpdate] ⚠ {ex.Message}", ConsoleMessageType.Warning); }
+            };
+            _pendingUpdateTimer.Start();
+        }
+        await AnnouncePendingUpdateAsync();
+    }
+
+    private async Task AnnouncePendingUpdateAsync()
+    {
+        if (!Server.AnnouncePendingUpdate || DateTime.UtcNow - _lastPlayerNotice < PendingUpdate.NoticeRepeat) return;
+        _lastPlayerNotice = DateTime.UtcNow;
+        await _manager.WarnPlayersAsync(Server, PendingUpdate.PlayerNotice);
+    }
+
+    private void StopPendingUpdateTimer()
+    {
+        _pendingUpdateTimer?.Stop();
+        _pendingUpdateTimer?.Dispose();
+        _pendingUpdateTimer = null;
+    }
+
     private void StopUpdateTimer()
     {
+        StopPendingUpdateTimer();
         _updateTimer?.Stop();
         _updateTimer?.Dispose();
         _updateTimer = null;
@@ -1232,6 +1277,7 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         }
         if (installed != null && installed == latest)
         {
+            StopPendingUpdateTimer();
             LogUpdateNotice($"[AutoUpdate] Up to date (build {installed}).");
             return;
         }
@@ -1240,8 +1286,11 @@ public partial class ServerViewModel : BaseViewModel, IDisposable
         if (Server.UpdateOnlyWhenEmpty && !ServerIsEmptyForUpdate())
         {
             LogUpdateNotice($"[AutoUpdate] Update available (build {latest}) — waiting until the server is empty.");
+            await WaitForEmptyServerAsync();
             return;
         }
+        StopPendingUpdateTimer();
+        _lastPlayerNotice = default;
         _lastUpdateNotice = null;
         AppendLog($"[AutoUpdate] Update available (build {installed ?? "unknown"} → {latest}).", ConsoleMessageType.System);
 

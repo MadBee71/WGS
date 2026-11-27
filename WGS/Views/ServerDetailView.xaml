@@ -735,7 +735,10 @@
                                 </Grid>
                                 <CheckBox IsChecked="{Binding Server.UpdateOnlyWhenEmpty}" Style="{StaticResource DarkCheckBox}"
                                           Content="Only update when the server is empty" Margin="20,8,0,0"
-                                          ToolTip="When an update is available, wait until no players are online instead of warning and restarting. Checked again every interval."/>
+                                          ToolTip="When an update is available, wait until no players are online instead of warning and restarting. While waiting, WGS checks every minute."/>
+                                <CheckBox IsChecked="{Binding Server.AnnouncePendingUpdate}" Style="{StaticResource DarkCheckBox}"
+                                          Content="{Binding AnnouncePendingUpdateLabel, Mode=OneWay}" IsEnabled="{Binding CanMessagePlayers, Mode=OneWay}" Margin="40,8,0,0"
+                                          ToolTip="Used with 'Only update when the server is empty': sends an in-game message when the update is found and every 15 minutes while waiting. Works for games WGS can send messages to (some need RCON set up)."/>
                             </StackPanel>
                         </Border>
 

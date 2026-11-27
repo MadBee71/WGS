@@ -15,6 +15,8 @@ if (args.Length > 0 && args[0] == WGS.Services.ConsoleCtrlHelper.HelperArg)
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWindowsService(options => options.ServiceName = "WGS Background Service");
+// Stopping the service stops the game servers first, which takes longer than the 30 s default.
+builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(90));
 
 // Same folder ConfigService uses for servers.json/settings.json (exe folder\WGS_Data) — service.log lives next to them.
 var exeDir = Path.GetDirectoryName(Environment.ProcessPath ?? AppContext.BaseDirectory) ?? AppContext.BaseDirectory;

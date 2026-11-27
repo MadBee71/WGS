@@ -229,7 +229,13 @@ public class ScheduledTaskService : IDisposable
                         var bPlugin = Games.GameRegistry.All.FirstOrDefault(p => p.GameId == server.GameId);
                         var bcmd    = bPlugin?.GetBroadcastCommand(task.Command);
                         if (bcmd != null)
-                            await _manager.SendCommandAsync(server.Id, bcmd);
+                        {
+                            if (!await _manager.WarnPlayersAsync(server, task.Command))
+                            {
+                                TaskExecuted?.Invoke(task, "Failed — the message could not be sent (server stopped, or RCON not set up)");
+                                return;
+                            }
+                        }
                         else
                         {
                             TaskExecuted?.Invoke(task, "Skipped — this game does not support in-game broadcasts");

@@ -130,6 +130,8 @@ public class ServerManagerService
 
     public int RunningCount => _running.Count;
 
+    public List<GameServer> RunningServers => _running.Values.Select(i => i.Server).ToList();
+
     public GameServer? GetServer(string serverId)
         => _running.TryGetValue(serverId, out var i) ? i.Server : null;
 
@@ -162,7 +164,9 @@ public class ServerManagerService
 
             var plugin = GameRegistry.Get(server.GameId);
             var exeName = plugin != null ? Path.GetFileNameWithoutExtension(plugin.Executable) : null;
-            if (!string.IsNullOrEmpty(exeName) && !string.Equals(p.ProcessName, exeName, StringComparison.OrdinalIgnoreCase))
+            var legacyName = (plugin as IConsoleLogPlugin)?.LegacyProcessName;
+            if (!string.IsNullOrEmpty(exeName) && !string.Equals(p.ProcessName, exeName, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(p.ProcessName, legacyName, StringComparison.OrdinalIgnoreCase))
             {
                 // PID was recycled by an unrelated process â€” not actually our server.
                 server.RunningPid = 0;
@@ -181,7 +185,7 @@ public class ServerManagerService
             _running[server.Id] = inst;
             _network.RegisterServer(server.Id, p.Id);
             SetStatus(server, ServerStatus.Running);
-            var msg = new ConsoleMessage { Text = $"[WGS] ðŸ”Œ Reattached to running process (PID {p.Id}) after WGS restart.", Type = ConsoleMessageType.Info };
+            var msg = new ConsoleMessage { Text = $"[WGS] 🔌 Reattached to running process (PID {p.Id}) after WGS restart.", Type = ConsoleMessageType.Info };
             inst.AddToLog(msg);
             LogReceived?.Invoke(server.Id, msg);
             return true;
@@ -256,6 +260,13 @@ public class ServerManagerService
                 await Task.Delay(1000); // brief pause so OS releases ports
         }
 
+        if (plugin is SatisfactoryPlugin && await Task.Run(SatisfactoryPlugin.KeepSafetyCopy) is { } safetyNote)
+        {
+            var msg = new ConsoleMessage { Text = safetyNote, Type = ConsoleMessageType.Info };
+            inst0.AddToLog(msg);
+            LogReceived?.Invoke(server.Id, msg);
+        }
+
         // Pre-flight: auto-reassign ports if any are in use
         var conflictingPorts = PortCheckerService.CheckServerPorts(server).Where(r => !r.IsAvailable).ToList();
         if (conflictingPorts.Any() && server.LastStarted == null)
@@ -284,9 +295,9 @@ public class ServerManagerService
 
                 var msg = new ConsoleMessage
                 {
-                    Text = $"[WGS] Ports in use â€” automatically reassigned: game {oldGame}â†’{server.ServerPort}" +
-                           (oldQuery > 0 ? $", query {oldQuery}â†’{server.QueryPort}" : "") +
-                           (oldRcon  > 0 ? $", rcon {oldRcon}â†’{server.RconPort}"   : ""),
+                    Text = $"[WGS] Ports in use — automatically reassigned: game {oldGame}→{server.ServerPort}" +
+                           (oldQuery > 0 ? $", query {oldQuery}→{server.QueryPort}" : "") +
+                           (oldRcon  > 0 ? $", rcon {oldRcon}→{server.RconPort}"   : ""),
                     Type = ConsoleMessageType.Warning
                 };
                 inst0.AddToLog(msg);
@@ -377,22 +388,23 @@ public class ServerManagerService
         }
 
         var native = plugin.UseNativeConsole;
+        var redirect = !native && !HasOwnHiddenConsole(plugin);
         var psi = new ProcessStartInfo
         {
             FileName               = exe,
             Arguments              = args,
             WorkingDirectory       = exeDir,
             UseShellExecute        = false,
-            RedirectStandardOutput = !native,
-            RedirectStandardError  = !native,
-            RedirectStandardInput  = !native,
+            RedirectStandardOutput = redirect,
+            RedirectStandardError  = redirect,
+            RedirectStandardInput  = redirect,
             CreateNoWindow         = !native,
             // WindowStyle.Hidden sets STARTF_USESHOWWINDOW|SW_HIDE in STARTUPINFO.
             // This propagates to AllocConsole() AND to Windows Terminal so the tab
             // is created hidden rather than stealing focus.
             WindowStyle            = native ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-            StandardOutputEncoding = native ? null : System.Text.Encoding.UTF8,
-            StandardErrorEncoding  = native ? null : System.Text.Encoding.UTF8,
+            StandardOutputEncoding = redirect ? System.Text.Encoding.UTF8 : null,
+            StandardErrorEncoding  = redirect ? System.Text.Encoding.UTF8 : null,
         };
 
         // Steam environment variables â€” skip if plugin explicitly set SteamClientAppId = 0
@@ -557,8 +569,11 @@ public class ServerManagerService
 
         if (!native)
         {
-            proc.BeginOutputReadLine();
-            proc.BeginErrorReadLine();
+            if (redirect)
+            {
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
+            }
 
             // Output is captured in WGS â€” hide any window the process creates.
             // CreateNoWindow only suppresses the console host; some servers (e.g. Rust)
@@ -571,7 +586,7 @@ public class ServerManagerService
             if (plugin is IConsoleLogPlugin logPlugin)
             {
                 var (folder, pattern) = logPlugin.GetConsoleLog(server);
-                _ = FollowLogFileAsync(proc, folder, pattern, startedUtc, () => stdoutSeen, line =>
+                _ = FollowLogFileAsync(proc, folder, pattern, f => logPlugin.IsRunLog(f, startedUtc), () => stdoutSeen, line =>
                 {
                     if (logPlugin.FormatLogLine(line) is { } text) AddLog(text, DetectType(text));
                 });
@@ -628,7 +643,7 @@ public class ServerManagerService
     }
 
     /// <summary>Follows the newest log file the run creates, line by line, until the process has exited.</summary>
-    private static async Task FollowLogFileAsync(Process proc, string folder, string pattern, DateTime startedUtc,
+    private static async Task FollowLogFileAsync(Process proc, string folder, string pattern, Func<FileInfo, bool> isRunLog,
         Func<bool> notNeeded, Action<string> onLine)
     {
         try
@@ -640,7 +655,7 @@ public class ServerManagerService
                 await Task.Delay(500);
                 if (Directory.Exists(folder))
                     file = new DirectoryInfo(folder).GetFiles(pattern)
-                        .Where(f => f.CreationTimeUtc >= startedUtc.AddSeconds(-2))
+                        .Where(isRunLog)
                         .OrderByDescending(f => f.CreationTimeUtc).FirstOrDefault();
             }
 
@@ -697,7 +712,7 @@ public class ServerManagerService
 
         // Native-console games don't redirect stdin — StandardInput is null and must not be written to
         var nativeConsole = plugin?.UseNativeConsole == true;
-        if (stopCmd != null && !nativeConsole && inst.Process?.HasExited == false)
+        if (stopCmd != null && !nativeConsole && !HasOwnHiddenConsole(plugin) && inst.Process?.HasExited == false)
         {
             try { await inst.Process.StandardInput.WriteLineAsync(stopCmd); }
             catch { }
@@ -764,7 +779,7 @@ public class ServerManagerService
     /// server may not have RCON enabled/reachable at all — not fatal, just skip it). Shared by the
     /// optional per-server "save before stop" command and plugins' <see cref="IGamePlugin.GetRconStopCommand"/>.
     /// postDelaySeconds only applies after the last command.</summary>
-    private static async Task TrySendRconCommandAsync(GameServer server, IGamePlugin plugin, string[] commands, int postDelaySeconds = 0)
+    private static async Task<bool> TrySendRconCommandAsync(GameServer server, IGamePlugin plugin, string[] commands, int postDelaySeconds = 0)
     {
         var protocol = plugin.EngineFamily switch
         {
@@ -784,7 +799,7 @@ public class ServerManagerService
         try
         {
             var ok = await rcon.ConnectAsync(ip, port, plugin.GetRconPassword(server));
-            if (!ok) return;
+            if (!ok) return false;
             for (var i = 0; i < commands.Length; i++)
             {
                 await rcon.SendCommandAsync(commands[i]);
@@ -795,8 +810,9 @@ public class ServerManagerService
             }
             if (postDelaySeconds > 0)
                 await Task.Delay(postDelaySeconds * 1000);
+            return true;
         }
-        catch { /* best-effort — a failed RCON command shouldn't block stopping the server */ }
+        catch { return false; /* best-effort — a failed RCON command shouldn't block stopping the server */ }
     }
 
     /// <summary>
@@ -893,9 +909,17 @@ public class ServerManagerService
             }
         }
 
+        if (HasOwnHiddenConsole(plugin))
+        {
+            InjectLogLine(serverId, "[WGS] This server does not accept console commands.", ConsoleMessageType.Warning);
+            return;
+        }
+
         if (plugin?.UseNativeConsole != true && inst.Process != null)
             await inst.Process.StandardInput.WriteLineAsync(command);
     }
+
+    private static bool HasOwnHiddenConsole(IGamePlugin? plugin) => plugin is IConsoleLogPlugin { OwnHiddenConsole: true };
 
     public void SendCommand(string serverId, string command)
         => _ = SendCommandAsync(serverId, command);
@@ -986,22 +1010,36 @@ public class ServerManagerService
 
     /// <summary>
     /// Sends a broadcast message to in-game players via the game's console/RCON/REST
-    /// broadcast command, if supported. No-ops silently for games with no known way to
-    /// broadcast (most plugins' GetBroadcastCommand returns null in that case).
+    /// broadcast command, if supported. Returns false when it could not be sent; games with no
+    /// known way to broadcast (GetBroadcastCommand returns null) are skipped silently.
     /// </summary>
-    public async Task WarnPlayersAsync(GameServer server, string message)
+    public async Task<bool> WarnPlayersAsync(GameServer server, string message)
     {
         var plugin = GameRegistry.Get(server.GameId);
         var cmd = plugin?.GetBroadcastCommand(message);
-        if (cmd == null) return;
-        try { await SendCommandAsync(server.Id, cmd); } catch { }
+        if (plugin == null || cmd == null || !_running.TryGetValue(server.Id, out var inst)) return false;
 
-        if (_running.TryGetValue(server.Id, out var inst))
+        var sent = false;
+        // Native-console servers have no redirected stdin and ARK does not read it, so these can only be reached
+        // over RCON. Everything else keeps using the console/REST route.
+        if (plugin is not IRestCommandPlugin && (plugin.UseNativeConsole || plugin.EngineFamily == ArkRcon.Family))
         {
-            var msg = new ConsoleMessage { Text = $"[WGS] {message}", Type = ConsoleMessageType.Warning };
-            inst.AddToLog(msg);
-            LogReceived?.Invoke(server.Id, msg);
+            if (plugin.HasRcon && !string.IsNullOrEmpty(plugin.GetRconPassword(server)))
+                sent = await TrySendRconCommandAsync(server, plugin, [cmd]);
         }
+        else
+        {
+            try { await SendCommandAsync(server.Id, cmd); sent = true; } catch { }
+        }
+
+        var msg = new ConsoleMessage
+        {
+            Text = sent ? $"[WGS] {message}" : $"[WGS] Could not send the in-game message (check that RCON is set up): {message}",
+            Type = ConsoleMessageType.Warning
+        };
+        inst.AddToLog(msg);
+        LogReceived?.Invoke(server.Id, msg);
+        return sent;
     }
 
     private async Task RunDailyRestartAsync(GameServer server, ServerInstance inst)

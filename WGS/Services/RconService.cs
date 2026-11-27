@@ -74,6 +74,13 @@ public class RconService : IDisposable
             // AUTH packet
             await SendPacketAsync(3, password);
             var resp = await ReadPacketAsync().WaitAsync(TimeSpan.FromSeconds(8));
+            // Source servers send an empty response packet (type 0) first and the real auth result (type 2, id -1
+            // when the password is wrong) right after it. Others send only the auth result.
+            if (resp.type == 0)
+            {
+                for (var i = 0; i < 40 && !_stream.DataAvailable; i++) await Task.Delay(50);
+                if (_stream.DataAvailable) resp = await ReadPacketAsync().WaitAsync(TimeSpan.FromSeconds(8));
+            }
             _authenticated = resp.id != -1;
             return _authenticated;
         }
@@ -435,23 +442,22 @@ public class RconService : IDisposable
         await _stream!.WriteAsync(packet);
     }
 
-    private async Task<(int id, string body)> ReadPacketAsync()
+    private async Task<(int id, int type, string body)> ReadPacketAsync()
     {
         var header = new byte[12];
         await ReadExactAsync(header, 12);
         var size = Read32(header, 0);
         var id   = Read32(header, 4);
-        // type = Read32(header, 8) - not needed
-        var bodyLen = size - 4 - 4 - 2;
-        if (bodyLen <= 0) return (id, string.Empty);
+        var type = Read32(header, 8);
 
-        var body = new byte[bodyLen];
-        await ReadExactAsync(body, bodyLen);
-        // skip 2 null terminators
-        var tail = new byte[2];
-        await ReadExactAsync(tail, 2);
+        // The rest of the packet is the body plus two null terminators. They must be consumed even when the body
+        // is empty, otherwise every later packet is read two bytes off.
+        var rest = size - 4 - 4;
+        if (rest < 0 || rest > 1 << 20) throw new InvalidDataException($"Invalid RCON packet size {size}");
+        var data = new byte[rest];
+        await ReadExactAsync(data, rest);
 
-        return (id, Encoding.UTF8.GetString(body));
+        return (id, type, Encoding.UTF8.GetString(data, 0, Math.Max(0, rest - 2)));
     }
 
     private async Task ReadExactAsync(byte[] buf, int count)

@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.Compression;
 using Newtonsoft.Json;
+using WGS.Games;
 using WGS.Models;
 
 namespace WGS.Services;
@@ -39,6 +40,28 @@ public class BackupService
 
     private const string DeletedMarkerEntry = "__deleted.txt";
 
+    // Some games keep their saves in the Windows user profile instead of the install folder. Those files are stored
+    // under this prefix and restored to the profile of whoever runs the restore, i.e. the account that runs the server.
+    private const string LocalAppDataPrefix = "__localappdata__";
+    private static string LocalAppData => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+    private static bool IsUnder(string file, string folder) =>
+        folder.Length > 0 && Path.GetFullPath(file).StartsWith(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsLocalAppDataEntry(string entry) =>
+        entry.StartsWith(LocalAppDataPrefix + "\\", StringComparison.Ordinal) || entry.StartsWith(LocalAppDataPrefix + "/", StringComparison.Ordinal);
+
+    private static string ToEntryName(GameServer server, string file) =>
+        !IsUnder(file, server.InstallPath) && IsUnder(file, LocalAppData)
+            ? Path.Combine(LocalAppDataPrefix, Path.GetRelativePath(LocalAppData, file))
+            : Path.GetRelativePath(server.InstallPath, file);
+
+    private static string ToFullPath(GameServer server, string entry) =>
+        IsLocalAppDataEntry(entry)
+            ? Path.Combine(LocalAppData, entry[(LocalAppDataPrefix.Length + 1)..])
+            : Path.Combine(server.InstallPath, entry);
+
     public async Task<BackupEntry> CreateBackupAsync(GameServer server)
     {
         if (!Directory.Exists(server.InstallPath))
@@ -55,7 +78,7 @@ public class BackupService
         var current = new Dictionary<string, FileState>();
         foreach (var file in ResolveBackupFiles(server))
         {
-            var rel = Path.GetRelativePath(server.InstallPath, file);
+            var rel = ToEntryName(server, file);
             var fi  = new FileInfo(file);
             current[rel] = new FileState(rel, fi.Length, fi.LastWriteTimeUtc.Ticks);
         }
@@ -77,6 +100,14 @@ public class BackupService
         if (!makeFull && previous != null)
             prevFiles = LoadSidecar(previous.FilePath)?.Files.ToDictionary(f => f.RelPath) ?? new();
 
+        // The first backup that reaches outside the install folder starts a new chain: continuing an older one would
+        // list everything that is no longer backed up as "deleted", and a restore would then remove those files.
+        if (!makeFull && current.Keys.Any(IsLocalAppDataEntry) && !prevFiles.Keys.Any(IsLocalAppDataEntry))
+        {
+            makeFull = true;
+            prevFiles = new();
+        }
+
         var toInclude = makeFull
             ? current.Keys.ToList()
             : current.Where(kv => !prevFiles.TryGetValue(kv.Key, out var old)
@@ -91,7 +122,7 @@ public class BackupService
                 using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
                 foreach (var rel in toInclude)
                 {
-                    var full = Path.Combine(server.InstallPath, rel);
+                    var full = ToFullPath(server, rel);
                     if (File.Exists(full)) zip.CreateEntryFromFile(full, rel, CompressionLevel.Optimal);
                 }
                 if (deleted.Count > 0)
@@ -189,6 +220,14 @@ public class BackupService
 
         await Task.Run(() =>
         {
+            var restored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // Satisfactory: nothing of the current saves is lost by a restore, replaced files are kept aside
+            var aside = server.GameId == "satisfactory" ? SatisfactoryPlugin.NewReplacedSavesFolder() : null;
+            void KeepCurrent(string path)
+            {
+                if (aside != null && !restored.Contains(Path.GetFullPath(path)))
+                    SatisfactoryPlugin.KeepReplacedSave(path, aside);
+            }
             foreach (var entry in chain)
             {
                 using var zip = ZipFile.OpenRead(entry.FilePath);
@@ -205,18 +244,24 @@ public class BackupService
                         continue;
                     }
 
-                    var dest = Path.Combine(server.InstallPath, zipEntry.FullName);
+                    var dest = ToFullPath(server, zipEntry.FullName);
                     var destDir = Path.GetDirectoryName(dest);
                     if (!string.IsNullOrEmpty(destDir)) Directory.CreateDirectory(destDir);
+                    KeepCurrent(dest);
                     zipEntry.ExtractToFile(dest, overwrite: true);
+                    restored.Add(Path.GetFullPath(dest));
                 }
 
                 foreach (var rel in deletedList)
                 {
-                    try { var p = Path.Combine(server.InstallPath, rel); if (File.Exists(p)) File.Delete(p); }
+                    try { var p = ToFullPath(server, rel); KeepCurrent(p); restored.Remove(Path.GetFullPath(p)); if (File.Exists(p)) File.Delete(p); }
                     catch { }
                 }
             }
+
+            // Satisfactory loads the newest save of a world, so saves made after the backup must be moved out of the way.
+            if (aside != null)
+                SatisfactoryPlugin.SetAsideOtherSaves(restored, aside);
         });
     }
 
@@ -348,7 +393,12 @@ public class BackupService
             "dayz"             => [Path.Combine(server.InstallPath, "mpmissions")],
             "vrising"          => [Path.Combine(server.InstallPath, "VRisingServer_Data", "StreamingAssets", "Settings"),
                                    Path.Combine(server.InstallPath, "save-data")],
-            "satisfactory"     => [Path.Combine(server.InstallPath, "FactoryGame", "Saved")],
+            // Worlds are in the user profile, not in the install folder. Only the server's own folders: SaveGames also
+            // holds the saves of someone who plays the game on this PC.
+            "satisfactory"     => [Path.Combine(SatisfactoryPlugin.SaveGamesPath, "server"),
+                                   Path.Combine(SatisfactoryPlugin.SaveGamesPath, "blueprints"),
+                                   Path.Combine(SatisfactoryPlugin.SaveGamesPath, $"ServerSettings.{server.ServerPort}.sav"),
+                                   Path.Combine(server.InstallPath, "FactoryGame", "Saved", "Config", "WindowsServer")],
             "zomboid"          => [Path.Combine(server.InstallPath, "Saves")],
             "terraria"         => [Path.Combine(server.InstallPath, "Worlds")],
             _                  => [server.InstallPath],
